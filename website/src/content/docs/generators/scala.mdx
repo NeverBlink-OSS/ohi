@@ -23,3 +23,24 @@ A class extends the abstract classes and traits of its parent classes and mixins
 - The `def` of an inlined class gives the class's trait or abstract class, not its case class, so that a subclass can narrow the range to a subclass.
 
 See [Slots changed by a class](/docs/slot-usage-inheritance/#slots-changed-by-a-class).
+
+## Whole documents
+
+If the tree root has a `tree_root_as` other than `plain`, a document isn't one object. The
+output then also has a type for the whole document, named after the tree root:
+
+| `tree_root_as`                 | Document type                                  |
+|--------------------------------|------------------------------------------------|
+| `optional`                     | `type SomeClassDocument = Option[SomeClass]`   |
+| `list`                         | `type SomeClassDocument = Seq[SomeClass]`      |
+| `compact_dict`, `simple_dict`  | `type SomeClassDocument = Map[String, SomeClass]` |
+
+It uses the class that holds the instances, such as `SomeClassImpl` when the tree root has an
+interface. Read a document with one codec:
+
+```scala
+val codec = LinkmlYamlCodec.derived[SomeClassDocument]
+val document = codec.decode(parseYaml(text).toOption.get)
+```
+
+In the dict forms, the codec takes the `key` of each object from its dict key.
