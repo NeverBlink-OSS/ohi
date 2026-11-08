@@ -305,9 +305,9 @@ final case class JavaOptions(
     @Recurse
     generator: JavaCliOptions = JavaCliOptions(),
     @HelpMessage(
-      "Before writing, delete the .java files in the --to directory that start with the " +
-        "generated code header, so that classes no longer in the model do not linger. " +
-        "Other files are kept. Default: false",
+      "Before writing, delete the generated .java files in the --to directory (those that " +
+        "start with the generated code header), so that no file is left for a class that is " +
+        "no longer in the schema. Other files are kept. Default: false",
     )
     clean: Boolean = false,
 ) extends HasGenerateOptions

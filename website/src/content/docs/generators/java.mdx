@@ -64,7 +64,7 @@ lengths and cardinality are not checked, and neither are the members of a union.
 the data was validated with the [JSON Schema](/docs/generators/json-schema/) first, or comes from
 code you trust.
 
-With `--strict`, each class and rejects a value of the
+With `--strict`, each class checks the JSON it is loaded from and rejects a value of the
 wrong JSON type, an explicit `null` for a required slot, and data that breaks a constraint of the
 schema, the same as the JSON Schema would. The classes are the same, only how they load differs.
 
