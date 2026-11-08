@@ -126,7 +126,7 @@ object OwlGenerator {
       // sets is never declared (LNK-236).
       sv.schemas.foreach(_.slotDefinitions.keys.foreach { name =>
         val s = sv.slotDefinitions(name)
-        if (included(s) && !s.slot.identifier) addSlot(s)
+        if (included(s)) addSlot(s)
       })
       includedClasses.foreach(c => if (!c.isAny) addAttributes(c))
       sv.schemas.foreach(_.enums.keys.foreach { name =>
@@ -393,9 +393,7 @@ object OwlGenerator {
       cv.cls.uniqueKeys.values.foreach { key =>
         val b = Seq.newBuilder[String]
         key.uniqueKeySlots.foreach { s =>
-          cv.derivedAttributes.get(s.value).foreachFast { a =>
-            if (!a.slot.identifier) b.addOne(a.uriStr)
-          }
+          cv.derivedAttributes.get(s.value).foreachFast(a => b.addOne(a.uriStr))
         }
         val properties = b.result()
         if (properties.nonEmpty) add(HasKey(self, properties))
@@ -422,90 +420,91 @@ object OwlGenerator {
       names.addAll(cv.cls.attributes.keys).addAll(cv.cls.slotUsage.keys)
     }
 
-    private def restrictions(cv: ClassView, s: SlotView): Seq[ClassExpr] =
-      if (s.slot.identifier) Nil
-      else {
-        val name = s.slot.name
-        val usage = cv.cls.slotUsage.get(name)
-        val sources = definitionsOf(name, Some(cv))
+    private def restrictions(cv: ClassView, s: SlotView): Seq[ClassExpr] = {
+      val name = s.slot.name
+      val usage = cv.cls.slotUsage.get(name)
+      val sources = definitionsOf(name, Some(cv))
 
-        def first[A](f: SlotDefinition => Option[A]): Option[A] =
-          sources.iterator.flatMap(f).nextOption()
+      def first[A](f: SlotDefinition => Option[A]): Option[A] =
+        sources.iterator.flatMap(f).nextOption()
 
-        def any(f: SlotDefinition => Boolean): Boolean = sources.exists(f)
+      def any(f: SlotDefinition => Boolean): Boolean = sources.exists(f)
 
-        val kind = kindOf(s)
-        // Annotation properties only get the restrictions the schema states explicitly.
-        val annotation = kind == EntityKind.AnnotationProperty
-        val p = PropertyRef(s.uriStr)
-        val stated = Seq.newBuilder[ClassExpr]
-        // With `slot_usage` on an inherited slot, state the range only if it is narrowed. For a
-        // slot from an imported schema, the importer can't tell a repeated range from a new one.
-        val declares = cv.cls.slots.exists(_.value == name) || cv.cls.attributes.contains(name)
-        val narrows = usage.foldFast(false)(u => u.range.isDefined || u.anyOf.nonEmpty)
-        val range =
-          if (annotation) {
-            usage.flatMapFast(_.range).flatMapFast(r => sv.getElement(r.value))
-              .flatMapFast(rangeOfElement(_, s.slot))
-          } else if (declares || narrows) nearestRange(s, sources)
-          else None
-        range.foreachFast(r => stated.addOne(ClassExpr.AllValuesFrom(p, r)))
-        val exact = first(_.exactCardinality)
-        val min = exact.orElseFast(first(_.minimumCardinality))
-          .orElseFast(if (any(d => d.required || d.key)) Some(1) else None)
-        // A subclass inherits this limit, so a `slot_usage` there that makes the slot multivalued
-        // has no effect (LNK-238).
-        val max = exact.orElseFast(first(_.maximumCardinality))
-          .orElseFast(if (!annotation && !any(_.multivalued) && !isText(s)) Some(1) else None)
-        // OWL 2 DL allows no cardinality on a non-simple property, so a required value becomes
-        // `someValuesFrom`.
-        if (nonSimple(s.uriStr)) {
-          if (min.foldFast(false)(_ > 0)) {
-            stated.addOne(ClassExpr.SomeValuesFrom(p, ClassExpr.Thing))
-          }
-        } else if (min.isDefined && min == max) {
-          min.foreachFast(m => stated.addOne(ClassExpr.Cardinality(ClassExpr.Bound.Exact, m, p)))
-        } else {
-          min.foreachFast { m =>
-            if (m > 0) stated.addOne(ClassExpr.Cardinality(ClassExpr.Bound.Min, m, p))
-          }
-          max.foreachFast(m => stated.addOne(ClassExpr.Cardinality(ClassExpr.Bound.Max, m, p)))
-          // A single-valued `langstring` slot holds at most one plain string. OWL can't say that
-          // it holds at most one text per language. The importer reads this back as single-valued.
-          if (max.isEmpty && !annotation && !any(_.multivalued) && isText(s)) {
-            stated.addOne(
-              ClassExpr.Cardinality(
-                ClassExpr.Bound.Max,
-                1,
-                p,
-                Some(DataRange.Datatype(XmlSchema.string.value)),
-              ),
-            )
-          }
+      val kind = kindOf(s)
+      // Annotation properties only get the restrictions the schema states explicitly.
+      val annotation = kind == EntityKind.AnnotationProperty
+      val p = PropertyRef(s.uriStr)
+      val stated = Seq.newBuilder[ClassExpr]
+      // With `slot_usage` on an inherited slot, state the range only if it is narrowed. For a
+      // slot from an imported schema, the importer can't tell a repeated range from a new one.
+      val declares = cv.cls.slots.exists(_.value == name) || cv.cls.attributes.contains(name)
+      val narrows = usage.foldFast(false)(u => u.range.isDefined || u.anyOf.nonEmpty)
+      val range =
+        if (annotation) {
+          usage.flatMapFast(_.range).flatMapFast(r => sv.getElement(r.value))
+            .flatMapFast(rangeOfElement(_, s.slot))
+        } else if (declares || narrows) nearestRange(s, sources)
+        else None
+      range.foreachFast(r => stated.addOne(ClassExpr.AllValuesFrom(p, r)))
+      // An IRI identifier is the node's IRI, so stating it as a property is optional.
+      val iriIdentifier = s.slot.identifier && cv.subjectType.foldFast(false)(_.isIri)
+      val exact = first(_.exactCardinality)
+      val min = exact.orElseFast(first(_.minimumCardinality)).orElseFast(
+        if (!iriIdentifier && any(d => d.required || d.key || d.identifier)) Some(1) else None,
+      )
+      // A subclass inherits this limit, so a `slot_usage` there that makes the slot multivalued
+      // has no effect (LNK-238).
+      val max = exact.orElseFast(first(_.maximumCardinality))
+        .orElseFast(if (!annotation && !any(_.multivalued) && !isText(s)) Some(1) else None)
+      // OWL 2 DL allows no cardinality on a non-simple property, so a required value becomes
+      // `someValuesFrom`.
+      if (nonSimple(s.uriStr)) {
+        if (min.foldFast(false)(_ > 0)) {
+          stated.addOne(ClassExpr.SomeValuesFrom(p, ClassExpr.Thing))
         }
-        first(_.equalsString).flatMapFast(valueOf(s, _))
-          .orElseFast(first(_.equalsNumber).mapFast(n => Literal(n.toString, XmlSchema.integer)))
-          .foreachFast(v => stated.addOne(ClassExpr.HasValue(p, v)))
-
-        // `has_member`, plus any under `all_of`. The importer writes a class that needs values of
-        // several kinds that way.
-        def addMember(m: AnonymousSlotExpression): Unit =
-          expressionRange(s, m).foreachFast(r => stated.addOne(ClassExpr.SomeValuesFrom(p, r)))
-
-        first(_.hasMember).foreachFast(addMember)
-        usage.foreachFast(_.allOf.foreach(_.hasMember.foreachFast(addMember)))
-        val result = stated.result()
-        // A class that uses a slot without constraining it still records the use, with a
-        // restriction that any value meets.
-        if (result.nonEmpty || annotation || !declares) result
-        else {
-          val anything = kind match {
-            case _: EntityKind.DataProperty.type => DataRange.Literal
-            case _ => ClassExpr.Thing
-          }
-          Seq(ClassExpr.AllValuesFrom(p, anything))
+      } else if (min.isDefined && min == max) {
+        min.foreachFast(m => stated.addOne(ClassExpr.Cardinality(ClassExpr.Bound.Exact, m, p)))
+      } else {
+        min.foreachFast { m =>
+          if (m > 0) stated.addOne(ClassExpr.Cardinality(ClassExpr.Bound.Min, m, p))
+        }
+        max.foreachFast(m => stated.addOne(ClassExpr.Cardinality(ClassExpr.Bound.Max, m, p)))
+        // A single-valued `langstring` slot holds at most one plain string. OWL can't say that
+        // it holds at most one text per language. The importer reads this back as single-valued.
+        if (max.isEmpty && !annotation && !any(_.multivalued) && isText(s)) {
+          stated.addOne(
+            ClassExpr.Cardinality(
+              ClassExpr.Bound.Max,
+              1,
+              p,
+              Some(DataRange.Datatype(XmlSchema.string.value)),
+            ),
+          )
         }
       }
+      first(_.equalsString).flatMapFast(valueOf(s, _))
+        .orElseFast(first(_.equalsNumber).mapFast(n => Literal(n.toString, XmlSchema.integer)))
+        .foreachFast(v => stated.addOne(ClassExpr.HasValue(p, v)))
+
+      // `has_member`, plus any under `all_of`. The importer writes a class that needs values of
+      // several kinds that way.
+      def addMember(m: AnonymousSlotExpression): Unit =
+        expressionRange(s, m).foreachFast(r => stated.addOne(ClassExpr.SomeValuesFrom(p, r)))
+
+      first(_.hasMember).foreachFast(addMember)
+      usage.foreachFast(_.allOf.foreach(_.hasMember.foreachFast(addMember)))
+      val result = stated.result()
+      // A class that uses a slot without constraining it still records the use, with a
+      // restriction that any value meets.
+      if (result.nonEmpty || annotation || !declares) result
+      else {
+        val anything = kind match {
+          case _: EntityKind.DataProperty.type => DataRange.Literal
+          case _ => ClassExpr.Thing
+        }
+        Seq(ClassExpr.AllValuesFrom(p, anything))
+      }
+    }
 
     /** The value that `equals_string` means for the slot's range.
       *
@@ -877,7 +876,7 @@ object OwlGenerator {
       cv.cls.attributes.foreach { (name, attribute) =>
         val derived = cv.derivedAttributes(name)
         val iri = derived.uriStr
-        if (!derived.slot.identifier && !declared(iri)) {
+        if (!declared(iri)) {
           val kind = kindOf(derived)
           add(Declaration(kind, iri))
           annotate(iri, attribute)
