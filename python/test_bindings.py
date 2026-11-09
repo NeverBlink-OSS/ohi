@@ -187,6 +187,15 @@ class FromOssieTest(unittest.TestCase):
         self.assertIn("Airport:", schema)
         self.assertIn("identifier: true", schema)
 
+    def test_lists_what_could_not_be_imported(self):
+        ontology = self.ONTOLOGY + "\n    requires: ['NOT (Airport.code)']"
+        result = ohi_linkml.from_ossie(ontology)
+        self.assertEqual(
+            ["Expression that cannot be read (1): Airport: NOT (Airport.code)"],
+            result["warnings"],
+        )
+        self.assertIn("Airport:", result["schema"])
+
     def test_writes_json_when_asked(self):
         schema = json.loads(ohi_linkml.from_ossie(self.ONTOLOGY, format="json")["schema"])
         self.assertEqual("flights", schema["name"])
