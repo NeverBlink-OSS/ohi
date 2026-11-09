@@ -120,7 +120,7 @@ final case class OssieOntology(
 )
 
 object OssieOntology {
-  val specVersion = "0.2.0.dev0"
+  val specVersion = "0.3.0.dev0"
 
   private given nodeCodec: LinkmlYamlCodec[Node] = new LinkmlYamlCodec[Node] {
     override def decode(node: Node, id: Option[Any], prefixes: PrefixMap): Node = node

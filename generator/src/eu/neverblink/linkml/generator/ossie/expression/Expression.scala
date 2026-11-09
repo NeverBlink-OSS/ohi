@@ -5,9 +5,10 @@ import fastparse.NoWhitespace.given
 
 /** One expression of the SQL-like expression language used in the Ossie ontology specification.
   *
-  * This is a model of a subset of the language, as supported in ohi LinkML. As of Ossie 0.2.0 the
-  * language has no formal grounding, so this is rough in places. We will try to make it more robust
-  * when the language is better defined.
+  * This is a model of a subset of the language, as supported in ohi LinkML. As of Ossie 0.3.0 the
+  * language has no formal grounding for ontologies (`core-spec/expression_language.md` covers the
+  * logical layer only), so this is rough in places. We will try to make it more robust when the
+  * language is better defined.
   *
   * Keywords are read in any case, as in SQL. The importer warns about expressions it cannot read,
   * or those that we don't support yet.

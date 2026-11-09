@@ -165,7 +165,7 @@ class FromOwlTest(unittest.TestCase):
 class FromOssieTest(unittest.TestCase):
     ONTOLOGY = textwrap.dedent(
         """
-        version: 0.2.0.dev0
+        version: 0.3.0.dev0
         name: flights
         ontology:
           - concept: Airport
@@ -608,9 +608,9 @@ class GeneratorTest(unittest.TestCase):
         self.assertIn("concept: Person", generated)
         self.assertIn("type: EntityType", generated)
         # YAML by default, and the version the Ossie ontology spec pins.
-        self.assertIn("version: 0.2.0.dev0", generated)
+        self.assertIn("version: 0.3.0.dev0", generated)
         as_json = json.loads(self.schema.ossie(format="json"))
-        self.assertEqual("0.2.0.dev0", as_json["version"])
+        self.assertEqual("0.3.0.dev0", as_json["version"])
         self.assertIn("Person", [c["concept"] for c in as_json["ontology"]])
 
     def test_ossie_unknown_output_format_is_rejected(self):
