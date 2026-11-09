@@ -37,157 +37,227 @@ private[owl] final class OwlAxiomIndex(val axioms: Seq[Axiom]) {
     (kinds ne null) && (kinds.elem & (1 << kind.ordinal)) != 0
   }
 
+  // Each index below is filled while the axioms are read and is private, so only this class can
+  // change it. The importer reads it through a method with the same name minus `Index`, which
+  // returns it as a read-only type.
+
+  private val annotationsOfIndex = mutable.HashMap.empty[String, mutable.ArrayBuffer[Annotation]]
+
   /** Annotations by subject. All of them are marked as handled here, and the importer reports the
     * ones it can't use itself.
     */
-  val annotationsOf = mutable.HashMap.empty[String, mutable.ArrayBuffer[Annotation]]
+  def annotationsOf: Entries[Annotation] = annotationsOfIndex
 
-  /** The superclasses of each named class. */
-  val subClassOf =
+  private val subClassOfIndex =
     mutable.HashMap.empty[String, mutable.ArrayBuffer[(axiom: SubClassOf, sup: ClassExpr)]]
 
-  /** Maps the first named class in each equivalence to the other operands. */
-  val equivalents = mutable.HashMap
+  /** The superclasses of each named class. */
+  def subClassOf: Entries[(axiom: SubClassOf, sup: ClassExpr)] = subClassOfIndex
+
+  private val equivalentsIndex = mutable.HashMap
     .empty[String, mutable.ArrayBuffer[(axiom: EquivalentClasses, other: ClassExpr)]]
 
-  val domains =
+  /** Maps the first named class in each equivalence to the other operands. */
+  def equivalents: Entries[(axiom: EquivalentClasses, other: ClassExpr)] = equivalentsIndex
+
+  private val domainsIndex =
     mutable.HashMap.empty[String, mutable.ArrayBuffer[(axiom: Domain, domain: ClassExpr)]]
 
-  val ranges = mutable.HashMap.empty[String, mutable.ArrayBuffer[(axiom: Range, range: Filler)]]
+  /** The domains of each property. */
+  def domains: Entries[(axiom: Domain, domain: ClassExpr)] = domainsIndex
 
-  val characteristicsOf = mutable.HashMap.empty[String, mutable.ArrayBuffer[Characteristic]]
+  private val rangesIndex =
+    mutable.HashMap.empty[String, mutable.ArrayBuffer[(axiom: Range, range: Filler)]]
 
+  /** The ranges of each property. */
+  def ranges: Entries[(axiom: Range, range: Filler)] = rangesIndex
+
+  private val characteristicsOfIndex =
+    mutable.HashMap.empty[String, mutable.ArrayBuffer[Characteristic]]
+
+  /** The characteristic axioms of each property. */
+  def characteristicsOf: Entries[Characteristic] = characteristicsOfIndex
+
+  /** Whether the property is declared functional. */
   def isFunctional(property: String): Boolean = {
-    val characteristics = characteristicsOf.getOrElse(property, null)
+    val characteristics = characteristicsOfIndex.getOrElse(property, null)
     (characteristics ne null) &&
     characteristics.exists(_.characteristic == PropertyCharacteristic.Functional)
   }
 
-  val classAssertions = mutable.ArrayBuffer.empty[ClassAssertion]
+  private val classAssertionsIndex = mutable.ArrayBuffer.empty[ClassAssertion]
 
-  val assertionsByIndividual = mutable.HashMap.empty[String, mutable.ArrayBuffer[ClassAssertion]]
+  /** All class assertions, in order. */
+  def classAssertions: collection.IndexedSeq[ClassAssertion] = classAssertionsIndex
 
-  val datatypeDefinitions = mutable.HashMap.empty[String, DatatypeDefinition]
+  private val assertionsByIndividualIndex =
+    mutable.HashMap.empty[String, mutable.ArrayBuffer[ClassAssertion]]
+
+  /** The class assertions of each individual. */
+  def assertionsByIndividual: Entries[ClassAssertion] = assertionsByIndividualIndex
+
+  private val datatypeDefinitionsIndex = mutable.HashMap.empty[String, DatatypeDefinition]
+
+  /** The definition of each datatype that has one. */
+  def datatypeDefinitions: collection.Map[String, DatatypeDefinition] = datatypeDefinitionsIndex
+
+  private val namedSubclassesIndex = mutable.HashSet.empty[String]
 
   /** Classes that have a named subclass. */
-  val namedSubclasses = mutable.HashSet.empty[String]
+  def namedSubclasses: collection.Set[String] = namedSubclassesIndex
+
+  private val inEquivalenceIndex = mutable.HashSet.empty[String]
 
   /** Classes that are an operand of an equivalence. */
-  val inEquivalence = mutable.HashSet.empty[String]
+  def inEquivalence: collection.Set[String] = inEquivalenceIndex
+
+  private val inExpressionEquivalenceIndex = mutable.HashSet.empty[String]
 
   /** Classes that are an operand of an equivalence with an operand that is not a named class. */
-  val inExpressionEquivalence = mutable.HashSet.empty[String]
+  def inExpressionEquivalence: collection.Set[String] = inExpressionEquivalenceIndex
+
+  private val domainClassesIndex = mutable.HashSet.empty[String]
 
   /** Classes that appear anywhere in the domain of some property, nested ones included. */
-  val domainClasses = mutable.HashSet.empty[String]
+  def domainClasses: collection.Set[String] = domainClassesIndex
 
-  val superProperties =
+  private val superPropertiesIndex =
     mutable.HashMap.empty[String, mutable.ArrayBuffer[(axiom: SubPropertyOf, sup: String)]]
 
-  val chains = mutable.HashMap.empty[String, mutable.ArrayBuffer[PropertyChain]]
+  /** The super properties of each property. */
+  def superProperties: Entries[(axiom: SubPropertyOf, sup: String)] = superPropertiesIndex
 
-  /** Maps the first property in each equivalence to the others. */
-  val equivalentProperties = mutable.HashMap
+  private val chainsIndex = mutable.HashMap.empty[String, mutable.ArrayBuffer[PropertyChain]]
+
+  /** The property chains of each super property. */
+  def chains: Entries[PropertyChain] = chainsIndex
+
+  private val equivalentPropertiesIndex = mutable.HashMap
     .empty[String, mutable.ArrayBuffer[(axiom: EquivalentProperties, other: String)]]
 
-  val inverses = mutable.ArrayBuffer.empty[InverseProperties]
+  /** Maps the first property in each equivalence to the others. */
+  def equivalentProperties: Entries[(axiom: EquivalentProperties, other: String)] =
+    equivalentPropertiesIndex
+
+  private val inversesIndex = mutable.ArrayBuffer.empty[InverseProperties]
+
+  /** All inverse property axioms, in order. */
+  def inverses: collection.IndexedSeq[InverseProperties] = inversesIndex
+
+  private val disjointByClassIndex =
+    mutable.HashMap.empty[String, mutable.ArrayBuffer[DisjointClasses]]
 
   /** The disjointness axioms of each named class in them. */
-  val disjointByClass = mutable.HashMap.empty[String, mutable.ArrayBuffer[DisjointClasses]]
+  def disjointByClass: Entries[DisjointClasses] = disjointByClassIndex
 
-  val disjointUnions = mutable.HashMap.empty[String, DisjointUnion]
+  private val disjointUnionsIndex = mutable.HashMap.empty[String, DisjointUnion]
 
-  val keysByClass = mutable.HashMap.empty[String, mutable.ArrayBuffer[HasKey]]
+  /** The disjoint union axiom of each class that has one. */
+  def disjointUnions: collection.Map[String, DisjointUnion] = disjointUnionsIndex
 
-  val declarationsByIri = mutable.HashMap.empty[String, mutable.ArrayBuffer[Declaration]]
+  private val keysByClassIndex = mutable.HashMap.empty[String, mutable.ArrayBuffer[HasKey]]
+
+  /** The key axioms of each named class. */
+  def keysByClass: Entries[HasKey] = keysByClassIndex
+
+  private val declarationsByIriIndex =
+    mutable.HashMap.empty[String, mutable.ArrayBuffer[Declaration]]
+
+  /** The declarations of each IRI. */
+  def declarationsByIri: Entries[Declaration] = declarationsByIriIndex
+
+  private val expressionsIndex = mutable.ArrayBuffer.empty[ClassExpr]
 
   /** Class expressions used directly in an axiom. Nested ones are not included. */
-  val expressions = mutable.ArrayBuffer.empty[ClassExpr]
+  def expressions: collection.IndexedSeq[ClassExpr] = expressionsIndex
 
   axioms.foreach {
     case a: Declaration =>
       declared.getOrElseUpdate(a.iri, IntRef.create(0)).elem |= 1 << a.kind.ordinal
-      add(declarationsByIri, a.iri, a)
-    case a: AnnotationAssertion => add(annotationsOf, a.subject, take(a).annotation)
+      add(declarationsByIriIndex, a.iri, a)
+    case a: AnnotationAssertion => add(annotationsOfIndex, a.subject, take(a).annotation)
     case a: SubClassOf =>
       a.sub match {
         case n: ClassExpr.Named =>
-          add(subClassOf, n.iri, (axiom = a, sup = a.sup))
+          add(subClassOfIndex, n.iri, (axiom = a, sup = a.sup))
           a.sup match {
-            case sup: ClassExpr.Named => namedSubclasses.addOne(sup.iri)
+            case sup: ClassExpr.Named => namedSubclassesIndex.addOne(sup.iri)
             case _ =>
           }
         case _ =>
       }
-      expressions.addOne(a.sub)
-      expressions.addOne(a.sup)
+      expressionsIndex.addOne(a.sub)
+      expressionsIndex.addOne(a.sup)
     case a: EquivalentClasses =>
       var first: ClassExpr.Named = null
       var allNamed = true
       a.operands.foreach {
         case n: ClassExpr.Named =>
           if (first eq null) first = n
-          inEquivalence.addOne(n.iri)
+          inEquivalenceIndex.addOne(n.iri)
         case _ => allNamed = false
       }
       if (!allNamed) {
         a.operands.foreach {
-          case n: ClassExpr.Named => inExpressionEquivalence.addOne(n.iri)
+          case n: ClassExpr.Named => inExpressionEquivalenceIndex.addOne(n.iri)
           case _ =>
         }
       }
       if (first ne null) {
         a.operands.foreach { other =>
-          if (other != first) add(equivalents, first.iri, (axiom = a, other = other))
+          if (other != first) add(equivalentsIndex, first.iri, (axiom = a, other = other))
         }
       }
-      expressions.addAll(a.operands)
+      expressionsIndex.addAll(a.operands)
     case a: DisjointClasses =>
       a.operands.foreach {
-        case n: ClassExpr.Named => add(disjointByClass, n.iri, a)
+        case n: ClassExpr.Named => add(disjointByClassIndex, n.iri, a)
         case _ =>
       }
-      expressions.addAll(a.operands)
+      expressionsIndex.addAll(a.operands)
     case a: DisjointUnion =>
-      disjointUnions.update(a.cls, a)
-      expressions.addOne(ClassExpr.Named(a.cls))
-      expressions.addAll(a.operands)
+      disjointUnionsIndex.update(a.cls, a)
+      expressionsIndex.addOne(ClassExpr.Named(a.cls))
+      expressionsIndex.addAll(a.operands)
     case a: Domain =>
-      add(domains, a.property, (axiom = a, domain = a.domain))
-      foreachClassIn(a.domain)(domainClasses.addOne)
-      expressions.addOne(a.domain)
+      add(domainsIndex, a.property, (axiom = a, domain = a.domain))
+      foreachClassIn(a.domain)(domainClassesIndex.addOne)
+      expressionsIndex.addOne(a.domain)
     case a: Range =>
-      add(ranges, a.property, (axiom = a, range = a.range))
+      add(rangesIndex, a.property, (axiom = a, range = a.range))
       a.range match {
-        case r: ClassExpr => expressions.addOne(r)
+        case r: ClassExpr => expressionsIndex.addOne(r)
         case _ =>
       }
     case a: HasKey =>
       a.cls match {
-        case n: ClassExpr.Named => add(keysByClass, n.iri, a)
+        case n: ClassExpr.Named => add(keysByClassIndex, n.iri, a)
         case _ =>
       }
-      expressions.addOne(a.cls)
+      expressionsIndex.addOne(a.cls)
     case a: ClassAssertion =>
-      classAssertions.addOne(a)
-      add(assertionsByIndividual, a.individual, a)
-      expressions.addOne(a.cls)
-    case a: Characteristic => add(characteristicsOf, a.property, a)
-    case a: DatatypeDefinition => datatypeDefinitions.update(a.datatype, a)
-    case a: SubPropertyOf => add(superProperties, a.sub, (axiom = a, sup = a.sup))
-    case a: PropertyChain => add(chains, a.sup, a)
+      classAssertionsIndex.addOne(a)
+      add(assertionsByIndividualIndex, a.individual, a)
+      expressionsIndex.addOne(a.cls)
+    case a: Characteristic => add(characteristicsOfIndex, a.property, a)
+    case a: DatatypeDefinition => datatypeDefinitionsIndex.update(a.datatype, a)
+    case a: SubPropertyOf => add(superPropertiesIndex, a.sub, (axiom = a, sup = a.sup))
+    case a: PropertyChain => add(chainsIndex, a.sup, a)
     case a: EquivalentProperties =>
       if (a.operands.nonEmpty) {
         val first = a.operands.head
         a.operands.iterator.drop(1)
-          .foreach(o => add(equivalentProperties, first, (axiom = a, other = o)))
+          .foreach(o => add(equivalentPropertiesIndex, first, (axiom = a, other = o)))
       }
-    case a: InverseProperties => inverses.addOne(a)
+    case a: InverseProperties => inversesIndex.addOne(a)
     case _ =>
   }
 }
 
 private[owl] object OwlAxiomIndex {
+
+  /** A read-only index from an IRI to the entries for it, in the order of the axioms. */
+  type Entries[A] = collection.Map[String, collection.IndexedSeq[A]]
 
   private def add[A](
       index: mutable.HashMap[String, mutable.ArrayBuffer[A]],

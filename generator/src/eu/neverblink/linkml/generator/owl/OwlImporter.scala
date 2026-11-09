@@ -341,7 +341,7 @@ object OwlImporter {
 
     /** Entries of an index, or an empty sequence if there are none. */
     private def entriesOf[A](
-        index: mutable.HashMap[String, mutable.ArrayBuffer[A]],
+        index: OwlAxiomIndex.Entries[A],
         key: String,
     ): collection.IndexedSeq[A] = {
       val entries = index.getOrElse(key, null)
