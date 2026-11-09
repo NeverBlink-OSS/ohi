@@ -424,12 +424,6 @@ object OwlGenerator {
       val name = s.slot.name
       val usage = cv.cls.slotUsage.get(name)
       val sources = definitionsOf(name, Some(cv))
-
-      def first[A](f: SlotDefinition => Option[A]): Option[A] =
-        sources.iterator.flatMap(f).nextOption()
-
-      def any(f: SlotDefinition => Boolean): Boolean = sources.exists(f)
-
       val kind = kindOf(s)
       // Annotation properties only get the restrictions the schema states explicitly.
       val annotation = kind == EntityKind.AnnotationProperty
@@ -446,16 +440,45 @@ object OwlGenerator {
         } else if (declares || narrows) nearestRange(s, sources)
         else None
       range.foreachFast(r => stated.addOne(ClassExpr.AllValuesFrom(p, r)))
+      cardinalities(cv, s, sources, annotation).foreach(stated.addOne)
+      requiredValues(s, usage, sources).foreach(stated.addOne)
+      val result = stated.result()
+      // A class that uses a slot without constraining it still records the use, with a
+      // restriction that any value meets.
+      if (result.nonEmpty || annotation || !declares) result
+      else {
+        val anything = kind match {
+          case _: EntityKind.DataProperty.type => DataRange.Literal
+          case _ => ClassExpr.Thing
+        }
+        Seq(ClassExpr.AllValuesFrom(p, anything))
+      }
+    }
+
+    /** The first value that one of [[sources]] sets. */
+    private def first[A](sources: Seq[SlotDefinition])(f: SlotDefinition => Option[A]): Option[A] =
+      sources.iterator.flatMap(f).nextOption()
+
+    private def cardinalities(
+        cv: ClassView,
+        s: SlotView,
+        sources: Seq[SlotDefinition],
+        annotation: Boolean,
+    ): Seq[ClassExpr] = {
+      val p = PropertyRef(s.uriStr)
+      val stated = Seq.newBuilder[ClassExpr]
       // An IRI identifier is the node's IRI, so stating it as a property is optional.
       val iriIdentifier = s.slot.identifier && cv.subjectType.foldFast(false)(_.isIri)
-      val exact = first(_.exactCardinality)
-      val min = exact.orElseFast(first(_.minimumCardinality)).orElseFast(
-        if (!iriIdentifier && any(d => d.required || d.key || d.identifier)) Some(1) else None,
+      val exact = first(sources)(_.exactCardinality)
+      val min = exact.orElseFast(first(sources)(_.minimumCardinality)).orElseFast(
+        if (!iriIdentifier && sources.exists(d => d.required || d.key || d.identifier)) Some(1)
+        else None,
       )
+      val single = !annotation && !sources.exists(_.multivalued)
       // A subclass inherits this limit, so a `slot_usage` there that makes the slot multivalued
       // has no effect (LNK-238).
-      val max = exact.orElseFast(first(_.maximumCardinality))
-        .orElseFast(if (!annotation && !any(_.multivalued) && !isText(s)) Some(1) else None)
+      val max = exact.orElseFast(first(sources)(_.maximumCardinality))
+        .orElseFast(if (single && !isText(s)) Some(1) else None)
       // OWL 2 DL allows no cardinality on a non-simple property, so a required value becomes
       // `someValuesFrom`.
       if (nonSimple(s.uriStr)) {
@@ -471,7 +494,7 @@ object OwlGenerator {
         max.foreachFast(m => stated.addOne(ClassExpr.Cardinality(ClassExpr.Bound.Max, m, p)))
         // A single-valued `langstring` slot holds at most one plain string. OWL can't say that
         // it holds at most one text per language. The importer reads this back as single-valued.
-        if (max.isEmpty && !annotation && !any(_.multivalued) && isText(s)) {
+        if (max.isEmpty && single && isText(s)) {
           stated.addOne(
             ClassExpr.Cardinality(
               ClassExpr.Bound.Max,
@@ -482,8 +505,21 @@ object OwlGenerator {
           )
         }
       }
-      first(_.equalsString).flatMapFast(valueOf(s, _))
-        .orElseFast(first(_.equalsNumber).mapFast(n => Literal(n.toString, XmlSchema.integer)))
+      stated.result()
+    }
+
+    /** `equals_string` or `equals_number`, and `has_member`. */
+    private def requiredValues(
+        s: SlotView,
+        usage: Option[SlotDefinition],
+        sources: Seq[SlotDefinition],
+    ): Seq[ClassExpr] = {
+      val p = PropertyRef(s.uriStr)
+      val stated = Seq.newBuilder[ClassExpr]
+      first(sources)(_.equalsString).flatMapFast(valueOf(s, _))
+        .orElseFast(
+          first(sources)(_.equalsNumber).mapFast(n => Literal(n.toString, XmlSchema.integer)),
+        )
         .foreachFast(v => stated.addOne(ClassExpr.HasValue(p, v)))
 
       // `has_member`, plus any under `all_of`. The importer writes a class that needs values of
@@ -491,19 +527,9 @@ object OwlGenerator {
       def addMember(m: AnonymousSlotExpression): Unit =
         expressionRange(s, m).foreachFast(r => stated.addOne(ClassExpr.SomeValuesFrom(p, r)))
 
-      first(_.hasMember).foreachFast(addMember)
+      first(sources)(_.hasMember).foreachFast(addMember)
       usage.foreachFast(_.allOf.foreach(_.hasMember.foreachFast(addMember)))
-      val result = stated.result()
-      // A class that uses a slot without constraining it still records the use, with a
-      // restriction that any value meets.
-      if (result.nonEmpty || annotation || !declares) result
-      else {
-        val anything = kind match {
-          case _: EntityKind.DataProperty.type => DataRange.Literal
-          case _ => ClassExpr.Thing
-        }
-        Seq(ClassExpr.AllValuesFrom(p, anything))
-      }
+      stated.result()
     }
 
     /** The value that `equals_string` means for the slot's range.
