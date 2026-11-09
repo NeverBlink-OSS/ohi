@@ -123,85 +123,85 @@ private[owl] final class OwlAnnotationReader(
       remaining: mutable.ArrayBuffer[Annotation],
   ): Metadata = {
     annotations.foreach(a => remaining.addOne(plainInLanguage(a)))
-    val n = remaining.length
-    // The annotations that were taken.
-    val used = new java.util.BitSet(n)
-    var metadata = Metadata.empty
-    val values = mutable.ArrayBuffer.empty[String | LocalizedText | UriOrCurie]
-    val texts = mutable.ArrayBuffer.empty[Annotation]
-    val chosen = mutable.ArrayBuffer.empty[Annotation]
-    val chosenIndices = new IntBuffer
-    sources.foreach { source =>
+    val annotationCount = remaining.length
+    val taken = new java.util.BitSet(annotationCount)
+    val fieldValues = mutable.ArrayBuffer.empty[String | LocalizedText | UriOrCurie]
+    val textsFromAllProperties = mutable.ArrayBuffer.empty[Annotation]
+    val matches = mutable.ArrayBuffer.empty[Annotation]
+    val matchIndices = new IntBuffer
+
+    def findUntakenMatches(field: Metadata.Field, property: String): Unit = {
+      matches.clear()
+      matchIndices.clear()
+      var i = 0
+      while (i < annotationCount) {
+        val a = remaining(i)
+        if (!taken.get(i) && a.property == property && (valueOf(field, a.value) ne null)) {
+          matches.addOne(a)
+          matchIndices.add(i)
+        }
+        i += 1
+      }
+    }
+
+    def keepOnlyFirstMatch(): Unit = {
+      matches.dropRightInPlace(matches.length - 1)
+      matchIndices.truncate(1)
+    }
+
+    def addMatchesToFieldValues(field: Metadata.Field, isSingleValued: Boolean): Unit =
+      if (field.kind == Metadata.Kind.Text) {
+        if (!isSingleValued) textsFromAllProperties.addAll(matches)
+        else if (matches.nonEmpty) fieldValues.addOne(textOf(matches))
+      } else {
+        matches.foreach { a =>
+          val value = valueOf(field, a.value)
+          if (value ne null) fieldValues.addOne(value)
+        }
+      }
+
+    def readFieldValues(
+        source: (field: Metadata.Field, properties: mutable.ArrayBuffer[String]),
+    ): Unit = {
       val field = source.field
       val properties = source.properties
-      val single = singleValued(field.name)
+      val isSingleValued = singleValued(field.name)
       val isText = field.kind == Metadata.Kind.Text
-      values.clear()
-      texts.clear()
+      fieldValues.clear()
+      textsFromAllProperties.clear()
       var j = 0
-      while (j < properties.length && (!single || values.isEmpty)) {
-        val property = properties(j)
-        chosen.clear()
-        chosenIndices.clear()
-        var i = 0
-        while (i < n) {
-          val a = remaining(i)
-          if (!used.get(i) && a.property == property && (valueOf(field, a.value) ne null)) {
-            chosen.addOne(a)
-            chosenIndices.add(i)
-          }
-          i += 1
-        }
-        // A single-valued metaslot takes one value, or for text, one per language.
-        if (single && chosen.length > 1 && (!isText || !oneLanguageEach(chosen))) {
-          chosen.dropRightInPlace(chosen.length - 1)
-          chosenIndices.truncate(1)
-        }
-        chosenIndices.foreach(used.set)
-        if (isText) {
-          if (single) {
-            if (chosen.nonEmpty) values.addOne(textOf(chosen))
-          } else texts.addAll(chosen)
-        } else {
-          chosen.foreach { a =>
-            val value = valueOf(field, a.value)
-            if (value ne null) values.addOne(value)
-          }
-        }
+      while (j < properties.length && (!isSingleValued || fieldValues.isEmpty)) {
+        findUntakenMatches(field, properties(j))
+        val matchesAreTranslations = isText && oneLanguageEach(matches)
+        if (isSingleValued && matches.length > 1 && !matchesAreTranslations) keepOnlyFirstMatch()
+        matchIndices.foreach(taken.set)
+        addMatchesToFieldValues(field, isSingleValued)
         j += 1
       }
-      addTexts(texts, values)
-      if (values.nonEmpty) {
-        metadata = field.set(metadata, Vector.from(values))
-        // Drop other values with the same text, such as a comment that repeats the definition.
-        val taken = mutable.HashSet.empty[String]
-        values.foreach {
-          case t: String => taken.addOne(t)
-          case t: PlainText => taken.addOne(t.value)
-          case t: MultilingualText => taken.addAll(t.mapping.valuesIterator)
-          case u: UriOrCurie => taken.addOne(u.original)
+      addTexts(textsFromAllProperties, fieldValues)
+    }
+
+    def takeUntakenWithSameText(): Unit = {
+      val textsOfFieldValues = textsOf(fieldValues)
+      var i = 0
+      while (i < annotationCount) {
+        if (!taken.get(i)) {
+          val text = textIn(remaining(i).value)
+          if ((text ne null) && textsOfFieldValues.contains(text)) taken.set(i)
         }
-        var i = 0
-        while (i < n) {
-          if (!used.get(i)) {
-            val text = textIn(remaining(i).value)
-            if ((text ne null) && taken.contains(text)) used.set(i)
-          }
-          i += 1
-        }
+        i += 1
       }
     }
-    // Keep only the annotations that were not taken, in order.
-    var kept = 0
-    var i = 0
-    while (i < n) {
-      if (!used.get(i)) {
-        remaining(kept) = remaining(i)
-        kept += 1
+
+    var metadata = Metadata.empty
+    sources.foreach { source =>
+      readFieldValues(source)
+      if (fieldValues.nonEmpty) {
+        metadata = source.field.set(metadata, Vector.from(fieldValues))
+        takeUntakenWithSameText()
       }
-      i += 1
     }
-    remaining.dropRightInPlace(n - kept)
+    removeTaken(remaining, taken)
     metadata
   }
 
@@ -354,4 +354,34 @@ private[owl] object OwlAnnotationReader {
   }
 
   private def yamlString(value: String): LinkmlAny = LinkmlAny.text(value)
+
+  private def textsOf(
+      values: collection.Seq[String | LocalizedText | UriOrCurie],
+  ): mutable.HashSet[String] = {
+    val texts = mutable.HashSet.empty[String]
+    values.foreach {
+      case t: String => texts.addOne(t)
+      case t: PlainText => texts.addOne(t.value)
+      case t: MultilingualText => texts.addAll(t.mapping.valuesIterator)
+      case u: UriOrCurie => texts.addOne(u.original)
+    }
+    texts
+  }
+
+  private def removeTaken(
+      annotations: mutable.ArrayBuffer[Annotation],
+      taken: java.util.BitSet,
+  ): Unit = {
+    val count = annotations.length
+    var kept = 0
+    var i = 0
+    while (i < count) {
+      if (!taken.get(i)) {
+        annotations(kept) = annotations(i)
+        kept += 1
+      }
+      i += 1
+    }
+    annotations.dropRightInPlace(count - kept)
+  }
 }
