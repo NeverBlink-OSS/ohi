@@ -729,7 +729,7 @@ object OwlImporter {
 
     private val naming = {
       val ownTerms = mutable.ArrayBuffer.empty[String]
-      def own(t: String): Unit = if (declared.contains(t)) ownTerms.addOne(t)
+      def own(t: String): Unit = if (isDeclared(t)) ownTerms.addOne(t)
       classes.foreach(own)
       enumClasses.foreach(own)
       properties.foreach(own)

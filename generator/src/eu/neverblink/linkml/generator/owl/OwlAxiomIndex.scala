@@ -26,8 +26,12 @@ private[owl] final class OwlAxiomIndex(val axioms: Seq[Axiom]) {
   def foreachUnhandled(f: Axiom => Unit): Unit = axioms.foreach(a => if (!handled.contains(a)) f(a))
 
   /** The kinds each IRI is declared as, one bit per [[EntityKind]]. */
-  val declared = mutable.HashMap.empty[String, IntRef]
+  private val declared = mutable.HashMap.empty[String, IntRef]
 
+  /** Whether the IRI is declared as any kind of entity. */
+  def isDeclared(iri: String): Boolean = declared.contains(iri)
+
+  /** Whether the IRI is declared as the given kind of entity. */
   def isDeclared(iri: String, kind: EntityKind): Boolean = {
     val kinds = declared.getOrElse(iri, null)
     (kinds ne null) && (kinds.elem & (1 << kind.ordinal)) != 0
