@@ -76,7 +76,8 @@ final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
       }
     } else None
 
-  /** Generate Scala counterparts of all LinkML model elements: Classes, Types and Enums.
+  /** Generate Scala counterparts of all LinkML model elements: Classes, Types and Enums, and the
+    * type of a whole document when the tree root has a `tree_root_as` other than `plain`.
     * @param options
     *   What to generate. See [[ScalaGeneratorOptions]].
     * @return
