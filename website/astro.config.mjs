@@ -31,9 +31,14 @@ const sidebar = [
 // Every page has to be in the sidebar, or it could only be found through search
 const pagesDir = new URL('./src/content/docs/', import.meta.url);
 const pages = fs
-  .readdirSync(pagesDir, { recursive: true })
+  .readdirSync(pagesDir, { encoding: 'utf8', recursive: true })
   .filter((file) => /\.mdx?$/.test(file))
-  .map((file) => file.replace(/\.mdx?$/, '').replace(/\/index$/, ''));
+  .map((file) => file.replaceAll('\\', '/').replace(/\.mdx?$/, '').replace(/\/index$/, ''));
+/**
+ * The sidebar entries under these items, with groups opened up.
+ * @param {any[]} items
+ * @returns {any[]}
+ */
 const entries = (items) => items.flatMap((item) => (item.items ? entries(item.items) : [item]));
 const inSidebar = new Set(['index', ...entries(sidebar)]);
 const missing = pages.filter((page) => !inSidebar.has(page));
@@ -42,6 +47,7 @@ if (missing.length > 0) {
 }
 
 // Every generator and importer needs a page, which shows its examples and options
+/** @type {{ functions: { page: string }[] }} */
 const converters = JSON.parse(fs.readFileSync(new URL('./src/generated/converters.json', import.meta.url), 'utf8'));
 const withoutPage = converters.functions.filter((f) => !pages.includes(f.page));
 if (withoutPage.length > 0) {
