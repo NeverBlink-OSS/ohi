@@ -551,6 +551,7 @@ class JavaGeneratorSpec extends AnyWordSpec, Matchers {
       list should include("    public TestDocument(List<Item> root) {")
       list should include("    @JsonValue\n    public List<Item> getRoot() {")
       val dict = files("compact_dict")("TestDocument.java")
+      dict should include("/** A whole document: a dict of Item by key. */")
       dict should include("    public TestDocument(Map<String, Item> root) {")
       dict should include("    @JsonAnyGetter\n    @JsonIgnoreProperties(value = \"id\"")
       files("optional").keySet should not contain "TestDocument.java"

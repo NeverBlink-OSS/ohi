@@ -1,7 +1,7 @@
 package eu.neverblink.linkml.generator.javagen
 
 import eu.neverblink.linkml.generator.options.{JavaGeneratorOptions, JavaStyle}
-import eu.neverblink.linkml.generator.util.{DocLines, GeneratedHeader, Pruning}
+import eu.neverblink.linkml.generator.util.{DocLines, GeneratedHeader, Pruning, TreeRootDocument}
 import eu.neverblink.linkml.generator.util.Pruning.pruning
 import eu.neverblink.linkml.generator.util.metadataLanguage
 import eu.neverblink.linkml.runtime.FastUtils.*
@@ -41,8 +41,8 @@ final class JavaGenerator(using sv: SchemaView) extends JavaRenamer {
     }
     val enums = defs.enums.map(ev => file(enumName(ev), writeEnum(ev, writer)))
     val document = defs.document.map { (root, name) =>
-      val model =
-        JavaDocument(name, documentType(root, ctx), Seq(s"A whole document: ${documentDoc(root)}."))
+      val doc = TreeRootDocument.description(root, root.treeRootInlineType(None))
+      val model = JavaDocument(name, documentType(root, ctx), Seq(doc))
       file(name, writer.document(model))
     }
     val errors = defs.errors.map(cls => file(errorName(cls), writeError(cls)))
@@ -364,12 +364,6 @@ final class JavaGenerator(using sv: SchemaView) extends JavaRenamer {
     root.treeRootInlineType(None) match {
       case InlineType.dict(form) => dictType(root, form, ctx)
       case _ => FieldType.NativeList(className(root))
-    }
-
-  private def documentDoc(root: ClassView): String =
-    root.treeRootInlineType(None) match {
-      case InlineType.dict(_) => s"a dict of ${root.name} by key"
-      case _ => s"a list of ${root.name}"
     }
 
   private def referenceDoc(attribute: AttributeView): Option[String] = {
