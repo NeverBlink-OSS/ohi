@@ -1068,9 +1068,7 @@ object DocsGenerator {
     }
   }
 
-  /** A URI or CURIE as code, shown as a CURIE when it has a known prefix. Any other value is shown
-    * as it is, even a URI such as `ex:Person` that a schema with the prefix `ex` would read as a
-    * CURIE, as the documentation is not read back.
+  /** A URI or CURIE as code, shown as a CURIE when it has a known prefix.
     *
     * The URI is not linked, because it often doesn't resolve.
     */
