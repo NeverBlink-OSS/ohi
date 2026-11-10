@@ -46,6 +46,8 @@ lion = Lion(name="Leo")   # kind="Lion" is filled in automatically
 
 If the tree root isn't a single object (`tree_root_as` is `list`, `optional`, or a dict), or if it's a class with a type designator, the file also has a document class for the whole JSON document, named after the schema. For a schema named `zoo`: `ZooDocument.model_validate_json(text)`. Its value is in `.root`.
 
+Earlier versions named the document class after the tree root, such as `AnimalDocument` for a tree root `Animal`. Code that uses that name needs the new one.
+
 ## Example
 
 This schema (the same one as in the [TypeScript guide](/docs/generators/typescript/#example)):

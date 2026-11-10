@@ -72,6 +72,9 @@ If the tree root is a list or a dict (`tree_root_as` is `list` or a dict), the p
 document class for the whole JSON document, named after the schema. For a schema named `zoo`:
 `mapper.readValue(text, ZooDocument.class)`. Its value is in `getRoot()`.
 
+Earlier versions named the document class after the tree root, such as `AnimalDocument` for a
+tree root `Animal`. Code that uses that name needs the new one.
+
 ## Example
 
 This schema (the same one as in the [TypeScript guide](/docs/generators/typescript/#example)):
