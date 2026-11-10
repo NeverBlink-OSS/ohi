@@ -321,9 +321,10 @@ code generators add a type for the whole document, named after the schema, such 
 
 None of them add it for a `linkml:Any` root.
 
-At generation time `--tree-root` picks a different root class (not in the Scala generator),
-and the JSON Schema generator's `--tree-root-inline-type` changes the shape without editing the
-schema. Details and the full inlining decision table are in `200-limitations.md`.
+At generation time `--tree-root` picks a different root class. The JSON Schema generator always
+uses it. The Pydantic, Java and TypeScript generators use it only with `--pruning-mode
+tree_root`, as their default mode is `skip`. The Scala generator doesn't have it. The JSON Schema
+generator's `--tree-root-inline-type` changes the shape without editing the schema. Details and the full inlining decision table are in `200-limitations.md`.
 
 ## Documentation and metadata
 
