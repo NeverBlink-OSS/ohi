@@ -32,6 +32,10 @@ trait PydanticRenamer extends JsonRenamer {
   def functionsProtocolName(sv: SchemaView): String =
     unreserved(identifier(Case.base(sv.root.name)).concat("Functions"))
 
+  /** The name of the type of a whole document, such as `ZooDocument` for a schema named `zoo`. */
+  def documentTypeName(sv: SchemaView): String =
+    unreserved(identifier(Case.base(sv.root.name)).concat("Document"))
+
   /** The name of the exception class for an error class. */
   def errorName(el: ClassView): String = unreserved(className(el).concat("Error"))
 }

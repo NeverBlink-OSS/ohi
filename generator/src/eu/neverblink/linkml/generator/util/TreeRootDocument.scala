@@ -2,12 +2,8 @@ package eu.neverblink.linkml.generator.util
 
 import eu.neverblink.linkml.schemaview.{ClassView, InlineType}
 
-/** Names and describes the type of a whole document that the code generators add for a tree root,
-  * such as `ZooDocument`.
-  */
+/** Describes the type of a whole document that the code generators add for a tree root. */
 object TreeRootDocument {
-
-  def name(rootName: String): String = rootName.concat("Document")
 
   def description(root: ClassView, inlineType: InlineType): String = inlineType match {
     case _: InlineType.plain.type => "A whole document: one " + root.name + "."

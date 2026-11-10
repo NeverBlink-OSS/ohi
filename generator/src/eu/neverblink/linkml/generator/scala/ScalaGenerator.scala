@@ -101,7 +101,7 @@ final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
     if (root ne null) {
       // A name that another file already has gets underscores at the end until it is free. Names
       // are compared ignoring case, as macOS and Windows compare file names.
-      var name = TreeRootDocument.name(className(root))
+      var name = documentTypeName(sv)
       while (fileNames.contains(name.toLowerCase.concat(".scala"))) name = name.concat("_")
       val document = generateDocument(root, name, options)
       if (document ne null) files.addOne((name.concat(".scala"), header.concat(document)))

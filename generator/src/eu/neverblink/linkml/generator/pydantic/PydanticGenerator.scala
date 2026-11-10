@@ -604,7 +604,7 @@ final class PydanticGenerator(using sv: SchemaView)
       .filter(r => classes.exists(_.name == r.name))
     val functions = sv.functions.values.filter(query.reachable).toVector
       .sortBy(fv => sv.elementOrder(fv.function))
-    Definitions(classes, enums, root.map(r => (r, TreeRootDocument.name(className(r)))), functions)
+    Definitions(classes, enums, root.map(r => (r, documentTypeName(sv))), functions)
   }
 
   /** The names of the classes, class unions, enums and document type that the module defines with
@@ -667,7 +667,7 @@ final class PydanticGenerator(using sv: SchemaView)
       documentType(r, ctx).foreachFast { tpe =>
         ctx.imports.pydantic("RootModel")
         body.append("\n\nclass ")
-        body.append(TreeRootDocument.name(className(r)))
+        body.append(documentTypeName(sv))
         body.append("(RootModel[")
         body.append(tpe)
         body.append("]):\n")

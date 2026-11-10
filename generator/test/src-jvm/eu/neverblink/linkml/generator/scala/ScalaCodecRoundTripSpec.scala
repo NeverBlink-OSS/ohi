@@ -73,8 +73,9 @@ class ScalaCodecRoundTripSpec extends AnyWordSpec, Matchers, ModelCatalogueSpec 
     // A tree root without children is generated as a single case class, with no `...Impl`. A
     // tree root whose `tree_root_as` isn't `plain` is read with its document type.
     val rootName = ScalaRenamer.className(treeRoot)
+    val document = ScalaRenamer.documentTypeName(entry.model)
     val rootImpl =
-      if (generated.exists(_._1 == s"${rootName}Document.scala")) s"${rootName}Document"
+      if (generated.exists(_._1 == s"$document.scala")) document
       else if (viaInterface) rootName
       else if (generated.exists(_._2.contains(s"case class ${rootName}Impl("))) s"${rootName}Impl"
       else rootName

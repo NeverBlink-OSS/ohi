@@ -86,7 +86,7 @@ final class JavaGenerator(using sv: SchemaView) extends JavaRenamer {
     Definitions(
       classes,
       enums,
-      root.map(r => (r, unreserved(className(r).concat("Document")))),
+      root.map(r => (r, documentTypeName(sv))),
       functions,
       errors,
     )

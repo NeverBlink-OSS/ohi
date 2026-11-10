@@ -27,13 +27,14 @@ See [Slots changed by a class](/docs/slot-usage-inheritance/#slots-changed-by-a-
 ## Whole documents
 
 If the tree root has a `tree_root_as` other than `plain`, a document isn't one object. The
-output then also has a type for the whole document, named after the tree root:
+output then also has a type for the whole document, named after the schema. For a schema named
+`some_schema`:
 
 | `tree_root_as`                 | Document type                                  |
 |--------------------------------|------------------------------------------------|
-| `optional`                     | `type SomeClassDocument = Option[X]`           |
-| `list`                         | `type SomeClassDocument = Seq[X]`              |
-| `compact_dict`, `simple_dict`  | `type SomeClassDocument = Map[String, X]`      |
+| `optional`                     | `type SomeSchemaDocument = Option[X]`          |
+| `list`                         | `type SomeSchemaDocument = Seq[X]`             |
+| `compact_dict`, `simple_dict`  | `type SomeSchemaDocument = Map[String, X]`     |
 
 `X` is the class that holds the instances:
 
@@ -43,12 +44,12 @@ output then also has a type for the whole document, named after the tree root:
 
 An abstract or mixin tree root without a type designator gets no document type, because no codec
 can tell which class to read. If another generated type has the same name as the document type,
-the document type gets underscores at the end until its name is free, such as `SomeClassDocument_`.
+the document type gets underscores at the end until its name is free, such as `SomeSchemaDocument_`.
 
 Read and write a document with one codec:
 
 ```scala
-val codec = LinkmlYamlCodec.derived[SomeClassDocument]
+val codec = LinkmlYamlCodec.derived[SomeSchemaDocument]
 val document = codec.decode(parseYaml(text).toOption.get)
 val text2 = codec.encode(document).asYaml
 ```

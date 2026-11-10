@@ -144,33 +144,33 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
           options: ScalaGeneratorOptions = ScalaGeneratorOptions(
             `package` = testPkg,
           ),
-      ): String = withTreeRootAs(form, options)("ItemDocument.scala")
+      ): String = withTreeRootAs(form, options)("TestDocument.scala")
 
       "plain: none" in {
         withTreeRootAs("plain", ScalaGeneratorOptions(`package` = testPkg)).keySet should
-          not contain "ItemDocument.scala"
+          not contain "TestDocument.scala"
       }
 
       "optional: an Option" in {
         document("optional") should include(
-          "/** A whole document: one Item or null. */\ntype ItemDocument = Option[Item]\n",
+          "/** A whole document: one Item or null. */\ntype TestDocument = Option[Item]\n",
         )
       }
 
       "list: a Seq" in {
         document("list") should include(
-          "/** A whole document: a list of Item. */\ntype ItemDocument = Seq[Item]\n",
+          "/** A whole document: a list of Item. */\ntype TestDocument = Seq[Item]\n",
         )
       }
 
       "compact_dict and simple_dict: a Map by key" in {
         Seq("compact_dict", "simple_dict").foreach { form =>
-          document(form) should include("type ItemDocument = Map[String, Item]\n")
+          document(form) should include("type TestDocument = Map[String, Item]\n")
         }
       }
 
       "of the implementation when the class has an interface" in {
-        document("list", splitOptions) should include("type ItemDocument = Seq[ItemImpl]\n")
+        document("list", splitOptions) should include("type TestDocument = Seq[ItemImpl]\n")
       }
 
       "a type designator that can't pick a class: the implementation, or none if abstract" in {
@@ -191,10 +191,10 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
           ScalaGenerator().generate(ScalaGeneratorOptions(`package` = testPkg)).toMap
         }
         files(rootAbstract = false)("Animal.scala") should not include "@typeDesignator"
-        files(rootAbstract = false)("AnimalDocument.scala") should include(
-          "type AnimalDocument = Seq[AnimalImpl]\n",
+        files(rootAbstract = false)("TestDocument.scala") should include(
+          "type TestDocument = Seq[AnimalImpl]\n",
         )
-        files(rootAbstract = true).keySet should not contain "AnimalDocument.scala"
+        files(rootAbstract = true).keySet should not contain "TestDocument.scala"
       }
 
       "an unknown tree_root_as on an abstract tree root: an error" in {
@@ -221,12 +221,12 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
              |    tree_root: true
              |    extensions:
              |      tree_root_as: list
-             |  ItemDocument:
+             |  TestDocument:
              |""".stripMargin,
         )
         val files = ScalaGenerator().generate(ScalaGeneratorOptions(`package` = testPkg)).toMap
-        files("ItemDocument.scala") should include("case class ItemDocument(")
-        files("ItemDocument_.scala") should include("type ItemDocument_ = Seq[Item]\n")
+        files("TestDocument.scala") should include("case class TestDocument(")
+        files("TestDocument_.scala") should include("type TestDocument_ = Seq[Item]\n")
       }
     }
 

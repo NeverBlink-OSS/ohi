@@ -84,7 +84,7 @@ final class TypeScriptGenerator(using sv: SchemaView)
   ): Unit = {
     writeDoc(sink, Seq(TreeRootDocument.description(root, inlineType)), "")
     sink.append("export type ")
-    sink.append(TreeRootDocument.name(className(root)))
+    sink.append(documentTypeName(sv))
     sink.append(" = ")
     inlineType match {
       case _: InlineType.optional.type =>
@@ -331,7 +331,7 @@ final class TypeScriptGenerator(using sv: SchemaView)
     enums.foreach(ev => claim(enumName(ev), s"enum '${ev.name}'"))
     if (document ne null) {
       claim(
-        TreeRootDocument.name(className(document)),
+        documentTypeName(sv),
         s"the document type of tree root '${document.name}'",
       )
     }

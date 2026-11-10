@@ -311,7 +311,7 @@ classes:
 
 The JSON Schema, Pydantic, Scala and TypeScript generators follow `tree_root_as`. For a shape
 other than `plain`, the code generators add a type for the whole document, named after the
-root class, such as `PersonDocument`.
+schema, such as `PeopleDocument` for a schema named `people`.
 
 At generation time `--tree-root` picks a different root class (not in the Scala generator),
 and the JSON Schema generator's `--tree-root-inline-type` changes the shape without editing the

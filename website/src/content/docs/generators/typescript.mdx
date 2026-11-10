@@ -33,7 +33,8 @@ const text2 = JSON.stringify(zoo, null, 2);   // dump
 ```
 
 If the tree root has a `tree_root_as` other than `plain`, a document isn't one object. The
-file then also has a type for the whole document, named after the tree root:
+file then also has a type for the whole document, named after the schema. For a schema named
+`zoo` with the tree root `Zoo`:
 
 | `tree_root_as`  | Document type                                              |
 |-----------------|------------------------------------------------------------|
@@ -212,6 +213,6 @@ permissible values (e.g. a dynamic enum) becomes `string`.
 Classes and enums get `PascalCase` names. A name that starts with a digit or is reserved in
 TypeScript gets a `_` prefix (e.g. a class `Record` becomes `_Record`).
 
-The type of a whole document gets the name of the tree root plus `Document`, such as
-`ZooDocument`. If another generated type has the same name, such as a class `ZooDocument`, the
+The type of a whole document gets the name of the schema in `PascalCase` plus `Document`, such as
+`ZooDocument` for a schema named `zoo`. If another generated type has the same name, such as a class `ZooDocument`, the
 generator stops with an error that names both, so that you can rename one.

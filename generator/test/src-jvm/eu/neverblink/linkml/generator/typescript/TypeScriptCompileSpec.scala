@@ -239,12 +239,12 @@ object TypeScriptCompileSpec {
     case _ => None
   }
 
-  /** TS type of a whole JSON document: the `XDocument` type if the model has one, otherwise the
-    * tree root.
+  /** TS type of a whole JSON document: the document type if the model has one, otherwise the tree
+    * root.
     */
   def documentType(root: ClassView, source: String)(using SchemaView): String = {
     val gen = TypeScriptGenerator()
-    val document = gen.className(root).concat("Document")
+    val document = gen.documentTypeName(summon[SchemaView])
     if source.contains(s"export type $document =") then document
     else gen.unionName(root).getOrElse(gen.className(root))
   }

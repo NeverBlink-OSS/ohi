@@ -424,25 +424,25 @@ class TypeScriptGeneratorSpec extends AnyWordSpec, Matchers {
       )
 
       "plain: none" in {
-        withTreeRootAs("plain") should not include "ItemDocument"
+        withTreeRootAs("plain") should not include "TestDocument"
       }
 
       "optional: the object or null" in {
         withTreeRootAs("optional") should include(
-          "/** A whole document: one Item or null. */\nexport type ItemDocument = Item | null;\n",
+          "/** A whole document: one Item or null. */\nexport type TestDocument = Item | null;\n",
         )
       }
 
       "list: a list of objects" in {
         withTreeRootAs("list") should include(
-          "/** A whole document: a list of Item. */\nexport type ItemDocument = Item[];\n",
+          "/** A whole document: a list of Item. */\nexport type TestDocument = Item[];\n",
         )
       }
 
       "compact_dict: a dict of objects by key" in {
         val ts = withTreeRootAs("compact_dict")
         ts should include(
-          "export type ItemDocument = Record<string, KeyOptional<Item, \"key\">>;\n",
+          "export type TestDocument = Record<string, KeyOptional<Item, \"key\">>;\n",
         )
         ts should include("export type KeyOptional<T, K extends keyof T>")
       }
@@ -450,7 +450,7 @@ class TypeScriptGeneratorSpec extends AnyWordSpec, Matchers {
       "simple_dict: a dict of values or objects by key" in {
         val ts = withTreeRootAs("simple_dict")
         ts should include(
-          "export type ItemDocument = Record<string, string | KeyOptional<Item, \"key\">>;\n",
+          "export type TestDocument = Record<string, string | KeyOptional<Item, \"key\">>;\n",
         )
         ts should include("export type KeyOptional<T, K extends keyof T>")
       }
@@ -462,10 +462,10 @@ class TypeScriptGeneratorSpec extends AnyWordSpec, Matchers {
             |    tree_root: true
             |    extensions:
             |      tree_root_as: list
-            |  ItemDocument:
+            |  TestDocument:
             |""".stripMargin,
         )
-        ex.getMessage should include("'ItemDocument'")
+        ex.getMessage should include("'TestDocument'")
       }
     }
 
