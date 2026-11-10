@@ -309,9 +309,17 @@ classes:
       tree_root_as: list      # the document is a JSON array of Person
 ```
 
-The JSON Schema, Pydantic, Scala and TypeScript generators follow `tree_root_as`. For a shape
-other than `plain`, the code generators add a type for the whole document, named after the
-schema, such as `PeopleDocument` for a schema named `people`.
+The JSON Schema, Pydantic, Java, Scala and TypeScript generators follow `tree_root_as`. The
+code generators add a type for the whole document, named after the schema, such as
+`PeopleDocument` for a schema named `people`. When they add it:
+
+- TypeScript: for every shape other than `plain`.
+- Pydantic: for every shape other than `plain`, and for a `plain` root with a type designator.
+- Java: only for `list`, `compact_dict` and `simple_dict`.
+- Scala: for every shape other than `plain`, but not for an abstract or mixin root without a
+  type designator whose values name classes.
+
+None of them add it for a `linkml:Any` root.
 
 At generation time `--tree-root` picks a different root class (not in the Scala generator),
 and the JSON Schema generator's `--tree-root-inline-type` changes the shape without editing the
