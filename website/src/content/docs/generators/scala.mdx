@@ -58,6 +58,10 @@ val document = codec.decode(parseYaml(text).toOption.get)
 val text2 = codec.encode(document).asYaml
 ```
 
+An empty list or dict is written as an empty text, and `parseYaml` fails on an empty text. So
+check for that before you decode, for example with `if text.isBlank then Seq.empty` for a
+`list` document.
+
 In the dict forms, the codec reads the key of each object from its dict key. Write documents
 with `encode` without `skipId`. With `skipId = true`, an object with a key and one other slot
 is written as a bare value, which `compact_dict` doesn't accept.
