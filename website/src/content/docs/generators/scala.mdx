@@ -46,9 +46,13 @@ An abstract or mixin tree root without a type designator gets no document type, 
 can tell which class to read. If another generated type has the same name as the document type,
 the document type gets underscores at the end until its name is free, such as `SomeSchemaDocument_`.
 
-Read and write a document with one codec:
+Read and write a document with one codec. The generated code needs only the runtime module, but
+the codec and YAML parser come from the yaml module, which you add as a dependency:
 
 ```scala
+import eu.neverblink.linkml.yaml.LinkmlYamlCodec
+import org.virtuslab.yaml.{NodeOps, parseYaml}
+
 val codec = LinkmlYamlCodec.derived[SomeSchemaDocument]
 val document = codec.decode(parseYaml(text).toOption.get)
 val text2 = codec.encode(document).asYaml
