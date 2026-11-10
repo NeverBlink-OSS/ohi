@@ -85,6 +85,12 @@ export default defineConfig({
     starlight({
       title: 'ohi LinkML',
       description: 'Documentation for ohi LinkML, a LinkML implementation for the JVM, browsers, Python and native code.',
+      head: [
+        { tag: 'meta', attrs: { property: 'og:image', content: 'https://linkml.ohi.dev/og.png' } },
+        { tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
+        { tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
+        { tag: 'meta', attrs: { property: 'og:site_name', content: 'ohi LinkML' } },
+      ],
       favicon: '/favicon.svg',
       customCss: ['./src/styles/theme.css'],
       components: {
