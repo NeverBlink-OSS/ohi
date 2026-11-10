@@ -455,6 +455,18 @@ class TypeScriptGeneratorSpec extends AnyWordSpec, Matchers {
         ts should include("export type KeyOptional<T, K extends keyof T>")
       }
 
+      "a linkml:Any tree root: none, as no interface is generated for it" in {
+        generate(
+          """classes:
+            |  Thing:
+            |    class_uri: linkml:Any
+            |    tree_root: true
+            |    extensions:
+            |      tree_root_as: list
+            |""".stripMargin,
+        ) should not include "TestDocument"
+      }
+
       "a class with the same name: an error" in {
         val ex = the[IllegalArgumentException] thrownBy generate(
           """classes:

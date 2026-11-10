@@ -115,8 +115,9 @@ final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
     * @param name
     *   the name of the document type
     * @return
-    *   the content of the file, or null if `tree_root_as` is `plain`, or if the tree root is
-    *   abstract or a mixin and has no type designator
+    *   the content of the file, or null if `tree_root_as` is `plain`, if the tree root is
+    *   `linkml:Any` (no class is generated for it), or if it is abstract or a mixin and has no type
+    *   designator
     */
   private def generateDocument(
       root: ClassView,
@@ -133,7 +134,8 @@ final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
     }
     // The codec can read the interface only if it has `@typeDesignator`
     val element =
-      if (typeDesignatorAnnotation(root, options).isDefined) className(root)
+      if (root.isAny) return null
+      else if (typeDesignatorAnnotation(root, options).isDefined) className(root)
       else if (root.isConcrete) implName(root, options)
       else return null
     val sb = new java.lang.StringBuilder(128)

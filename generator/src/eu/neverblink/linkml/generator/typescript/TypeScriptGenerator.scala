@@ -354,14 +354,15 @@ final class TypeScriptGenerator(using sv: SchemaView)
         .sortBy(fv => sv.elementOrder(fv.function))
     val usesResult =
       options.errorHandling == TypeScriptErrorHandling.Result && functions.exists(_.errors.nonEmpty)
-    // The tree root gets a document type only if pruning keeps it and `tree_root_as` isn't `plain`
+    // The tree root gets a document type only if its interface is written and `tree_root_as` isn't
+    // `plain`. A `linkml:Any` class has no interface.
     val treeRootOverride = options.pruning match {
       case p: Pruning.treeRoot => p._override
       case _ => None
     }
     val root = sv.treeRootWithOverride(treeRootOverride).get.orNullFast
     val inlineType =
-      if ((root ne null) && query.reachable(root)) root.treeRootInlineType(None)
+      if ((root ne null) && classes.exists(_.name == root.name)) root.treeRootInlineType(None)
       else InlineType.plain
     val document = inlineType match {
       case _: InlineType.plain.type => null
