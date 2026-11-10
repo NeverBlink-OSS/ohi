@@ -455,6 +455,26 @@ class TypeScriptGeneratorSpec extends AnyWordSpec, Matchers {
         ts should include("export type KeyOptional<T, K extends keyof T>")
       }
 
+      "a schema with a reserved name: no underscore, as the type name isn't reserved" in {
+        val sv = SchemaIssues.orThrow(
+          SchemaView.loadSchemaViewFromString(
+            """id: https://neverblink.eu/linkml/typescript/record/
+              |name: record
+              |imports:
+              |  - linkml:types
+              |classes:
+              |  Item:
+              |    tree_root: true
+              |    extensions:
+              |      tree_root_as: list
+              |""".stripMargin,
+          ),
+        )
+        TypeScriptGenerator(using sv).serialize(TypeScriptGeneratorOptions()) should include(
+          "export type RecordDocument = Item[];\n",
+        )
+      }
+
       "a linkml:Any tree root: none, as no interface is generated for it" in {
         generate(
           """classes:

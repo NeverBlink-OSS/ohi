@@ -214,6 +214,19 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
         ex.getMessage should include("'tree_root_as' extension value: 'lists'")
       }
 
+      "a schema with a reserved name: no underscore, as the type name isn't reserved" in {
+        given SchemaView = decode(
+          s"""${schemaShared.replace("name: test", "name: string")}classes:
+             |  Item:
+             |    tree_root: true
+             |    extensions:
+             |      tree_root_as: list
+             |""".stripMargin,
+        )
+        val files = ScalaGenerator().generate(ScalaGeneratorOptions(`package` = testPkg)).toMap
+        files("StringDocument.scala") should include("type StringDocument = Seq[Item]\n")
+      }
+
       "a linkml:Any tree root: none, as no class is generated for it" in {
         given SchemaView = decode(
           s"""${schemaShared}classes:

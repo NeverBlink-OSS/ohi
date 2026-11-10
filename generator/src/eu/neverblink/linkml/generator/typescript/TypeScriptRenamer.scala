@@ -31,9 +31,12 @@ trait TypeScriptRenamer extends JsonRenamer {
   def functionsInterfaceName(sv: SchemaView): String =
     identifier(Case.base(sv.root.name)).concat("Functions")
 
-  /** The name of the type of a whole document, such as `ZooDocument` for a schema named `zoo`. */
+  /** The name of the type of a whole document, such as `ZooDocument` for a schema named `zoo`. Only
+    * the whole name is checked for reserved words, so a schema named `record` gives
+    * `RecordDocument`.
+    */
   def documentTypeName(sv: SchemaView): String =
-    identifier(Case.base(sv.root.name)).concat("Document")
+    identifier(Case.base(sv.root.name.concat("_document")))
 }
 
 object TypeScriptRenamer extends TypeScriptRenamer {
