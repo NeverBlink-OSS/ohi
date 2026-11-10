@@ -38,12 +38,15 @@ output then also has a type for the whole document, named after the schema. For 
 
 `X` is the class that holds the instances:
 
-- the interface `SomeClass`, if a type designator picks the implementation of each object
+- the interface `SomeClass`, if a type designator picks the implementation of each object. The
+  values of the designator slot must name classes, so a slot with the range `integer` doesn't
+  count.
 - otherwise `SomeClassImpl`, if the tree root has an interface
 - otherwise the case class `SomeClass`
 
-An abstract or mixin tree root without a type designator gets no document type, because no codec
-can tell which class to read. If another generated type has the same name as the document type,
+So an abstract or mixin tree root gets no document type unless it has a type designator that
+names classes, because no codec can tell which class to read. A `linkml:Any` tree root gets no
+document type either, as no class is generated for it. If another generated type has the same name as the document type,
 the document type gets underscores at the end until its name is free, such as `SomeSchemaDocument_`.
 
 Read and write a document with one codec. The generated code needs only the runtime module, but

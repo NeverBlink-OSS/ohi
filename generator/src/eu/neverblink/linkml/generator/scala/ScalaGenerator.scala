@@ -117,7 +117,7 @@ final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
     * @return
     *   the content of the file, or null if `tree_root_as` is `plain`, if the tree root is
     *   `linkml:Any` (no class is generated for it), or if it is abstract or a mixin and has no type
-    *   designator
+    *   designator whose values name classes
     */
   private def generateDocument(
       root: ClassView,
