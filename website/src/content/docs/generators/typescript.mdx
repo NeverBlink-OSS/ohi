@@ -43,7 +43,9 @@ file then also has a type for the whole document, named after the schema. For a 
 | `compact_dict`  | `export type ZooDocument = Record<string, KeyOptional<Zoo, "id">>;` |
 | `simple_dict`   | `export type ZooDocument = Record<string, V \| KeyOptional<Zoo, "id">>;` |
 
-Here `id` is the key slot of `Zoo`, and `V` is the type of its value slot.
+Here `id` is the key slot of `Zoo`, and `V` is the type of its value slot. With `include_null`,
+a `compact_dict` entry can also be `null` when `Zoo` has no required slot other than its key:
+`Record<string, KeyOptional<Zoo, "id"> | null>`.
 
 Load such a document with `JSON.parse(text) as ZooDocument`.
 
