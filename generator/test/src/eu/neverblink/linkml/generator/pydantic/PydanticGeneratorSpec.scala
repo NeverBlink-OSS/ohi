@@ -608,6 +608,18 @@ class PydanticGeneratorSpec extends AnyWordSpec, Matchers {
       )
     }
 
+    "keep the name of the document class free for a class when no document class is written" in {
+      val py = generate(
+        """classes:
+          |  Item:
+          |    tree_root: true
+          |  TestDocument:
+          |""".stripMargin,
+      )
+      py should include("class TestDocument(")
+      py should not include "RootModel"
+    }
+
     "write titles and descriptions as docstrings" in {
       val py = generate(
         this.py(

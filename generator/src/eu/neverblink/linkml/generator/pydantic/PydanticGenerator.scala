@@ -547,7 +547,7 @@ final class PydanticGenerator(using sv: SchemaView)
   }
 
   /** The type of the whole document, if the tree root needs one: a designated union, or a form
-    * other than a single object.
+    * other than a single object. Keep in step with the filter of the tree root in [[definitions]].
     */
   private def documentType(root: ClassView, ctx: Context): Option[String] = {
     val ref = classRef(root)
@@ -600,8 +600,10 @@ final class PydanticGenerator(using sv: SchemaView)
       case Pruning.treeRoot(o) => o
       case _ => None
     }
+    // A single object of a class without a type designator needs no document class
     val root = sv.treeRootWithOverride(treeRootOverride).get
       .filter(r => classes.exists(_.name == r.name))
+      .filter(r => r.treeRootInlineType(None) != InlineType.plain || classRef(r) != className(r))
     val functions = sv.functions.values.filter(query.reachable).toVector
       .sortBy(fv => sv.elementOrder(fv.function))
     Definitions(classes, enums, root.map(r => (r, documentTypeName(sv))), functions)

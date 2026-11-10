@@ -683,6 +683,8 @@ class DocsGeneratorSpec extends AnyWordSpec, Matchers {
         """classes:
           |  Container:
           |    tree_root: true
+          |    extensions:
+          |      tree_root_as: list
           |    slots: [TestDocument]
           |slots:
           |  TestDocument:
