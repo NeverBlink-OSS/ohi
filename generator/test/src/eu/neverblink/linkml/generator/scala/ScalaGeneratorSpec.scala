@@ -214,7 +214,7 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
         ex.getMessage should include("'tree_root_as' extension value: 'lists'")
       }
 
-      "a class with the same name: an error" in {
+      "a class with the same name: underscores at the end" in {
         given SchemaView = decode(
           s"""${schemaShared}classes:
              |  Item:
@@ -224,9 +224,9 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
              |  ItemDocument:
              |""".stripMargin,
         )
-        val ex = the[IllegalArgumentException] thrownBy
-          ScalaGenerator().generate(ScalaGeneratorOptions(`package` = testPkg))
-        ex.getMessage should include("'ItemDocument.scala'")
+        val files = ScalaGenerator().generate(ScalaGeneratorOptions(`package` = testPkg)).toMap
+        files("ItemDocument.scala") should include("case class ItemDocument(")
+        files("ItemDocument_.scala") should include("type ItemDocument_ = Seq[Item]\n")
       }
     }
 

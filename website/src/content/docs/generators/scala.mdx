@@ -43,7 +43,7 @@ output then also has a type for the whole document, named after the tree root:
 
 An abstract or mixin tree root without a type designator gets no document type, because no codec
 can tell which class to read. If another generated type has the same name as the document type,
-the generator stops with an error that names both, so that you can rename one.
+the document type gets underscores at the end until its name is free, such as `SomeClassDocument_`.
 
 Read and write a document with one codec:
 

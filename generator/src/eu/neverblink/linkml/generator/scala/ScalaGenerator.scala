@@ -10,6 +10,7 @@ import eu.neverblink.linkml.schemaview.*
 import eu.neverblink.linkml.schemaview.expression.StringInterpolationExpression
 import fastparse.Parsed
 import java.lang
+import scala.collection.mutable
 
 final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
   import ScalaGenerator.*
@@ -85,38 +86,43 @@ final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
       options: ScalaGeneratorOptions = ScalaGeneratorOptions(),
   ): Iterable[(String, String)] = {
     val header = GeneratedHeader("//") + "\n"
-    val root = sv.treeRoot.orNullFast
-    val document = if (root ne null) generateDocument(root, options) else null
-    val documentFile =
-      if (document ne null) TreeRootDocument.name(className(root)).concat(".scala") else null
     val files = Vector.newBuilder[(String, String)]
+    val fileNames = mutable.HashSet.empty[String]
     def add(file: (String, String)): Unit = {
-      val name = file._1
-      if (name == documentFile) {
-        throw new IllegalArgumentException(
-          s"The document type of tree root '${root.name}' and another type both map to the " +
-            s"Scala file '$documentFile'. Rename one of them to generate Scala.",
-        )
-      }
-      files.addOne((name, header.concat(file._2)))
+      fileNames.addOne(file._1.toLowerCase)
+      files.addOne((file._1, header.concat(file._2)))
     }
     generateClasses(options).foreach(add)
     generateEnums(options).foreach(add)
     generateTypeDefinitions(options).foreach(add)
     generateFunctions(options).foreachFast(add)
     if (options.generateEmitPrefixes) generateEmitPrefixes(options.`package`).foreachFast(add)
-    if (document ne null) files.addOne((documentFile, header.concat(document)))
+    val root = sv.treeRoot.orNullFast
+    if (root ne null) {
+      // A name that another file already has gets underscores at the end until it is free. Names
+      // are compared ignoring case, as macOS and Windows compare file names.
+      var name = TreeRootDocument.name(className(root))
+      while (fileNames.contains(name.toLowerCase.concat(".scala"))) name = name.concat("_")
+      val document = generateDocument(root, name, options)
+      if (document ne null) files.addOne((name.concat(".scala"), header.concat(document)))
+    }
     files.result()
   }
 
   /** Generates the file with the type of a whole document: an `Option`, `Seq` or `Map` of the class
     * that holds the tree root's instances. `LinkmlYamlCodec.derived` reads and writes it.
     *
+    * @param name
+    *   the name of the document type
     * @return
     *   the content of the file, or null if `tree_root_as` is `plain`, or if the tree root is
     *   abstract or a mixin and has no type designator
     */
-  private def generateDocument(root: ClassView, options: ScalaGeneratorOptions): String = {
+  private def generateDocument(
+      root: ClassView,
+      name: String,
+      options: ScalaGeneratorOptions,
+  ): String = {
     // Read `tree_root_as` first, so that a bad value is an error for an abstract tree root too
     val inlineType = root.treeRootInlineType(None)
     val collection = inlineType match {
@@ -133,7 +139,7 @@ final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
     val sb = new java.lang.StringBuilder(128)
     sb.append("package ").append(options.`package`).append("\n\n/** ")
       .append(TreeRootDocument.description(root, inlineType)).append(" */\ntype ")
-      .append(TreeRootDocument.name(className(root))).append(" = ").append(collection)
+      .append(name).append(" = ").append(collection)
       .append(element).append("]\n").toString
   }
 
