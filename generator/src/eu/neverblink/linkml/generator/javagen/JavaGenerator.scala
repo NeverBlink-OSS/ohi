@@ -1,7 +1,7 @@
 package eu.neverblink.linkml.generator.javagen
 
 import eu.neverblink.linkml.generator.options.{JavaGeneratorOptions, JavaStyle}
-import eu.neverblink.linkml.generator.util.{DocLines, GeneratedHeader, Pruning, TreeRootDocument}
+import eu.neverblink.linkml.generator.util.{DocLines, GeneratedHeader, TreeRootDocument}
 import eu.neverblink.linkml.generator.util.Pruning.pruning
 import eu.neverblink.linkml.generator.util.metadataLanguage
 import eu.neverblink.linkml.runtime.FastUtils.*
@@ -18,7 +18,7 @@ import scala.util.control.NonFatal
   */
 final class JavaGenerator(using sv: SchemaView) extends JavaRenamer {
   import JavaGenerator.*
-  import JavaRenamer.{keywords, unreserved}
+  import JavaRenamer.keywords
 
   /** The generated files, by file name. */
   def generate(options: JavaGeneratorOptions = JavaGeneratorOptions()): Seq[(String, String)] = {
@@ -67,11 +67,7 @@ final class JavaGenerator(using sv: SchemaView) extends JavaRenamer {
     val classes = sv.sortedClasses.filter(c => !c.isAny && query.reachable(c))
     val enums = sv.enums.values.filter(ev => query.reachable(ev) && definesEnum(ev))
       .toVector.sortBy(ev => sv.elementOrder(ev._enum))
-    val treeRootOverride = options.pruning match {
-      case Pruning.treeRoot(o) => o
-      case _ => None
-    }
-    val root = sv.treeRootWithOverride(treeRootOverride).get
+    val root = options.pruning.treeRootClass
       .filter(r => classes.exists(_.name == r.name))
       .filter { r =>
         r.treeRootInlineType(None) match {

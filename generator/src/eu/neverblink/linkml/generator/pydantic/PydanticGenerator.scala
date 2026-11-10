@@ -2,7 +2,7 @@ package eu.neverblink.linkml.generator.pydantic
 
 import eu.neverblink.linkml.generator.options.PydanticGeneratorOptions
 import eu.neverblink.linkml.generator.CharDocumentGenerator
-import eu.neverblink.linkml.generator.util.{DocLines, GeneratedHeader, Pruning, TreeRootDocument}
+import eu.neverblink.linkml.generator.util.{DocLines, GeneratedHeader, TreeRootDocument}
 import eu.neverblink.linkml.generator.util.Pruning.pruning
 import eu.neverblink.linkml.generator.util.metadataLanguage
 import eu.neverblink.linkml.rdf.io.{CharSink, StringSink}
@@ -596,12 +596,8 @@ final class PydanticGenerator(using sv: SchemaView)
     val classes = sv.sortedClasses.filter(c => !c.isAny && query.reachable(c))
     val enums = sv.enums.values.filter(ev => query.reachable(ev) && definesEnum(ev))
       .toVector.sortBy(ev => sv.elementOrder(ev._enum))
-    val treeRootOverride = options.pruning match {
-      case Pruning.treeRoot(o) => o
-      case _ => None
-    }
     // A single object of a class without a type designator needs no document class
-    val root = sv.treeRootWithOverride(treeRootOverride).get
+    val root = options.pruning.treeRootClass
       .filter(r => classes.exists(_.name == r.name))
       .filter(r => r.treeRootInlineType(None) != InlineType.plain || classRef(r) != className(r))
     val functions = sv.functions.values.filter(query.reachable).toVector
