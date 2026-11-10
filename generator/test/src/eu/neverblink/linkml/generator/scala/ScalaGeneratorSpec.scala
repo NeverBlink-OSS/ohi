@@ -173,6 +173,24 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
         document("list", splitOptions) should include("type TestDocument = Seq[ItemImpl]\n")
       }
 
+      "a type designator that picks the class: the interface, so subclasses are read too" in {
+        given SchemaView = decode(
+          s"""${schemaShared}classes:
+             |  Animal:
+             |    tree_root: true
+             |    extensions:
+             |      tree_root_as: list
+             |    attributes:
+             |      kind: {range: string, designates_type: true}
+             |  Dog:
+             |    is_a: Animal
+             |""".stripMargin,
+        )
+        val files = ScalaGenerator().generate(ScalaGeneratorOptions(`package` = testPkg)).toMap
+        files("Animal.scala") should include("@typeDesignator")
+        files("TestDocument.scala") should include("type TestDocument = Seq[Animal]\n")
+      }
+
       "a type designator that can't pick a class: the implementation, or none if abstract" in {
         def files(rootAbstract: Boolean): Map[String, String] = {
           given SchemaView = decode(

@@ -455,6 +455,40 @@ class TypeScriptGeneratorSpec extends AnyWordSpec, Matchers {
         ts should include("export type KeyOptional<T, K extends keyof T>")
       }
 
+      "a tree root with subclasses: the union of the class and its subclasses" in {
+        def withTreeRootAs(form: String): String = generate(
+          s"""classes:
+             |  Animal:
+             |    tree_root: true
+             |    extensions:
+             |      tree_root_as: $form
+             |    attributes:
+             |      kind: {range: string, designates_type: true}
+             |  Dog:
+             |    is_a: Animal
+             |""".stripMargin,
+        )
+        withTreeRootAs("list") should include("export type TestDocument = AnyAnimal[];\n")
+        withTreeRootAs("optional") should include("export type TestDocument = AnyAnimal | null;\n")
+      }
+
+      "the tree root that pruning picks, not the one of the schema" in {
+        val ts = generate(
+          """classes:
+            |  Container:
+            |    tree_root: true
+            |    attributes:
+            |      items: {range: Item, multivalued: true, inlined_as_list: true}
+            |  Item:
+            |    extensions:
+            |      tree_root_as: list
+            |""".stripMargin,
+          TypeScriptGeneratorOptions(pruningMode = PruningMode.TreeRoot, treeRoot = Some("Item")),
+        )
+        ts should include("export type TestDocument = Item[];\n")
+        ts should not include "Container"
+      }
+
       "a schema with a reserved name: no underscore, as the type name isn't reserved" in {
         val sv = SchemaIssues.orThrow(
           SchemaView.loadSchemaViewFromString(
