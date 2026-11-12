@@ -96,6 +96,15 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
       render(Some(95), None) should include("\n  Elements: 95 native\n")
     }
 
+    "leave out the elements line when neither element count is known" in {
+      val output = CatalogOutput.publication(
+        publication.copy(nativeElementCount = None, elementCount = None),
+        json = false,
+      )
+      output shouldBe expected
+      output should not include "Elements:"
+    }
+
     "label empty collections without inventing absent optional metadata" in {
       val output = CatalogOutput.publication(
         base.copy(artifacts = Seq.empty, dependencies = Seq.empty),
