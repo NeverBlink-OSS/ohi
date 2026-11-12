@@ -15,6 +15,10 @@ import { Description, Options, Usage } from '../../../components/converter';
 
 <Options name="scala" />
 
+If the tree root has a `tree_root_as` other than `plain`, the output also has a type for the
+whole document, such as `ZooDocument`, so that one codec reads and writes the whole document. See
+[Whole documents in generators](/docs/tree-root-as/).
+
 ## Inherited fields
 
 A class extends the abstract classes and traits of its parent classes and mixins, which declare its fields as `def`s. A subclass's field overrides them, so it keeps the type of its parents' fields where a `slot_usage` would change it:
@@ -23,48 +27,3 @@ A class extends the abstract classes and traits of its parent classes and mixins
 - The `def` of an inlined class gives the class's trait or abstract class, not its case class, so that a subclass can narrow the range to a subclass.
 
 See [Slots changed by a class](/docs/slot-usage-inheritance/#slots-changed-by-a-class).
-
-## Whole documents
-
-If the tree root has a `tree_root_as` other than `plain`, a document isn't one object. The
-output then also has a type for the whole document, named after the schema. For a schema named
-`some_schema`:
-
-| `tree_root_as`                 | Document type                                  |
-|--------------------------------|------------------------------------------------|
-| `optional`                     | `type SomeSchemaDocument = Option[X]`          |
-| `list`                         | `type SomeSchemaDocument = Seq[X]`             |
-| `compact_dict`, `simple_dict`  | `type SomeSchemaDocument = Map[String, X]`     |
-
-`X` is the class that holds the instances:
-
-- the interface `SomeClass`, if a type designator picks the implementation of each object. The
-  values of the designator slot must name classes, so a slot with the range `integer` doesn't
-  count.
-- otherwise `SomeClassImpl`, if the tree root has an interface
-- otherwise the case class `SomeClass`
-
-So an abstract or mixin tree root gets no document type unless it has a type designator that
-names classes, because no codec can tell which class to read. A `linkml:Any` tree root gets no
-document type either, as no class is generated for it. If another generated type has the same name as the document type,
-the document type gets underscores at the end until its name is free, such as `SomeSchemaDocument_`.
-
-Read and write a document with one codec. The generated code needs only the runtime module, but
-the codec and YAML parser come from the yaml module, which you add as a dependency:
-
-```scala
-import eu.neverblink.linkml.yaml.LinkmlYamlCodec
-import org.virtuslab.yaml.{NodeOps, parseYaml}
-
-val codec = LinkmlYamlCodec.derived[SomeSchemaDocument]
-val document = codec.decode(parseYaml(text).toOption.get)
-val text2 = codec.encode(document).asYaml
-```
-
-An empty list or dict is written as an empty text, and `parseYaml` fails on an empty text. So
-check for that before you decode, for example with `if text.isBlank then Seq.empty` for a
-`list` document.
-
-In the dict forms, the codec reads the key of each object from its dict key. Write documents
-with `encode` without `skipId`. With `skipId = true`, an object with a key and one other slot
-is written as a bare value, which `compact_dict` doesn't accept.

@@ -33,21 +33,9 @@ const text2 = JSON.stringify(zoo, null, 2);   // dump
 ```
 
 If the tree root has a `tree_root_as` other than `plain`, a document isn't one object. The
-file then also has a type for the whole document, named after the schema. For a schema named
-`zoo` with the tree root `Zoo`:
-
-| `tree_root_as`  | Document type                                              |
-|-----------------|------------------------------------------------------------|
-| `optional`      | `export type ZooDocument = Zoo \| null;`                   |
-| `list`          | `export type ZooDocument = Zoo[];`                         |
-| `compact_dict`  | `export type ZooDocument = Record<string, KeyOptional<Zoo, "id">>;` |
-| `simple_dict`   | `export type ZooDocument = Record<string, V \| KeyOptional<Zoo, "id">>;` |
-
-Here `id` is the key slot of `Zoo`, and `V` is the type of its value slot. With `include_null`,
-a `compact_dict` entry can also be `null` when `Zoo` has no required slot other than its key:
-`Record<string, KeyOptional<Zoo, "id"> | null>`.
-
-Load such a document with `JSON.parse(text) as ZooDocument`.
+file then also has a type for the whole document, such as `ZooDocument`, so that you can load
+the whole document at once: `JSON.parse(text) as ZooDocument`. See
+[Whole documents in generators](/docs/tree-root-as/).
 
 The cast is not checked at runtime. If the JSON doesn't fit the schema, you find out only when
 your code reads a field that isn't what the type says. If the data comes from somewhere you
@@ -214,7 +202,3 @@ permissible values (e.g. a dynamic enum) becomes `string`.
 
 Classes and enums get `PascalCase` names. A name that starts with a digit or is reserved in
 TypeScript gets a `_` prefix (e.g. a class `Record` becomes `_Record`).
-
-The type of a whole document gets the name of the schema in `PascalCase` plus `Document`, such as
-`ZooDocument` for a schema named `zoo`. If another generated type has the same name, such as a class `ZooDocument`, the
-generator stops with an error that names both, so that you can rename one.

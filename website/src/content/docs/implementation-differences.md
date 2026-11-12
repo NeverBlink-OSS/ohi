@@ -210,6 +210,7 @@ But rejects:
 
 LinkML-Python doesn't know this extension, so its generators always expect one object.
 In ohi LinkML, the JSON Schema, Pydantic, Java, Scala and TypeScript generators use it.
+See [Whole documents in generators](/docs/tree-root-as/) for the type that each code generator adds for a document.
 
 ## Language strings
 
