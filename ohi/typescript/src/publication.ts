@@ -1,5 +1,4 @@
-import type { Artifact, ArtifactOrigin, Dependency, Format, Publication } from "./generated.js";
-import { declared, type Fields } from "./fields.js";
+import type { ArtifactOrigin, Format, Publication } from "./generated.js";
 
 // The compiler checks that these have every value of the generated enums.
 export const formats: Record<Format, true> = {
@@ -8,24 +7,14 @@ export const formats: Record<Format, true> = {
 };
 const origins: Record<ArtifactOrigin, true> = { UPSTREAM: true, GENERATED: true };
 
-export const publicationFields: Fields<Publication> = {
-  schema_version: true, base_url: true, version: true, namespace: true, name: true, title: true, published_at: true,
-  publisher: true, licenses: true, namespace_iri: true, preferred_prefix: true, description: true, keywords: true,
-  element_count: true, native_element_count: true, artifacts: true, dependencies: true,
-};
-export const artifactFields: Fields<Artifact> = {
-  format: true, url: true, origin: true, roots: true, size_bytes: true, sha256: true,
-};
-export const dependencyFields: Fields<Dependency> = { base_url: true };
-
 /** Whether a value is text outside an enum, so added to it after this SDK version. */
 export function isNew(value: unknown, known: object): boolean {
   return typeof value === "string" && !Object.hasOwn(known, value);
 }
 
 /**
- * Decode publication metadata, discarding extras and artifacts with a format or origin added
- * after this SDK version. Field values are not validated.
+ * Decode publication metadata, discarding artifacts with a format or origin added after this SDK
+ * version. Fields that the model doesn't have are kept. Field values are not validated.
  */
 export function decodePublication(text: string): Publication {
   const data: Publication = JSON.parse(text);
@@ -48,9 +37,5 @@ export function decodePublication(text: string): Publication {
     throw new Error("dependencies must not contain the publication itself");
   }
 
-  return {
-    ...declared(data, publicationFields),
-    artifacts: artifacts.map((artifact) => declared(artifact, artifactFields)),
-    dependencies: data.dependencies.map((dependency) => declared(dependency, dependencyFields)),
-  };
+  return { ...data, artifacts };
 }

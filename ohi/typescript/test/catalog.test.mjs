@@ -4,7 +4,6 @@ import { test } from "node:test";
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { CatalogClient, CatalogException } from "@neverblink/ohi";
-import { facetCountFields, facetValueCountFields, searchHitFields } from "../dist/catalog.js";
 import { binary, page, publication, server } from "./server.mjs";
 
 const searchPath = "/search/collections/packages/documents/search";
@@ -78,7 +77,7 @@ test("search encodes original values once and preserves complete summaries in ba
       base_url, namespace: "example", name: "sensors", version: "2026.1+amendment", title: "Sensors",
       description: "Sensor observations and devices.",
       formats: ["ossie-yaml", "owl-rdfxml", "linkml-yaml", "owl-turtle", "rdfs-turtle", "shacl-turtle"],
-      licenses: index === 1 ? [] : ["MIT", "Apache-2.0"], published_at: "2026-10-13T14:30:00+02:00",
+      licenses: index === 1 ? [] : ["MIT", "Apache-2.0"], published_at: "2026-10-13T14:30:00+02:00", ignored: true,
       ...[{ keywords: ["sensors", "observations"] }, { keywords: [] }, {}][index],
     })),
     total: 7, page: 2, per_page: 3, search_cutoff: false,
@@ -121,7 +120,7 @@ test("search accepts an early cutoff with a short capped page", async (t) => {
   assert.equal(fixture.requests.length, 1);
 });
 
-test("search preserves ordered facet values and safe counts while discarding nested extras", async (t) => {
+test("search preserves ordered facet values and safe counts and keeps nested extras", async (t) => {
   const wire = { ...page(), facet_counts: [
     { field_name: "licenses", counts: [
       { value: "MIT", count: 0, highlighted: "ignored" },
@@ -131,34 +130,24 @@ test("search preserves ordered facet values and safe counts while discarding nes
   ] };
   const fixture = await server(t, (_, res) => res.end(JSON.stringify(wire)));
   const result = await catalog(fixture).search({ q: "*" });
-  assert.deepEqual(result.facet_counts, [
-    { field_name: "licenses", counts: [{ value: "MIT", count: 0 }, { value: "Apache-2.0", count: 9007199254740991 }] },
-    { field_name: "formats", counts: [] },
-  ]);
+  assert.deepEqual(result.facet_counts, wire.facet_counts);
 });
 
-test("search ignores fields and formats added later", async (t) => {
+test("search keeps fields and ignores formats added later", async (t) => {
   const wire = readFileSync(new URL("../../examples/future-search.json", import.meta.url));
   const fixture = await server(t, (_, res) => res.end(wire));
   const result = await catalog(fixture).search({ q: "*" });
   assert.deepEqual(result.hits.map(({ name, formats }) => [name, formats]),
     [["sensors", ["owl-turtle", "linkml-yaml"]], ["units", ["owl-turtle"]]]);
   assert.equal(result.total, 3);
-  assert.deepEqual(result.facet_counts, [
-    { field_name: "formats", counts: [{ value: "owl-jsonld", count: 2 }, { value: "owl-turtle", count: 1 }] },
-  ]);
-  assert.deepEqual(Object.keys(result.hits[0]).sort(), ["base_url", "description", "formats", "keywords", "licenses",
-    "name", "namespace", "published_at", "title", "version"]);
+  const expected = JSON.parse(wire);
+  assert.deepEqual(result.facet_counts, expected.facet_counts);
+  assert.deepEqual(result.hits[0], { ...expected.hits[0].document, formats: ["owl-turtle", "linkml-yaml"] });
 });
 
 test("search keeps every field that the model declares", async (t) => {
   const wire = readFileSync(new URL("../../examples/complete-search.json", import.meta.url));
   const expected = JSON.parse(wire);
-  // The field tables are checked against the generated classes by the compiler.
-  const keys = (fields) => Object.keys(fields).sort();
-  assert.deepEqual(Object.keys(expected.hits[0].document).sort(), keys(searchHitFields));
-  assert.deepEqual(Object.keys(expected.facet_counts[0]).sort(), keys(facetCountFields));
-  assert.deepEqual(Object.keys(expected.facet_counts[0].counts[0]).sort(), keys(facetValueCountFields));
   const fixture = await server(t, (_, res) => res.end(wire));
   const result = await catalog(fixture).search({ q: "*" });
   assert.deepEqual(result.hits, expected.hits.map(({ document }) => document));

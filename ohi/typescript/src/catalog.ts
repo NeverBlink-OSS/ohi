@@ -3,22 +3,14 @@ import type {
   CatalogError,
   CatalogOperation,
   FacetCount,
-  FacetValueCount,
   Publication,
   SearchHit,
   SearchRequest,
   SearchResult,
 } from "./generated.js";
-import { declared, type Fields } from "./fields.js";
 import { decodePublication, formats as knownFormats, isNew } from "./publication.js";
 
 const searchPath = "/search/collections/packages/documents/search";
-export const searchHitFields: Fields<SearchHit> = {
-  base_url: true, namespace: true, name: true, version: true, title: true, description: true, formats: true,
-  licenses: true, published_at: true, keywords: true, element_count: true, native_element_count: true,
-};
-export const facetCountFields: Fields<FacetCount> = { field_name: true, counts: true };
-export const facetValueCountFields: Fields<FacetValueCount> = { value: true, count: true };
 const referencePattern = /^([^/@\p{White_Space}`]+)\/([^/@\p{White_Space}`]+)(?:@([^/@\p{White_Space}+`]+))?$/u;
 
 export class CatalogException extends Error {
@@ -54,6 +46,10 @@ function searchResult(bytes: Uint8Array, page: number, perPage: number): SearchR
   if (!object(raw) || "grouped_hits" in raw || !Array.isArray(raw.hits) || !object(raw.request_params)) {
     throw new Error("Expected an ungrouped search response with hits and request_params.");
   }
+  if (raw.facet_counts !== undefined &&
+      !(Array.isArray(raw.facet_counts) && raw.facet_counts.every((facet) => object(facet) && Array.isArray(facet.counts)))) {
+    throw new Error("Expected facet_counts to be a list of facets with counts.");
+  }
   const result: SearchResult = {
     hits: raw.hits.map((hit: unknown) => {
       if (!object(hit) || !object(hit.document)) throw new Error("Expected a search hit document.");
@@ -75,13 +71,7 @@ function searchResult(bytes: Uint8Array, page: number, perPage: number): SearchR
       const { formats } = hit;
       const known = Array.isArray(formats) ? formats.filter((format) => !isNew(format, knownFormats)) : formats;
       if (Array.isArray(formats) && formats.length > 0 && known.length === 0) return [];
-      return [{ ...declared(hit, searchHitFields), formats: known }];
-    }),
-    ...(result.facet_counts === undefined ? {} : {
-      facet_counts: result.facet_counts.map((facet) => ({
-        ...declared(facet, facetCountFields),
-        counts: facet.counts.map((count) => declared(count, facetValueCountFields)),
-      })),
+      return [{ ...hit, formats: known }];
     }),
   };
 }

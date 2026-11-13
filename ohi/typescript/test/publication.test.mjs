@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { beforeEach, test } from "node:test";
-import { artifactFields, decodePublication, dependencyFields, publicationFields } from "../dist/publication.js";
+import { decodePublication } from "../dist/publication.js";
 
 function example(name = "sensors") {
   return JSON.parse(readFileSync(new URL(`../../examples/${name}-package.json`, import.meta.url), "utf8"));
@@ -14,11 +14,6 @@ beforeEach(() => { data = example(); });
 
 test("keeps every field that the model declares", () => {
   const complete = example("complete");
-  // The field tables are checked against the generated classes by the compiler.
-  const keys = (fields) => Object.keys(fields).sort();
-  assert.deepEqual(Object.keys(complete).sort(), keys(publicationFields));
-  assert.deepEqual(Object.keys(complete.artifacts[0]).sort(), keys(artifactFields));
-  assert.deepEqual(Object.keys(complete.dependencies[0]).sort(), keys(dependencyFields));
   assert.deepEqual(decode(complete), complete);
 });
 
@@ -54,8 +49,14 @@ test("maps publication fields", () => {
   assert.deepEqual(publication.dependencies, [{ base_url: "https://example.org/packages/units/2.0.0/" }]);
 });
 
-test("ignores fields and artifacts added later", () => {
-  assert.deepEqual(decode(example("future")), decode(example()));
+test("keeps fields and ignores artifacts added later", () => {
+  const future = example("future");
+  const publication = decode(future);
+  assert.deepEqual(publication.artifacts.map(({ url }) => url), decode(example()).artifacts.map(({ url }) => url));
+  assert.deepEqual(publication, {
+    ...future,
+    artifacts: future.artifacts.filter(({ format, origin }) => format !== "owl-jsonld" && origin !== "MIRRORED"),
+  });
 });
 
 test("rejects a publication with only new formats and origins", () => {
@@ -116,16 +117,16 @@ test("preserves supplied timestamp precision and offset", () => {
 });
 
 
-test("discards extras at each record level", () => {
+test("keeps extras at each record level", () => {
   data.package = "obsolete";
   data.roots = ["obsolete"];
   data.artifacts[0].dependencies = "obsolete";
   data.dependencies[0].url = "obsolete";
   const publication = decode(data);
-  assert.equal("package" in publication, false);
-  assert.equal("roots" in publication, false);
-  assert.equal("dependencies" in publication.artifacts[0], false);
-  assert.equal("url" in publication.dependencies[0], false);
+  assert.equal(publication.package, "obsolete");
+  assert.deepEqual(publication.roots, ["obsolete"]);
+  assert.equal(publication.artifacts[0].dependencies, "obsolete");
+  assert.equal(publication.dependencies[0].url, "obsolete");
   assert.equal(publication.namespace, "example");
   assert.equal(publication.artifacts[0].url, "https://example.org/packages/sensors/1.0.0/sensors.ttl");
   assert.equal(publication.dependencies[0].base_url, "https://example.org/packages/units/2.0.0/");
