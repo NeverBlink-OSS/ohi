@@ -1,6 +1,6 @@
 package eu.neverblink.linkml.benchmark
 
-import eu.neverblink.linkml.generator.options.{PruningMode, StatsGeneratorOptions}
+import eu.neverblink.linkml.generator.options.StatsGeneratorOptions
 import eu.neverblink.linkml.benchmark.BenchUtil.BlackholeOutputStream
 import eu.neverblink.linkml.cli.ValidationReport
 import eu.neverblink.linkml.generator.DocumentGenerator
@@ -258,13 +258,13 @@ class GeneratorBench extends CommonParams {
   def statsFromSchemaView(bh: Blackhole): Unit =
     write(bh, StatsGenerator(using schemaView))
 
-  /** Without pruning, which skips the reachability query. */
+  /** Counting the imported schemas too, not only the root schema. */
   @Benchmark
-  def statsSkipFromSchemas(bh: Blackhole): Unit =
+  def statsAllFromSchemas(bh: Blackhole): Unit =
     StatsGenerator(using SchemaView(schemaView.schemas))
       .writeTo(
         new BlackholeOutputStream(bh),
-        StatsGeneratorOptions(pruningMode = PruningMode.Skip),
+        StatsGeneratorOptions(onlyClassesFromRootSchema = false),
       )
 
   /** Lints the schema and writes the JSON report, as `linkml lint --format json` does. */

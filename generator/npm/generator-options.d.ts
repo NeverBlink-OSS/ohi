@@ -361,11 +361,16 @@ export interface ShaclGeneratorOptions {
 /** Options of the schema statistics generator. */
 export interface StatsGeneratorOptions {
   /**
-   * The elements in scope for the counts.
+   * Whether to count only the elements the root schema defines. Otherwise the counts also cover every element of every imported schema.
+   * @defaultValue true
+   */
+  only_classes_from_root_schema?: boolean;
+  /**
+   * Ignored, and kept only so existing calls still work. Use `only_classes_from_root_schema` instead.
    * @defaultValue "schema"
    */
   pruning_mode?: PruningMode;
-  /** The class to use as the tree root, instead of the class with `tree_root: true` in the schema. Only for the `tree_root` pruning mode. */
+  /** Ignored, and kept only so existing calls still work. Use `only_classes_from_root_schema` instead. */
   tree_root?: string;
 }
 

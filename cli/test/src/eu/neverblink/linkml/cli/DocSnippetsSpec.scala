@@ -304,17 +304,17 @@ class DocSnippetsSpec extends AnyWordSpec {
 
   "the stats examples" should {
     "run on the command line" in {
-      ohiLinkml("to stats --pruning-mode skip prov-o.linkml.yaml")
+      ohiLinkml("to stats --only-classes-from-root-schema=false prov-o.linkml.yaml")
     }
     "run in Scala" in {
-      import eu.neverblink.linkml.generator.options.*
+      import eu.neverblink.linkml.generator.options.StatsGeneratorOptions
       import eu.neverblink.linkml.generator.stats.StatsGenerator
       import eu.neverblink.linkml.schemaview.{SchemaIssues, SchemaView}
 
       val loaded = SchemaView.loadSchemaViewFromUri("prov-o.linkml.yaml")
       given SchemaView = SchemaIssues.orThrow(loaded)
       val result = StatsGenerator().generate(
-        StatsGeneratorOptions(pruningMode = PruningMode.Skip),
+        StatsGeneratorOptions(onlyClassesFromRootSchema = false),
       )
       assert(result != null)
     }

@@ -422,18 +422,23 @@ class Generators:
     def stats(
         self,
         *,
+        only_classes_from_root_schema: bool = True,
         pruning_mode: Literal["tree_root", "schema", "skip"] = "schema",
         tree_root: str | None = None,
     ) -> Any:
         """Count the elements, their documentation, mappings and languages, and the imports.
         Returns a `SchemaStats` of `model/schema-stats.yaml`.
 
-        :param pruning_mode: The elements in scope for the counts.
-        :param tree_root: The class to use as the tree root, instead of the class with
-            `tree_root: true` in the schema. Only for the `tree_root` pruning mode.
+        :param only_classes_from_root_schema: Whether to count only the elements the root schema
+            defines. Otherwise the counts also cover every element of every imported schema.
+        :param pruning_mode: Ignored, and kept only so existing calls still work. Use
+            `only_classes_from_root_schema` instead.
+        :param tree_root: Ignored, and kept only so existing calls still work. Use
+            `only_classes_from_root_schema` instead.
         """
         return self._json(
             "linkml_stats",
+            only_classes_from_root_schema=only_classes_from_root_schema,
             pruning_mode=pruning_mode,
             tree_root=tree_root,
         )

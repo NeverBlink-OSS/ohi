@@ -16,8 +16,12 @@ import eu.neverblink.linkml.runtime.*
   *   under the empty tag `""`.
   * @param metadata
   *   Whether the root schema has a license, version, title and description.
+  * @param onlyClassesFromRootSchema
+  *   True if the counts cover only the elements the root schema defines, false if they also cover
+  *   every element of every imported schema.
   * @param pruningMode
-  *   The pruning mode. It decides the scope of the counts.
+  *   No longer written, since the generator ignores the pruning mode now. See
+  *   `only_classes_from_root_schema`.
   * @param schemaId
   *   The `id` of the root schema.
   * @param schemaName
@@ -25,9 +29,9 @@ import eu.neverblink.linkml.runtime.*
   * @see
   *   From schema: https://linkml.ohi.dev/model/schema-stats
   * @note
-  *   `pruning_mode` decides which elements are in scope. `elements` and `languages` count only the
-  *   elements in scope. `imports` and `metadata` describe the root schema and do not depend on the
-  *   mode.
+  *   `only_classes_from_root_schema` decides which elements are in scope. `elements` and
+  *   `languages` count only the elements in scope. `imports` and `metadata` describe the root
+  *   schema and do not depend on it.
   */
 final case class SchemaStats(
     elements: ElementStats,
@@ -35,8 +39,10 @@ final case class SchemaStats(
     @simpleDict
     languages: Map[String, LanguageCount],
     metadata: MetadataStats,
+    @named("only_classes_from_root_schema")
+    onlyClassesFromRootSchema: Boolean,
     @named("pruning_mode")
-    pruningMode: PruningMode,
+    pruningMode: Option[PruningMode] = None,
     @named("schema_id")
     schemaId: Uri,
     @named("schema_name")
