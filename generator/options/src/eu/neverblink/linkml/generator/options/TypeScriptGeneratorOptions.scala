@@ -9,6 +9,11 @@ import eu.neverblink.linkml.runtime.*
   *
   * @param errorHandling
   *   How the functions of the schema report their `errors`.
+  * @param fieldLists
+  *   Whether each interface also gets a constant with the JSON keys of its fields, such as
+  *   `export const PersonFields = ["id", "name"] as const;`. Code can use it at runtime, for
+  *   example to keep only the fields that the schema declares. The output then has runtime code, so
+  *   it can't be used as a `.d.ts` file.
   * @param includeNull
   *   Whether optional values and compact dictionary entries with nothing beyond the key may be
   *   null, as in the JSON Schema generator.
@@ -35,6 +40,9 @@ final case class TypeScriptGeneratorOptions(
     @named("error_handling")
     @serializeDefault
     errorHandling: TypeScriptErrorHandling = TypeScriptErrorHandling.Exception,
+    @named("field_lists")
+    @serializeDefault
+    fieldLists: Boolean = false,
     @named("include_null")
     @serializeDefault
     includeNull: Boolean = false,

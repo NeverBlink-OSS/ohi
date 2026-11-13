@@ -140,11 +140,32 @@ class TypeScriptCompileSpec extends AnyWordSpec, Matchers, ModelCatalogueSpec {
       entry.name -> file
     }.toMap
 
+  /** Every model generated again with `field_lists`, followed by checks that each constant lists
+    * exactly the keys of its interface.
+    */
+  private lazy val fieldListMode: Map[String, Try[String]] =
+    ModelCatalogue.all.map { entry =>
+      val file = s"${safeName(entry.name)}/model_fields.ts"
+      val source = Try(
+        TypeScriptGenerator(using entry.model)
+          .serialize(TypeScriptGeneratorOptions(fieldLists = true)),
+      )
+      source.foreach(code =>
+        os.write.over(
+          outDir / os.RelPath(file),
+          code + fieldListChecks(code),
+          createFolders = true,
+        ),
+      )
+      entry.name -> source.map(_ => file)
+    }.toMap
+
   /** `tsc` diagnostics by file, from a single run over all the generated files. */
   private lazy val diagnostics: Map[String, Seq[Diagnostic]] = {
     val dir = compiler.getOrElse(throw IllegalStateException("no TypeScript compiler"))
     generated // write the files
     resultMode
+    fieldListMode
     os.write.over(outDir / "tsconfig.json", tsconfig)
     // The generated code is an ES module
     os.write.over(outDir / "package.json", """{"type": "module"}""")
@@ -187,6 +208,13 @@ class TypeScriptCompileSpec extends AnyWordSpec, Matchers, ModelCatalogueSpec {
       s"generate TypeScript for the functions of model '${entry.name}' in result mode" in {
         requireCompiler()
         errorsIn(resultMode(entry.name), 0) shouldBe empty
+      }
+
+    for entry <- ModelCatalogue.all do
+      s"generate field lists that match the interfaces of model '${entry.name}'" in {
+        assume(!skipModels.contains(entry.name), skipModels.getOrElse(entry.name, ""))
+        requireCompiler()
+        errorsIn(fieldListMode(entry.name).get, 0) shouldBe empty
       }
 
     for entry <- ModelCatalogue.all do
@@ -248,6 +276,24 @@ object TypeScriptCompileSpec {
     if source.contains(s"export type $document =") then document
     else gen.unionName(root).getOrElse(gen.className(root))
   }
+
+  private val fieldListPattern = """(?m)^export const (\w+)Fields = """.r
+
+  /** Statements that type-check only if each `XFields` constant has every key of the interface `X`,
+    * and nothing else. The keys of an index signature for extra properties don't count.
+    */
+  def fieldListChecks(source: String): String =
+    fieldListPattern.findAllMatchIn(source).map(_.group(1)).zipWithIndex.map { (name, i) =>
+      val declared = s"__Declared$i"
+      s"""type $declared = keyof {
+         |  [K in keyof $name as string extends K ? never : number extends K ? never : K]: unknown
+         |};
+         |const __listed$i: readonly $declared[] = ${name}Fields;
+         |const __complete$i: [Exclude<$declared, (typeof ${name}Fields)[number]>] extends [never]
+         |  ? true
+         |  : false = true;
+         |""".stripMargin
+    }.mkString("\n", "", "")
 
   private val tsconfig: String =
     """{

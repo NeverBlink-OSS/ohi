@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { beforeEach, test } from "node:test";
-import { artifactFields, decodePublication, dependencyFields, publicationFields } from "../dist/publication.js";
+import { ArtifactFields, DependencyFields, PublicationFields } from "../dist/generated.js";
+import { decodePublication } from "../dist/publication.js";
 
 function example(name = "sensors") {
   return JSON.parse(readFileSync(new URL(`../../examples/${name}-package.json`, import.meta.url), "utf8"));
@@ -14,11 +15,10 @@ beforeEach(() => { data = example(); });
 
 test("keeps every field that the model declares", () => {
   const complete = example("complete");
-  // The field tables are checked against the generated classes by the compiler.
-  const keys = (fields) => Object.keys(fields).sort();
-  assert.deepEqual(Object.keys(complete).sort(), keys(publicationFields));
-  assert.deepEqual(Object.keys(complete.artifacts[0]).sort(), keys(artifactFields));
-  assert.deepEqual(Object.keys(complete.dependencies[0]).sort(), keys(dependencyFields));
+  const keys = (fields) => [...fields].sort();
+  assert.deepEqual(Object.keys(complete).sort(), keys(PublicationFields));
+  assert.deepEqual(Object.keys(complete.artifacts[0]).sort(), keys(ArtifactFields));
+  assert.deepEqual(Object.keys(complete.dependencies[0]).sort(), keys(DependencyFields));
   assert.deepEqual(decode(complete), complete);
 });
 

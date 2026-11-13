@@ -151,9 +151,10 @@ object LinkMlCGenerators {
   def translation(handle: CLongLong, options: CString, error: Ptr[CString]): CString =
     LinkMlCApi.document(handle, options, error, LinkMlNativeApi.translation)
 
-  /** Generate TypeScript types for the schema's JSON data, with no runtime code. Load data with
-    * `JSON.parse(text) as X` and dump it with `JSON.stringify(x)`. Options: `error_handling`,
-    * `include_null`, `metadata_language`, `open`, `optional_defaults`, `pruning_mode`, `tree_root`.
+  /** Generate TypeScript types for the schema's JSON data, with no runtime code unless
+    * `field_lists` is on. Load data with `JSON.parse(text) as X` and dump it with
+    * `JSON.stringify(x)`. Options: `error_handling`, `field_lists`, `include_null`,
+    * `metadata_language`, `open`, `optional_defaults`, `pruning_mode`, `tree_root`.
     */
   @exported("linkml_typescript")
   def typescript(handle: CLongLong, options: CString, error: Ptr[CString]): CString =

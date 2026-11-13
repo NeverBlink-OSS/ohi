@@ -20,8 +20,9 @@ object `package` extends Module, LinkMlModelModule {
       build.ohi.moduleDir / "python" / "src" / "ohi" / "generated.py",
       Some("model/ohi/sdk.yaml"),
     ),
+    // The SDK keeps only the declared fields, with the field lists
     ModelOutput(
-      "typescript",
+      "typescript --field-lists",
       build.ohi.moduleDir / "typescript" / "src" / "generated.ts",
       Some("model/ohi/sdk.yaml"),
     ),
