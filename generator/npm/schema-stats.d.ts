@@ -93,15 +93,17 @@ export interface SchemaStats {
   languages: Record<string, number | KeyOptional<LanguageCount, "language">>;
   /** metadata: Whether the root schema has a license, version, title and description. */
   metadata: MetadataStats;
-  /** pruning mode: The pruning mode. It decides the scope of the counts. */
-  pruning_mode: PruningMode;
+  /** only classes from root schema: True if the counts cover only the elements the root schema defines, false if they also cover every element of every imported schema. */
+  only_classes_from_root_schema: boolean;
+  /** pruning mode: No longer written, since the generator ignores the pruning mode now. See `only_classes_from_root_schema`. */
+  pruning_mode?: PruningMode;
   /** schema ID: The `id` of the root schema. */
   schema_id: string;
   /** schema name: The `name` of the root schema. */
   schema_name: string;
 }
 
-/** Pruning mode: Decides which elements are in scope. */
+/** Pruning mode: Decided which elements were in scope, in older versions of the generator. */
 export type PruningMode =
   | "tree_root"
   | "schema"

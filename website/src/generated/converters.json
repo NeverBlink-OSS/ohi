@@ -1495,34 +1495,47 @@
           "sdk": "Cli",
           "label": "CLI",
           "lang": "shell",
-          "code": "ohi get w3c/prov-o\nohi linkml to stats --pruning-mode skip prov-o.linkml.yaml"
+          "code": "ohi get w3c/prov-o\nohi linkml to stats --only-classes-from-root-schema=false \\\n  prov-o.linkml.yaml"
         },
         {
           "sdk": "Python",
           "label": "Python",
           "lang": "python",
-          "code": "import ohi_linkml\n\nwith ohi_linkml.load_file(\"prov-o.linkml.yaml\") as schema:\n    result = schema.stats(pruning_mode=\"skip\")"
+          "code": "import ohi_linkml\n\nwith ohi_linkml.load_file(\"prov-o.linkml.yaml\") as schema:\n    result = schema.stats(only_classes_from_root_schema=False)"
         },
         {
           "sdk": "JavaScript",
           "label": "JavaScript",
           "lang": "js",
-          "code": "import { readFileSync } from \"node:fs\";\nimport { LinkML } from \"@neverblink/linkml\";\n\nconst yaml = readFileSync(\"prov-o.linkml.yaml\", \"utf8\");\nconst { view, report } = LinkML.loadFromString(yaml, {});\nif (!view) throw new Error(JSON.stringify(report));\nconst result = view.stats({ pruning_mode: \"skip\" });"
+          "code": "import { readFileSync } from \"node:fs\";\nimport { LinkML } from \"@neverblink/linkml\";\n\nconst yaml = readFileSync(\"prov-o.linkml.yaml\", \"utf8\");\nconst { view, report } = LinkML.loadFromString(yaml, {});\nif (!view) throw new Error(JSON.stringify(report));\nconst result = view.stats({ only_classes_from_root_schema: false });"
         },
         {
           "sdk": "Scala",
           "label": "Scala",
           "lang": "scala",
-          "code": "import eu.neverblink.linkml.generator.options.*\nimport eu.neverblink.linkml.generator.stats.StatsGenerator\nimport eu.neverblink.linkml.schemaview.{SchemaIssues, SchemaView}\n\nval loaded = SchemaView.loadSchemaViewFromUri(\"prov-o.linkml.yaml\")\ngiven SchemaView = SchemaIssues.orThrow(loaded)\nval result = StatsGenerator().generate(\n  StatsGeneratorOptions(pruningMode = PruningMode.Skip),\n)"
+          "code": "import eu.neverblink.linkml.generator.options.StatsGeneratorOptions\nimport eu.neverblink.linkml.generator.stats.StatsGenerator\nimport eu.neverblink.linkml.schemaview.{SchemaIssues, SchemaView}\n\nval loaded = SchemaView.loadSchemaViewFromUri(\"prov-o.linkml.yaml\")\ngiven SchemaView = SchemaIssues.orThrow(loaded)\nval result = StatsGenerator().generate(\n  StatsGeneratorOptions(onlyClassesFromRootSchema = false),\n)"
         },
         {
           "sdk": "C",
           "label": "C",
           "lang": "c",
-          "code": "#include <stddef.h>\n#include \"ohi_linkml.h\"\n\nlinkml_init_threads();\nchar *report = NULL, *error = NULL;\nlong long schema =\n    linkml_load_file(\"prov-o.linkml.yaml\", NULL, &report, &error);\nchar *result = linkml_stats(\n    schema,\n    \"{\\\"pruning_mode\\\": \\\"skip\\\"}\",\n    &error\n);\nlinkml_free(result);\nlinkml_free(report);\nlinkml_free(error);\nlinkml_close(schema);"
+          "code": "#include <stddef.h>\n#include \"ohi_linkml.h\"\n\nlinkml_init_threads();\nchar *report = NULL, *error = NULL;\nlong long schema =\n    linkml_load_file(\"prov-o.linkml.yaml\", NULL, &report, &error);\nchar *result = linkml_stats(\n    schema,\n    \"{\\\"only_classes_from_root_schema\\\": false}\",\n    &error\n);\nlinkml_free(result);\nlinkml_free(report);\nlinkml_free(error);\nlinkml_close(schema);"
         }
       ],
       "options": [
+        {
+          "name": "only_classes_from_root_schema",
+          "type": {
+            "kind": "type",
+            "name": "boolean",
+            "collection": null
+          },
+          "required": false,
+          "default": "true",
+          "description": "Whether to count only the elements the root schema defines. Otherwise the counts also cover every element of every imported schema.",
+          "cli": "--only-classes-from-root-schema",
+          "scala": "onlyClassesFromRootSchema"
+        },
         {
           "name": "pruning_mode",
           "type": {
@@ -1532,7 +1545,7 @@
           },
           "required": false,
           "default": "schema",
-          "description": "The elements in scope for the counts.",
+          "description": "Ignored, and kept only so existing calls still work. Use `only_classes_from_root_schema` instead.",
           "cli": "--pruning-mode",
           "scala": "pruningMode"
         },
@@ -1545,7 +1558,7 @@
           },
           "required": false,
           "default": null,
-          "description": "The class to use as the tree root, instead of the class with `tree_root: true` in the schema. Only for the `tree_root` pruning mode.",
+          "description": "Ignored, and kept only so existing calls still work. Use `only_classes_from_root_schema` instead.",
           "cli": "--tree-root",
           "scala": "treeRoot"
         }

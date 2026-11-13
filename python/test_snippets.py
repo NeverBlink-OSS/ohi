@@ -143,7 +143,7 @@ class DocSnippetsTest(unittest.TestCase):
         import ohi_linkml
 
         with ohi_linkml.load_file("prov-o.linkml.yaml") as schema:
-            result = schema.stats(pruning_mode="skip")
+            result = schema.stats(only_classes_from_root_schema=False)
         self.assertTrue(result)
 
     def test_translation(self) -> None:

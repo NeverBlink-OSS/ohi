@@ -86,7 +86,7 @@ schema.docs(pruning_mode="schema", tree_root=None, metadata_language="en", singl
 schema.ossie(pruning_mode="skip", tree_root=None, format="yaml")
 schema.owl(only_root_schema=False, metadata_profile="rdfs", permissible_values="individual", format="ttl")
 schema.scala(package="eu.neverblink.linkml.metamodel", generate_emit_prefixes=True)
-schema.stats(pruning_mode="schema", tree_root=None)
+schema.stats(only_classes_from_root_schema=True, pruning_mode="schema", tree_root=None)
 schema.translation(target="base")
 ```
 

@@ -9,10 +9,16 @@ import eu.neverblink.linkml.generator.options.*
 
 /** The command line options of [[StatsGeneratorOptions]]. */
 final case class StatsCliOptions(
-    @HelpMessage("The elements in scope for the counts. Default: schema")
+    @HelpMessage(
+      "Whether to count only the elements the root schema defines. Otherwise the counts also cover every element of every imported schema. Default: true",
+    )
+    onlyClassesFromRootSchema: Boolean = true,
+    @HelpMessage(
+      "Ignored, and kept only so existing calls still work. Use `only_classes_from_root_schema` instead. Default: schema",
+    )
     pruningMode: PruningMode = PruningMode.Schema,
     @HelpMessage(
-      "The class to use as the tree root, instead of the class with `tree_root: true` in the schema. Only for the `tree_root` pruning mode.",
+      "Ignored, and kept only so existing calls still work. Use `only_classes_from_root_schema` instead.",
     )
     treeRoot: Option[String] = None,
 ) {
@@ -20,6 +26,7 @@ final case class StatsCliOptions(
   /** The same options, for the generator. */
   def toOptions: StatsGeneratorOptions =
     StatsGeneratorOptions(
+      onlyClassesFromRootSchema = onlyClassesFromRootSchema,
       pruningMode = pruningMode,
       treeRoot = treeRoot,
     )

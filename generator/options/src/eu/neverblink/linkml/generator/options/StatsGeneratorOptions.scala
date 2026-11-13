@@ -7,15 +7,22 @@ import eu.neverblink.linkml.runtime.*
 
 /** Options of the schema statistics generator.
   *
+  * @param onlyClassesFromRootSchema
+  *   Whether to count only the elements the root schema defines. Otherwise the counts also cover
+  *   every element of every imported schema.
   * @param pruningMode
-  *   The elements in scope for the counts.
+  *   Ignored, and kept only so existing calls still work. Use `only_classes_from_root_schema`
+  *   instead.
   * @param treeRoot
-  *   The class to use as the tree root, instead of the class with `tree_root: true` in the schema.
-  *   Only for the `tree_root` pruning mode.
+  *   Ignored, and kept only so existing calls still work. Use `only_classes_from_root_schema`
+  *   instead.
   * @see
   *   From schema: https://linkml.ohi.dev/model/converter/generator/stats
   */
 final case class StatsGeneratorOptions(
+    @named("only_classes_from_root_schema")
+    @serializeDefault
+    onlyClassesFromRootSchema: Boolean = true,
     @named("pruning_mode")
     @serializeDefault
     pruningMode: PruningMode = PruningMode.Schema,
