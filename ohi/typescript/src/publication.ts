@@ -1,6 +1,5 @@
-import { ArtifactFields, DependencyFields, PublicationFields } from "./generated.js";
-import type { ArtifactOrigin, Format, Publication } from "./generated.js";
-import { declared } from "./fields.js";
+import type { Artifact, ArtifactOrigin, Dependency, Format, Publication } from "./generated.js";
+import { declared, type Fields } from "./fields.js";
 
 // The compiler checks that these have every value of the generated enums.
 export const formats: Record<Format, true> = {
@@ -8,6 +7,16 @@ export const formats: Record<Format, true> = {
   "shacl-turtle": true,
 };
 const origins: Record<ArtifactOrigin, true> = { UPSTREAM: true, GENERATED: true };
+
+export const publicationFields: Fields<Publication> = {
+  schema_version: true, base_url: true, version: true, namespace: true, name: true, title: true, published_at: true,
+  publisher: true, licenses: true, namespace_iri: true, preferred_prefix: true, description: true, keywords: true,
+  element_count: true, native_element_count: true, artifacts: true, dependencies: true,
+};
+export const artifactFields: Fields<Artifact> = {
+  format: true, url: true, origin: true, roots: true, size_bytes: true, sha256: true,
+};
+export const dependencyFields: Fields<Dependency> = { base_url: true };
 
 /** Whether a value is text outside an enum, so added to it after this SDK version. */
 export function isNew(value: unknown, known: object): boolean {
@@ -40,8 +49,8 @@ export function decodePublication(text: string): Publication {
   }
 
   return {
-    ...declared(data, PublicationFields),
-    artifacts: artifacts.map((artifact) => declared(artifact, ArtifactFields)),
-    dependencies: data.dependencies.map((dependency) => declared(dependency, DependencyFields)),
+    ...declared(data, publicationFields),
+    artifacts: artifacts.map((artifact) => declared(artifact, artifactFields)),
+    dependencies: data.dependencies.map((dependency) => declared(dependency, dependencyFields)),
   };
 }

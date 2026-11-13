@@ -58,21 +58,11 @@ classes:
           Whether a slot with an `ifabsent` may be left out, for data that a program fills the
           defaults in, such as options. Without it, such a slot is as required as the schema says,
           as in the JSON Schema generator.
-      field_lists:
-        range: boolean
-        required: true
-        ifabsent: 'false'
-        description: >-
-          Whether each interface also gets a constant with the JSON keys of its fields, such as
-          `export const PersonFields = ["id", "name"] as const;`. This can be then used at runtime, 
-          for example to keep only the fields that the schema declares. The output then has runtime
-          code, so it can't be used as a `.d.ts` file.
 
 functions:
   typescript:
     description: >-
-      Generate TypeScript types for the schema's JSON data, with no runtime code unless
-      `field_lists` is on. Load data with `JSON.parse(text) as X` and dump it with
-      `JSON.stringify(x)`.
+      Generate TypeScript types for the schema's JSON data, with no runtime code. Load data with
+      `JSON.parse(text) as X` and dump it with `JSON.stringify(x)`.
     parameters: TypeScriptGeneratorOptions
     returns: string

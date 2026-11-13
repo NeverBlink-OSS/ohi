@@ -573,36 +573,6 @@ class TypeScriptGeneratorSpec extends AnyWordSpec, Matchers {
       ts should include("  type?: \"https://neverblink.eu/linkml/typescript/test/SubThing\";\n")
     }
 
-    "write a constant with the JSON keys of each interface's fields when asked" in {
-      val yaml =
-        """classes:
-          |  Shape:
-          |    abstract: true
-          |    attributes:
-          |      kind: {range: string, designates_type: true, required: true}
-          |  Circle:
-          |    is_a: Shape
-          |    attributes:
-          |      radius: {range: integer, required: true}
-          |      my-slot: {range: string}
-          |      renamed:
-          |        alias: other_name
-          |        range: string
-          |  Empty: {}
-          |""".stripMargin
-      generate(yaml) should not include "export const"
-      val ts = generate(yaml, TypeScriptGeneratorOptions(fieldLists = true))
-      // In the interface's order, which sorts by slot name, not by JSON key
-      ts should include(
-        "}\n\n/** The JSON keys of the fields of `Circle`. */\n" +
-          """export const CircleFields = ["kind", "my-slot", "radius", "other_name"] as const;""" +
-          "\n",
-      )
-      ts should include("export const EmptyFields = [] as const;\n")
-      // An abstract designated class is only a union, so it has no interface and no constant
-      ts should not include "ShapeFields"
-    }
-
     "use both the URI and the CURIE for uriorcurie designators" in {
       val ts = generate(
         """classes:

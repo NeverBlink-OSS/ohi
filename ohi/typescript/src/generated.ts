@@ -18,9 +18,6 @@ export interface Artifact {
   [key: string]: unknown;
 }
 
-/** The JSON keys of the fields of `Artifact`. */
-export const ArtifactFields = ["format", "origin", "roots", "sha256", "size_bytes", "url"] as const;
-
 /** Exact publication identity and artifact download URL, compared without normalization. */
 export interface ArtifactSelection {
   /** Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns its publication JSON. Do not append a filename. */
@@ -28,9 +25,6 @@ export interface ArtifactSelection {
   /** Permanent absolute download URL of an immutable ontology file. */
   url: string;
 }
-
-/** The JSON keys of the fields of `ArtifactSelection`. */
-export const ArtifactSelectionFields = ["base_url", "url"] as const;
 
 export interface CatalogConfig {
   /** Comma-separated indexed fields used for text search. Omit both query_by and search_url to use title,name,description,namespace at ohi.dev. Supply both to select another catalog. */
@@ -40,9 +34,6 @@ export interface CatalogConfig {
   /** Positive native request timeout in milliseconds. Omitted means 30000. */
   timeout_ms?: number;
 }
-
-/** The JSON keys of the fields of `CatalogConfig`. */
-export const CatalogConfigFields = ["query_by", "search_url", "timeout_ms"] as const;
 
 export interface CatalogError {
   /** Stable SDK failure category. */
@@ -59,18 +50,12 @@ export interface CatalogError {
   url?: string;
 }
 
-/** The JSON keys of the fields of `CatalogError`. */
-export const CatalogErrorFields = ["code", "message", "operation", "response_json", "status", "url"] as const;
-
 /** A reference to an exact immutable publication required by this publication. */
 export interface Dependency {
   /** Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns its publication JSON. Do not append a filename. */
   base_url: string;
   [key: string]: unknown;
 }
-
-/** The JSON keys of the fields of `Dependency`. */
-export const DependencyFields = ["base_url"] as const;
 
 /** Counts for the returned values of one indexed field. */
 export interface FacetCount {
@@ -81,9 +66,6 @@ export interface FacetCount {
   [key: string]: unknown;
 }
 
-/** The JSON keys of the fields of `FacetCount`. */
-export const FacetCountFields = ["counts", "field_name"] as const;
-
 /** A facet value and its matching-publication count. */
 export interface FacetValueCount {
   /** Number of matching publications for this facet value or range. */
@@ -92,9 +74,6 @@ export interface FacetValueCount {
   value: string;
   [key: string]: unknown;
 }
-
-/** The JSON keys of the fields of `FacetValueCount`. */
-export const FacetValueCountFields = ["count", "value"] as const;
 
 /** Direct selections and their artifact files. */
 export interface Lock {
@@ -106,9 +85,6 @@ export interface Lock {
   selections: ArtifactSelection[];
 }
 
-/** The JSON keys of the fields of `Lock`. */
-export const LockFields = ["files", "format_version", "selections"] as const;
-
 export interface LockError {
   code: LockErrorCode;
   /** Human-readable explanation of the failure. */
@@ -117,9 +93,6 @@ export interface LockError {
   /** Explicit path supplied to a file operation. Absent for text operations. */
   path?: string;
 }
-
-/** The JSON keys of the fields of `LockError`. */
-export const LockErrorFields = ["code", "message", "operation", "path"] as const;
 
 export interface LockedFile {
   /** Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns its publication JSON. Do not append a filename. */
@@ -131,9 +104,6 @@ export interface LockedFile {
   /** SHA-256 of the file bytes before HTTP content encoding. */
   sha256?: string;
 }
-
-/** The JSON keys of the fields of `LockedFile`. */
-export const LockedFileFields = ["base_url", "format", "url", "sha256"] as const;
 
 /** One immutable release of one ontology, including its metadata, artifacts and dependencies. Package, publication and release refer to the same entity. */
 export interface Publication {
@@ -174,9 +144,6 @@ export interface Publication {
   [key: string]: unknown;
 }
 
-/** The JSON keys of the fields of `Publication`. */
-export const PublicationFields = ["artifacts", "base_url", "dependencies", "description", "element_count", "keywords", "licenses", "name", "namespace", "namespace_iri", "native_element_count", "preferred_prefix", "published_at", "publisher", "schema_version", "title", "version"] as const;
-
 /** Summary of one immutable publication. */
 export interface SearchHit {
   /** Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns its publication JSON. Do not append a filename. */
@@ -206,9 +173,6 @@ export interface SearchHit {
   [key: string]: unknown;
 }
 
-/** The JSON keys of the fields of `SearchHit`. */
-export const SearchHitFields = ["base_url", "description", "element_count", "formats", "keywords", "licenses", "name", "namespace", "native_element_count", "published_at", "title", "version"] as const;
-
 /** Query and options for retrieving one page of ontology publications. */
 export interface SearchRequest {
   /** Search every release instead of each ontology's latest version. */
@@ -229,9 +193,6 @@ export interface SearchRequest {
   sort_by?: string;
 }
 
-/** The JSON keys of the fields of `SearchRequest`. */
-export const SearchRequestFields = ["all_releases", "facet_by", "filter_by", "max_facet_values", "page", "per_page", "q", "sort_by"] as const;
-
 /** One ordered page of publication summaries, with count, effective paging information and optional facet counts. */
 export interface SearchResult {
   /** Facet values and counts for the query and filters, independently of hit pagination. The number of returned facet values may be limited. */
@@ -248,9 +209,6 @@ export interface SearchResult {
   total: number;
   [key: string]: unknown;
 }
-
-/** The JSON keys of the fields of `SearchResult`. */
-export const SearchResultFields = ["facet_counts", "hits", "page", "per_page", "search_cutoff", "total"] as const;
 
 /** Origin of published artifact content. */
 export type ArtifactOrigin =

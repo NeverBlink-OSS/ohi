@@ -13,9 +13,9 @@ import eu.neverblink.linkml.schemaview.*
 import scala.collection.mutable
 
 /** Generates TypeScript types that describe the JSON form of the data 1:1, the same as
-  * [[eu.neverblink.linkml.generator.jsonschema.JsonSchemaGenerator]]. The output has no imports
-  * and, unless `fieldLists` is on, no runtime code: data is loaded with `JSON.parse(text) as X` and
-  * dumped with `JSON.stringify(x)`.
+  * [[eu.neverblink.linkml.generator.jsonschema.JsonSchemaGenerator]]. The output has no runtime
+  * code and no imports: data is loaded with `JSON.parse(text) as X` and dumped with
+  * `JSON.stringify(x)`.
   *
   * Classes become flat interfaces (all inherited slots listed, no `extends`). Classes with a type
   * designator (`designates_type`) become discriminated unions of their concrete descendants.
@@ -190,23 +190,6 @@ final class TypeScriptGenerator(using sv: SchemaView)
       sink.append(";\n")
     }
     sink.append("}\n")
-  }
-
-  /** Writes the constant with the JSON keys of the interface's fields, in the interface's order. */
-  private def writeFieldList(sink: CharSink, cls: ClassView): Unit = {
-    val name = className(cls)
-    writeDoc(sink, Seq(s"The JSON keys of the fields of `$name`."), "")
-    sink.append("export const ")
-    sink.append(fieldListName(name))
-    sink.append(" = [")
-    cls.sortedAttributeViews.foreach {
-      var first = true
-      attribute =>
-        if !first then sink.append(", ")
-        first = false
-        sink.append(stringLiteral(slotName(attribute.slotView)))
-    }
-    sink.append("] as const;\n")
   }
 
   /** Whether a property may be skipped: the slot is optional, or has a default and
@@ -386,13 +369,7 @@ final class TypeScriptGenerator(using sv: SchemaView)
     sink.append(GeneratedHeader("//"))
     classes.foreach { cls =>
       sink.append('\n')
-      if hasInterface(cls) then {
-        writeInterface(sink, cls, ctx)
-        if options.fieldLists then {
-          sink.append('\n')
-          writeFieldList(sink, cls)
-        }
-      }
+      if hasInterface(cls) then writeInterface(sink, cls, ctx)
       unionName(cls).foreachFast { name =>
         if hasInterface(cls) then sink.append('\n')
         writeUnion(sink, cls, name)
@@ -422,11 +399,6 @@ final class TypeScriptGenerator(using sv: SchemaView)
 }
 
 object TypeScriptGenerator {
-
-  /** The name of the constant with the JSON keys of an interface's fields. Constants are values and
-    * the rest of the output is types, so it can't take the name of a generated type.
-    */
-  def fieldListName(interfaceName: String): String = interfaceName.concat("Fields")
 
   /** Mutable state of one generator run. */
   private final case class Context(options: TypeScriptGeneratorOptions) {

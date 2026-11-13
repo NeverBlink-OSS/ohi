@@ -258,12 +258,6 @@ export const TARGETS: Target[] = [
         title: "Let slots with an ifabsent be left out",
       },
       {
-        key: "field_lists",
-        type: "checkbox",
-        label: "Field lists",
-        title: "Add a constant with the field names of each interface",
-      },
-      {
         key: "error_handling",
         type: "select",
         label: "Function errors",

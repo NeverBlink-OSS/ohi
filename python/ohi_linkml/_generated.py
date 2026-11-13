@@ -469,7 +469,6 @@ class Generators:
         self,
         *,
         error_handling: Literal["exception", "result"] = "exception",
-        field_lists: bool = False,
         include_null: bool = False,
         metadata_language: str = "en",
         open: bool = False,
@@ -477,15 +476,10 @@ class Generators:
         pruning_mode: Literal["tree_root", "schema", "skip"] = "skip",
         tree_root: str | None = None,
     ) -> str:
-        """Generate TypeScript types for the schema's JSON data, with no runtime code unless
-        `field_lists` is on. Load data with `JSON.parse(text) as X` and dump it with
-        `JSON.stringify(x)`.
+        """Generate TypeScript types for the schema's JSON data, with no runtime code. Load data
+        with `JSON.parse(text) as X` and dump it with `JSON.stringify(x)`.
 
         :param error_handling: How the functions of the schema report their `errors`.
-        :param field_lists: Whether each interface also gets a constant with the JSON keys of
-            its fields, such as `export const PersonFields = ["id", "name"] as const;`. Code can
-            use it at runtime, for example to keep only the fields that the schema declares. The
-            output then has runtime code, so it can't be used as a `.d.ts` file.
         :param include_null: Whether optional values and compact dictionary entries with nothing
             beyond the key may be null, as in the JSON Schema generator.
         :param metadata_language: The language of the titles and descriptions in the output, for
@@ -504,7 +498,6 @@ class Generators:
         return self._document(
             "linkml_typescript",
             error_handling=error_handling,
-            field_lists=field_lists,
             include_null=include_null,
             metadata_language=metadata_language,
             open=open,

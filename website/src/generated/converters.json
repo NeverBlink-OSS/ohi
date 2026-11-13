@@ -1638,7 +1638,7 @@
       "kind": "generator",
       "page": "generators/typescript",
       "playground": "https://linkml.ohi.dev/playground/?ohi=w3c/prov-o@2013&target=typescript",
-      "description": "Generate TypeScript types for the schema's JSON data, with no runtime code unless `field_lists` is on. Load data with `JSON.parse(text) as X` and dump it with `JSON.stringify(x)`.",
+      "description": "Generate TypeScript types for the schema's JSON data, with no runtime code. Load data with `JSON.parse(text) as X` and dump it with `JSON.stringify(x)`.",
       "snippets": [
         {
           "sdk": "Cli",
@@ -1684,19 +1684,6 @@
           "description": "How the functions of the schema report their `errors`.",
           "cli": "--error-handling",
           "scala": "errorHandling"
-        },
-        {
-          "name": "field_lists",
-          "type": {
-            "kind": "type",
-            "name": "boolean",
-            "collection": null
-          },
-          "required": false,
-          "default": "false",
-          "description": "Whether each interface also gets a constant with the JSON keys of its fields, such as `export const PersonFields = [\"id\", \"name\"] as const;`. Code can use it at runtime, for example to keep only the fields that the schema declares. The output then has runtime code, so it can't be used as a `.d.ts` file.",
-          "cli": "--field-lists",
-          "scala": "fieldLists"
         },
         {
           "name": "include_null",

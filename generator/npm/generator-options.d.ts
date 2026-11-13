@@ -396,11 +396,6 @@ export interface TypeScriptGeneratorOptions {
    */
   error_handling?: TypeScriptErrorHandling;
   /**
-   * Whether each interface also gets a constant with the JSON keys of its fields, such as `export const PersonFields = ["id", "name"] as const;`. Code can use it at runtime, for example to keep only the fields that the schema declares. The output then has runtime code, so it can't be used as a `.d.ts` file.
-   * @defaultValue false
-   */
-  field_lists?: boolean;
-  /**
    * Whether optional values and compact dictionary entries with nothing beyond the key may be null, as in the JSON Schema generator.
    * @defaultValue false
    */
@@ -516,6 +511,6 @@ export interface GeneratorFunctions {
   /** Generate translation dictionaries, in JSON, from the names in the schema to the names in the generated outputs. Useful where those names matter, such as in a query against a database that follows the schema. */
   translation(params?: TranslationGeneratorOptions): string;
 
-  /** Generate TypeScript types for the schema's JSON data, with no runtime code unless `field_lists` is on. Load data with `JSON.parse(text) as X` and dump it with `JSON.stringify(x)`. */
+  /** Generate TypeScript types for the schema's JSON data, with no runtime code. Load data with `JSON.parse(text) as X` and dump it with `JSON.stringify(x)`. */
   typescript(params?: TypeScriptGeneratorOptions): string;
 }

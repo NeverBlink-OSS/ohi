@@ -12,10 +12,6 @@ final case class TypeScriptCliOptions(
     @HelpMessage("How the functions of the schema report their `errors`. Default: exception")
     errorHandling: TypeScriptErrorHandling = TypeScriptErrorHandling.Exception,
     @HelpMessage(
-      "Whether each interface also gets a constant with the JSON keys of its fields, such as `export const PersonFields = [\"id\", \"name\"] as const;`. Code can use it at runtime, for example to keep only the fields that the schema declares. The output then has runtime code, so it can't be used as a `.d.ts` file. Default: false",
-    )
-    fieldLists: Boolean = false,
-    @HelpMessage(
       "Whether optional values and compact dictionary entries with nothing beyond the key may be null, as in the JSON Schema generator. Default: false",
     )
     includeNull: Boolean = false,
@@ -45,7 +41,6 @@ final case class TypeScriptCliOptions(
   def toOptions: TypeScriptGeneratorOptions =
     TypeScriptGeneratorOptions(
       errorHandling = errorHandling,
-      fieldLists = fieldLists,
       includeNull = includeNull,
       metadataLanguage = metadataLanguage,
       open = open,
