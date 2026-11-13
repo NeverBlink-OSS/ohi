@@ -67,7 +67,7 @@ test("browser package integration", async (t) => {
       namespace: "example", name: "sensors", version: "2026.1+amendment", title: "Sensors",
       description: "Sensor observations and devices.",
       formats: ["ossie-yaml", "owl-rdfxml", "linkml-yaml", "owl-turtle", "rdfs-turtle", "shacl-turtle"],
-      licenses: ["MIT", "Apache-2.0"], published_at: "2026-10-13T14:30:00+02:00",
+      licenses: ["MIT", "Apache-2.0"], published_at: "2026-10-13T14:30:00+02:00", ignored: true,
     }], page: 1, per_page: 10, total: 3, search_cutoff: false,
     facet_counts: [{ field_name: "licenses", counts: [{ value: "MIT", count: 2 }] }] });
     assert.equal(result.title, "Sensors");
