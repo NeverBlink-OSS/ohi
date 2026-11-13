@@ -13,8 +13,8 @@ export function isNew(value: unknown, known: object): boolean {
 }
 
 /**
- * Decode publication metadata, discarding extras and artifacts with a format or origin added
- * after this SDK version. Field values are not validated.
+ * Decode publication metadata, discarding artifacts with a format or origin added after this SDK
+ * version. Fields that the model doesn't have are kept. Field values are not validated.
  */
 export function decodePublication(text: string): Publication {
   const data: Publication = JSON.parse(text);
@@ -37,22 +37,5 @@ export function decodePublication(text: string): Publication {
     throw new Error("dependencies must not contain the publication itself");
   }
 
-  return {
-    schema_version: data.schema_version,
-    base_url: data.base_url,
-    version: data.version,
-    namespace: data.namespace,
-    name: data.name,
-    title: data.title,
-    published_at: data.published_at,
-    publisher: data.publisher,
-    licenses: data.licenses,
-    ...(data.namespace_iri === undefined ? {} : { namespace_iri: data.namespace_iri }),
-    ...(data.preferred_prefix === undefined ? {} : { preferred_prefix: data.preferred_prefix }),
-    description: data.description,
-    keywords: data.keywords,
-    artifacts: artifacts.map(({ format, url, origin, roots, size_bytes, sha256 }) =>
-      ({ format, url, origin, roots, size_bytes, sha256 })),
-    dependencies: data.dependencies.map(({ base_url }) => ({ base_url })),
-  };
+  return { ...data, artifacts };
 }

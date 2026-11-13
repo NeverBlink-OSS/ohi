@@ -46,6 +46,10 @@ function searchResult(bytes: Uint8Array, page: number, perPage: number): SearchR
   if (!object(raw) || "grouped_hits" in raw || !Array.isArray(raw.hits) || !object(raw.request_params)) {
     throw new Error("Expected an ungrouped search response with hits and request_params.");
   }
+  if (raw.facet_counts !== undefined &&
+      !(Array.isArray(raw.facet_counts) && raw.facet_counts.every((facet) => object(facet) && Array.isArray(facet.counts)))) {
+    throw new Error("Expected facet_counts to be a list of facets with counts.");
+  }
   const result: SearchResult = {
     hits: raw.hits.map((hit: unknown) => {
       if (!object(hit) || !object(hit.document)) throw new Error("Expected a search hit document.");
@@ -63,15 +67,11 @@ function searchResult(bytes: Uint8Array, page: number, perPage: number): SearchR
   return {
     ...result,
     // Formats added after this SDK version are discarded
-    hits: result.hits.flatMap(({ base_url, namespace, name, version, title, description, formats, licenses, published_at, keywords }) => {
+    hits: result.hits.flatMap((hit) => {
+      const { formats } = hit;
       const known = Array.isArray(formats) ? formats.filter((format) => !isNew(format, knownFormats)) : formats;
       if (Array.isArray(formats) && formats.length > 0 && known.length === 0) return [];
-      return [{ base_url, namespace, name, version, title, description, formats: known, licenses, published_at,
-        ...(keywords === undefined ? {} : { keywords }) }];
-    }),
-    ...(result.facet_counts === undefined ? {} : {
-      facet_counts: result.facet_counts.map(({ field_name, counts }) =>
-        ({ field_name, counts: counts.map(({ value, count }) => ({ value, count })) })),
+      return [{ ...hit, formats: known }];
     }),
   };
 }

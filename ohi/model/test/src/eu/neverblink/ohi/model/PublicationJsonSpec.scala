@@ -1,5 +1,6 @@
 package eu.neverblink.ohi.model
 
+import eu.neverblink.linkml.yaml.LinkmlYamlCodec
 import eu.neverblink.ohi.model.generated.{ArtifactOrigin, Format, Publication}
 import java.nio.file.{Files, Path}
 import org.scalatest.matchers.should.Matchers
@@ -15,6 +16,18 @@ class PublicationJsonSpec extends AnyWordSpec, Matchers {
 
   private def decode(value: ujson.Value): Publication = PublicationJson.decode(ujson.write(value))
 
+  /** The paths of the fields that are absent or empty in a value of a generated class. */
+  private def emptyFields(value: Any, path: String = ""): Seq[String] = value match {
+    case None => Seq(path)
+    case Some(inner) => emptyFields(inner, path)
+    case seq: Seq[?] => if seq.isEmpty then Seq(path) else seq.flatMap(emptyFields(_, s"$path[]"))
+    case product: Product =>
+      product.productElementNames.zip(product.productIterator).toSeq.flatMap { (name, field) =>
+        emptyFields(field, s"$path.$name")
+      }
+    case _ => Seq()
+  }
+
   private def reject(edit: ujson.Value => Unit): Unit = {
     val value = example()
     edit(value)
@@ -22,6 +35,14 @@ class PublicationJsonSpec extends AnyWordSpec, Matchers {
   }
 
   "PublicationJson.decode" should {
+    "keep every field that the model declares" in {
+      val complete = example("complete")
+      val publication = decode(complete)
+      emptyFields(publication) shouldBe empty
+      val codec: LinkmlYamlCodec[Publication] = LinkmlYamlCodec.derived
+      ujson.read(ModelJson.encode(codec, publication)) shouldBe complete
+    }
+
     "map publication fields" in {
       val publication = decode(example())
       publication.schemaVersion shouldBe 2

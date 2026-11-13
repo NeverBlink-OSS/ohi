@@ -10,9 +10,10 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.parse import parse_qs, urlsplit
 
-from ohi import CatalogClient, CatalogConfig, CatalogException, FacetCount, FacetValueCount, SearchRequest
+from ohi import (CatalogClient, CatalogConfig, CatalogException, FacetCount, FacetValueCount, SearchHit,
+                 SearchRequest)
 from ohi.catalog import _decode_search
-from test_publication import EXAMPLES
+from test_publication import EXAMPLES, dumped
 
 
 SEARCH_PATH = "/search/collections/packages/documents/search"
@@ -96,6 +97,18 @@ class SearchCodecTests(unittest.TestCase):
                 data["hits"][0]["document"][field] = value
                 with self.assertRaises(ValueError):
                     _decode_search(json.dumps(data), 1, 2)
+
+    def test_keeps_every_field_that_the_model_declares(self):
+        text = (EXAMPLES / "complete-search.json").read_text(encoding="utf-8")
+        expected = json.loads(text)
+        document = expected["hits"][0]["document"]
+        facet = expected["facet_counts"][0]
+        self.assertEqual(set(document), set(SearchHit.model_fields))
+        self.assertEqual(set(facet), set(FacetCount.model_fields))
+        self.assertEqual(set(facet["counts"][0]), set(FacetValueCount.model_fields))
+        result = _decode_search(text, 1, 10)
+        self.assertEqual([dumped(hit) for hit in result.hits], [document])
+        self.assertEqual([dumped(facet) for facet in result.facet_counts], expected["facet_counts"])
 
     def test_ignores_fields_and_formats_added_later(self):
         result = _decode_search((EXAMPLES / "future-search.json").read_text(encoding="utf-8"), 1, 10)

@@ -36,10 +36,6 @@ public final class CatalogClient {
     private static final long DEFAULT_TIMEOUT_MS = 30000;
     private static final Pattern REFERENCE = Pattern.compile(
             "([^/@\\s`]+)/([^/@\\s`]+)(?:@([^/@\\s+`]+))?", Pattern.UNICODE_CHARACTER_CLASS);
-    private static final List<String> HIT_FIELDS = List.of(
-            "base_url", "namespace", "name", "version", "title", "description", "formats", "licenses",
-            "published_at", "keywords");
-
     private final String searchUrl;
     private final String latestUrl;
     private final String filesUrl;
@@ -207,13 +203,7 @@ public final class CatalogClient {
             if (!document.isObject()) {
                 throw new IllegalArgumentException("expected a search hit document");
             }
-            // Only the summary fields, as the other SDKs do
-            ObjectNode summary = Json.MAPPER.createObjectNode();
-            for (String field : HIT_FIELDS) {
-                if (document.has(field)) {
-                    summary.set(field, document.get(field));
-                }
-            }
+            ObjectNode summary = ((ObjectNode) document).deepCopy();
             // Formats added after this SDK version are discarded, with hits that have no others.
             if (summary.path("formats").isArray()) {
                 ArrayNode formats = (ArrayNode) summary.get("formats");
@@ -238,23 +228,21 @@ public final class CatalogClient {
             if (!facets.isArray()) {
                 throw new IllegalArgumentException("expected facet_counts to be a list");
             }
-            ArrayNode counts = result.putArray("facet_counts");
-            for (JsonNode facet : facets) {
-                ObjectNode copy = counts.addObject();
-                copy(facet, "field_name", copy, "field_name");
-                if (facet.path("counts").isArray()) {
-                    ArrayNode values = copy.putArray("counts");
-                    for (JsonNode value : facet.get("counts")) {
-                        ObjectNode count = values.addObject();
-                        copy(value, "value", count, "value");
-                        copy(value, "count", count, "count");
-                    }
-                } else {
-                    copy(facet, "counts", copy, "counts");
+            result.set("facet_counts", facets);
+        }
+        SearchResult decoded = Json.MAPPER.treeToValue(result, SearchResult.class);
+        // Properties that the model doesn't have are discarded, as the other SDKs do
+        for (SearchHit hit : decoded.getHits()) {
+            hit.getExtraProperties().clear();
+        }
+        if (decoded.getFacetCounts() != null) {
+            for (FacetCount facet : decoded.getFacetCounts()) {
+                facet.getExtraProperties().clear();
+                for (FacetValueCount count : facet.getCounts()) {
+                    count.getExtraProperties().clear();
                 }
             }
         }
-        SearchResult decoded = Json.MAPPER.treeToValue(result, SearchResult.class);
         if (decoded.getPage() != page || decoded.getPerPage() != perPage || raw.get("hits").size() > perPage) {
             throw new IllegalArgumentException("the response does not match the requested page and page size");
         }
