@@ -45,7 +45,35 @@ class CatalogJsonSpec extends AnyWordSpec, Matchers {
       "search_cutoff" -> false,
     )
 
+  /** The paths of the fields that are absent or empty in a value of a generated class. */
+  private def emptyFields(value: Any, path: String = ""): Seq[String] = value match {
+    case None => Seq(path)
+    case Some(inner) => emptyFields(inner, path)
+    case seq: Seq[?] => if seq.isEmpty then Seq(path) else seq.flatMap(emptyFields(_, s"$path[]"))
+    case product: Product =>
+      product.productElementNames.zip(product.productIterator).toSeq.flatMap { (name, field) =>
+        emptyFields(field, s"$path.$name")
+      }
+    case _ => Seq()
+  }
+
   "CatalogClient.decodeSearch" should {
+    "keep every field that the model declares" in {
+      val text = Files.readString(
+        Path.of(sys.env("MILL_WORKSPACE_ROOT"), "ohi", "examples", "complete-search.json"),
+      )
+      val expected = ujson.read(text)
+      val result = CatalogClient.decodeSearch(text, 1, 10)
+      emptyFields(result.hits) shouldBe empty
+      emptyFields(result.facetCounts) shouldBe empty
+      val hitCodec: LinkmlYamlCodec[SearchHit] = LinkmlYamlCodec.derived
+      val facetCodec: LinkmlYamlCodec[FacetCount] = LinkmlYamlCodec.derived
+      result.hits.map(hit => ujson.read(NodeJson.write(hitCodec.encode(hit)))) shouldBe
+        expected("hits").arr.map(_("document"))
+      result.facetCounts.map(facet => ujson.read(NodeJson.write(facetCodec.encode(facet)))) shouldBe
+        expected("facet_counts").arr
+    }
+
     for (
       (page, urls) <- Seq(1 -> Seq("urn:ohi:b", "urn:ohi:a"), 2 -> Seq("urn:ohi:c"), 3 -> Seq.empty)
     ) {

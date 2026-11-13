@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -13,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +38,28 @@ class PublicationsTest {
         return Publications.decode(data.toString());
     }
 
+    /** The JSON names of the fields that a generated class declares, sorted. */
+    static List<String> declared(Class<?> type) {
+        return Arrays.stream(type.getAnnotation(JsonPropertyOrder.class).value()).sorted().collect(Collectors.toList());
+    }
+
+    /** The field names of a JSON object, sorted. */
+    static List<String> keys(JsonNode object) {
+        List<String> keys = new ArrayList<>();
+        object.fieldNames().forEachRemaining(keys::add);
+        keys.sort(null);
+        return keys;
+    }
+
+    /** A value as Jackson reads it back from JSON text, so that numbers compare by value. */
+    static JsonNode json(Object value) {
+        try {
+            return Json.MAPPER.readTree(Json.MAPPER.writeValueAsString(value));
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
     ObjectNode data;
 
     @BeforeEach
@@ -48,6 +73,15 @@ class PublicationsTest {
 
     ObjectNode artifact(int index) {
         return (ObjectNode) data.withArray("artifacts").get(index);
+    }
+
+    @Test
+    void keepsEveryFieldThatTheModelDeclares() {
+        ObjectNode complete = example("complete");
+        assertEquals(declared(Publication.class), keys(complete));
+        assertEquals(declared(Artifact.class), keys(complete.get("artifacts").get(0)));
+        assertEquals(declared(Dependency.class), keys(complete.get("dependencies").get(0)));
+        assertEquals(complete, json(decode(complete)));
     }
 
     @Test

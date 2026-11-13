@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { beforeEach, test } from "node:test";
-import { decodePublication } from "../dist/publication.js";
+import { artifactFields, decodePublication, dependencyFields, publicationFields } from "../dist/publication.js";
 
 function example(name = "sensors") {
   return JSON.parse(readFileSync(new URL(`../../examples/${name}-package.json`, import.meta.url), "utf8"));
@@ -11,6 +11,16 @@ const decode = (value) => decodePublication(JSON.stringify(value));
 const reject = (value) => assert.throws(() => decode(value), Error);
 let data;
 beforeEach(() => { data = example(); });
+
+test("keeps every field that the model declares", () => {
+  const complete = example("complete");
+  // The field tables are checked against the generated classes by the compiler.
+  const keys = (fields) => Object.keys(fields).sort();
+  assert.deepEqual(Object.keys(complete).sort(), keys(publicationFields));
+  assert.deepEqual(Object.keys(complete.artifacts[0]).sort(), keys(artifactFields));
+  assert.deepEqual(Object.keys(complete.dependencies[0]).sort(), keys(dependencyFields));
+  assert.deepEqual(decode(complete), complete);
+});
 
 test("maps publication fields", () => {
   const publication = decode(data);

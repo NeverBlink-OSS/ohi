@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ohi.generated import Publication
+from ohi.generated import Artifact, Dependency, Publication
 from ohi.publication import decode_publication
 
 
@@ -18,6 +18,11 @@ def decode(value):
     return decode_publication(json.dumps(value))
 
 
+def dumped(model):
+    """The JSON form of a decoded model."""
+    return json.loads(model.model_dump_json())
+
+
 class PublicationTests(unittest.TestCase):
     def setUp(self):
         self.data = example()
@@ -25,6 +30,13 @@ class PublicationTests(unittest.TestCase):
     def reject(self):
         with self.assertRaises(ValueError):
             decode(self.data)
+
+    def test_keeps_every_field_that_the_model_declares(self):
+        complete = example("complete")
+        self.assertEqual(set(complete), set(Publication.model_fields))
+        self.assertEqual(set(complete["artifacts"][0]), set(Artifact.model_fields))
+        self.assertEqual(set(complete["dependencies"][0]), set(Dependency.model_fields))
+        self.assertEqual(dumped(decode(complete)), complete)
 
     def test_maps_publication_fields(self):
         publication = decode(self.data)

@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sun.net.httpserver.HttpServer;
@@ -325,6 +326,21 @@ class CatalogClientTest {
                 decoded.getPublishedAt());
         assertEquals(8, result.getFacetCounts().get(0).getCounts().get(0).getCount());
         assertEquals(3, result.getTotal());
+    }
+
+    @Test
+    void keepsEveryFieldThatTheModelDeclares() throws IOException {
+        byte[] wire = example("complete-search.json");
+        JsonNode expected = Json.MAPPER.readTree(wire);
+        JsonNode document = expected.get("hits").get(0).get("document");
+        JsonNode facet = expected.get("facet_counts").get(0);
+        assertEquals(PublicationsTest.declared(SearchHit.class), PublicationsTest.keys(document));
+        assertEquals(PublicationsTest.declared(FacetCount.class), PublicationsTest.keys(facet));
+        assertEquals(PublicationsTest.declared(FacetValueCount.class), PublicationsTest.keys(facet.get("counts").get(0)));
+        route(LATEST_PATH, wire);
+        SearchResult result = searchClient().search(query("*"));
+        assertEquals(document, PublicationsTest.json(result.getHits().get(0)));
+        assertEquals(expected.get("facet_counts"), PublicationsTest.json(result.getFacetCounts()));
     }
 
     @Test

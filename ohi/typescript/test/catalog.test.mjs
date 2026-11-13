@@ -4,6 +4,7 @@ import { test } from "node:test";
 import { createServer } from "node:http";
 import { once } from "node:events";
 import { CatalogClient, CatalogException } from "@neverblink/ohi";
+import { facetCountFields, facetValueCountFields, searchHitFields } from "../dist/catalog.js";
 import { binary, page, publication, server } from "./server.mjs";
 
 const searchPath = "/search/collections/packages/documents/search";
@@ -146,8 +147,22 @@ test("search ignores fields and formats added later", async (t) => {
   assert.deepEqual(result.facet_counts, [
     { field_name: "formats", counts: [{ value: "owl-jsonld", count: 2 }, { value: "owl-turtle", count: 1 }] },
   ]);
-  assert.deepEqual(Object.keys(result.hits[0]), ["base_url", "namespace", "name", "version", "title", "description",
-    "formats", "licenses", "published_at", "keywords"]);
+  assert.deepEqual(Object.keys(result.hits[0]).sort(), ["base_url", "description", "formats", "keywords", "licenses",
+    "name", "namespace", "published_at", "title", "version"]);
+});
+
+test("search keeps every field that the model declares", async (t) => {
+  const wire = readFileSync(new URL("../../examples/complete-search.json", import.meta.url));
+  const expected = JSON.parse(wire);
+  // The field tables are checked against the generated classes by the compiler.
+  const keys = (fields) => Object.keys(fields).sort();
+  assert.deepEqual(Object.keys(expected.hits[0].document).sort(), keys(searchHitFields));
+  assert.deepEqual(Object.keys(expected.facet_counts[0]).sort(), keys(facetCountFields));
+  assert.deepEqual(Object.keys(expected.facet_counts[0].counts[0]).sort(), keys(facetValueCountFields));
+  const fixture = await server(t, (_, res) => res.end(wire));
+  const result = await catalog(fixture).search({ q: "*" });
+  assert.deepEqual(result.hits, expected.hits.map(({ document }) => document));
+  assert.deepEqual(result.facet_counts, expected.facet_counts);
 });
 
 test("search preserves an explicitly empty facet list", async (t) => {

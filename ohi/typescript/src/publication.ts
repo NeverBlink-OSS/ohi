@@ -1,4 +1,5 @@
-import type { ArtifactOrigin, Format, Publication } from "./generated.js";
+import type { Artifact, ArtifactOrigin, Dependency, Format, Publication } from "./generated.js";
+import { declared, type Fields } from "./fields.js";
 
 // The compiler checks that these have every value of the generated enums.
 export const formats: Record<Format, true> = {
@@ -6,6 +7,16 @@ export const formats: Record<Format, true> = {
   "shacl-turtle": true,
 };
 const origins: Record<ArtifactOrigin, true> = { UPSTREAM: true, GENERATED: true };
+
+export const publicationFields: Fields<Publication> = {
+  schema_version: true, base_url: true, version: true, namespace: true, name: true, title: true, published_at: true,
+  publisher: true, licenses: true, namespace_iri: true, preferred_prefix: true, description: true, keywords: true,
+  element_count: true, native_element_count: true, artifacts: true, dependencies: true,
+};
+export const artifactFields: Fields<Artifact> = {
+  format: true, url: true, origin: true, roots: true, size_bytes: true, sha256: true,
+};
+export const dependencyFields: Fields<Dependency> = { base_url: true };
 
 /** Whether a value is text outside an enum, so added to it after this SDK version. */
 export function isNew(value: unknown, known: object): boolean {
@@ -38,21 +49,8 @@ export function decodePublication(text: string): Publication {
   }
 
   return {
-    schema_version: data.schema_version,
-    base_url: data.base_url,
-    version: data.version,
-    namespace: data.namespace,
-    name: data.name,
-    title: data.title,
-    published_at: data.published_at,
-    publisher: data.publisher,
-    licenses: data.licenses,
-    ...(data.namespace_iri === undefined ? {} : { namespace_iri: data.namespace_iri }),
-    ...(data.preferred_prefix === undefined ? {} : { preferred_prefix: data.preferred_prefix }),
-    description: data.description,
-    keywords: data.keywords,
-    artifacts: artifacts.map(({ format, url, origin, roots, size_bytes, sha256 }) =>
-      ({ format, url, origin, roots, size_bytes, sha256 })),
-    dependencies: data.dependencies.map(({ base_url }) => ({ base_url })),
+    ...declared(data, publicationFields),
+    artifacts: artifacts.map((artifact) => declared(artifact, artifactFields)),
+    dependencies: data.dependencies.map((dependency) => declared(dependency, dependencyFields)),
   };
 }
