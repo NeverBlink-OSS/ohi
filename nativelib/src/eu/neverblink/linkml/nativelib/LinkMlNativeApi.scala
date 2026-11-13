@@ -28,7 +28,6 @@ import eu.neverblink.linkml.schemaview.{
   ImportMapImporter,
   Importer,
   SchemaIssues,
-  SchemaValidator,
   SchemaView,
   StringImporter,
 }
@@ -275,7 +274,7 @@ object LinkMlNativeApi {
     val sv = view(handle)
     JsonUtil.writeJson(
       reportNode(
-        SchemaValidator(using sv).lintProblems,
+        sv.lintProblems,
         None,
         Options.load(optionsJson).inferMessages,
       ),
@@ -328,10 +327,9 @@ object LinkMlNativeApi {
       case Right(sv) =>
         val handle = handleSeq.incrementAndGet()
         schemas.put(handle, sv)
-        // Lint straight away, so the report covers errors and warnings too, not just the fatals that
-        // would have blocked loading.
-        val issues = SchemaValidator(using sv).lintProblems
-        new Loaded(handle, report(issues, runId, options.inferMessages))
+        // Loading checks only for fatal problems, so the report is empty. `lint` finds the errors
+        // and warnings.
+        new Loaded(handle, report(Nil, runId, options.inferMessages))
       case Left(fatals) =>
         new Loaded(0L, report(fatals, runId, options.inferMessages))
     }
