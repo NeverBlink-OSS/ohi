@@ -10,12 +10,27 @@ classes:
   StatsGeneratorOptions:
     description: Options of the schema statistics generator.
     mixins: [PruningOptions]
+    slots:
+      - only_classes_from_root_schema
     slot_usage:
-      pruning_mode:
+      only_classes_from_root_schema:
         examples:
-          - value: skip
+          - value: false
+        ifabsent: 'true'
+        description: >-
+          Whether to count only the elements the root schema defines. Otherwise the counts also
+          cover every element of every imported schema.
+      pruning_mode:
         ifabsent: PruningMode(schema)
-        description: The elements in scope for the counts.
+        deprecated: Ignored. Use `only_classes_from_root_schema` instead.
+        description: >-
+          Ignored, and kept only so existing calls still work. Use
+          `only_classes_from_root_schema` instead.
+      tree_root:
+        deprecated: Ignored. Use `only_classes_from_root_schema` instead.
+        description: >-
+          Ignored, and kept only so existing calls still work. Use
+          `only_classes_from_root_schema` instead.
 
 functions:
   stats:

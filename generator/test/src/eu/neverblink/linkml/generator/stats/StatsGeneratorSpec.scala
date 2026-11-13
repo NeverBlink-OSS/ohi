@@ -92,18 +92,18 @@ class StatsGeneratorSpec extends AnyWordSpec, Matchers {
   private given SchemaView =
     SchemaIssues.orThrow(SchemaView.loadSchemaViewFromString(root, MapImporter("other" -> other)))
 
-  private def stats(mode: Pruning = Pruning.Schema): SchemaStats =
-    StatsGenerator().generate(StatsGeneratorOptions(pruningMode = mode))
+  private def stats(onlyRoot: Boolean = true): SchemaStats =
+    StatsGenerator().generate(StatsGeneratorOptions(onlyClassesFromRootSchema = onlyRoot))
 
   "StatsGenerator" should {
-    "count what the root schema defines and what it uses, by default" in {
+    "count only what the root schema defines, by default" in {
       val e = stats().elements
-      e.classes.count shouldBe 3 // Book, Chapter and its parent Imported
-      e.slots.count shouldBe 3 // name, status, and unused_slot as the root schema defines it
+      e.classes.count shouldBe 2 // Book and Chapter, but not its parent Imported
+      e.slots.count shouldBe 3
       e.attributes.count shouldBe 1
       e.enums.count shouldBe 1
       e.permissibleValues.count shouldBe 2
-      e.types.count shouldBe 2 // integer and the default range, string
+      e.types.count shouldBe 0 // `string` and `integer` come from linkml:types
       e.subsets.count shouldBe 2
       e.functions.count shouldBe 2
     }
@@ -119,8 +119,8 @@ class StatsGeneratorSpec extends AnyWordSpec, Matchers {
       }
     }
 
-    "count every element without pruning" in {
-      val e = stats(Pruning.Skip).elements
+    "count every element of every schema when not only the root schema" in {
+      val e = stats(onlyRoot = false).elements
       e.classes.count shouldBe 4
       e.slots.count shouldBe 3
       e.enums.count shouldBe 2
@@ -129,18 +129,18 @@ class StatsGeneratorSpec extends AnyWordSpec, Matchers {
       e.functions.count shouldBe 2
     }
 
-    "count the elements the tree root uses" in {
-      val s = stats(Pruning.TreeRoot)
-      s.pruningMode shouldBe PruningMode.TreeRoot
-      s.elements.classes.count shouldBe 2
-      s.elements.slots.count shouldBe 0
-      // Nothing reaches a function from a tree root class
-      s.elements.functions.count shouldBe 0
+    "ignore the deprecated pruning mode and tree root" in {
+      val default = stats()
+      Seq(Pruning.TreeRoot, Pruning.Schema, Pruning.Skip).foreach { mode =>
+        StatsGenerator().generate(
+          StatsGeneratorOptions(pruningMode = mode, treeRoot = Some("Book")),
+        ) shouldBe default
+      }
     }
 
     "count documentation, deprecation and mappings" in {
       val e = stats().elements
-      e.classes.withDescription shouldBe 2
+      e.classes.withDescription shouldBe 1
       e.classes.withMappings shouldBe 1
       e.classes.mappings.exact shouldBe 1
       e.slots.withTitle shouldBe 1
@@ -155,11 +155,10 @@ class StatsGeneratorSpec extends AnyWordSpec, Matchers {
 
     "count the strings in each language of the elements in scope" in {
       def counts(s: SchemaStats) = s.languages.view.mapValues(_.count).toSeq
-      // 8 in the schemas here, and a description and a note each on `string` and `integer`
-      counts(stats()) shouldBe Seq("" -> 12, "de" -> 1, "en" -> 2, "pl" -> 1)
-      val all = counts(stats(Pruning.Skip))
+      counts(stats()) shouldBe Seq("" -> 7, "de" -> 1, "en" -> 2, "pl" -> 1)
+      val all = counts(stats(onlyRoot = false))
       all.tail shouldBe Seq("de" -> 1, "en" -> 2, "pl" -> 1)
-      all.head._2 should be > 13 // also `NotUsed` and every type
+      all.head._2 should be > 9 // also `Imported`, `NotUsed` and every type
     }
 
     "count each imported schema once, and describe the root schema" in {
@@ -172,7 +171,9 @@ class StatsGeneratorSpec extends AnyWordSpec, Matchers {
         hasVersion = true,
       )
       s.schemaName shouldBe "root"
-      s.pruningMode shouldBe PruningMode.Schema
+      s.onlyClassesFromRootSchema shouldBe true
+      s.pruningMode shouldBe None
+      stats(onlyRoot = false).onlyClassesFromRootSchema shouldBe false
     }
 
     "count empty or blank text as missing" in {
@@ -203,7 +204,7 @@ class StatsGeneratorSpec extends AnyWordSpec, Matchers {
           |    description: A real one.
           |""".stripMargin
       val sv = SchemaIssues.orThrow(SchemaView.loadSchemaViewFromString(blank))
-      val s = StatsGenerator(using sv).generate(StatsGeneratorOptions(pruningMode = Pruning.Skip))
+      val s = StatsGenerator(using sv).generate()
       s.elements.classes.count shouldBe 5
       s.elements.classes.withTitle shouldBe 1
       s.elements.classes.withDescription shouldBe 2
@@ -219,10 +220,10 @@ class StatsGeneratorSpec extends AnyWordSpec, Matchers {
     "write the languages as a map from tag to count" in {
       val generator = StatsGenerator()
       val yaml = generator.serialize()
-      yaml should include("languages:\n  \"\": 12\n  de: 1\n")
+      yaml should include("languages:\n  \"\": 7\n  de: 1\n")
       val json = generator.serialize(StatsGeneratorOptions(), JsonOutputFormat.Json)
       json should include(""""languages": {
-                             |    "": 12,""".stripMargin)
+                             |    "": 7,""".stripMargin)
     }
   }
 }

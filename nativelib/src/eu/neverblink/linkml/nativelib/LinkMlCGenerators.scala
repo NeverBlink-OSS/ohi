@@ -136,8 +136,8 @@ object LinkMlCGenerators {
     LinkMlCApi.document(handle, options, error, LinkMlNativeApi.shacl)
 
   /** Count the elements, their documentation, mappings and languages, and the imports. Returns a
-    * `SchemaStats` of `model/schema-stats.yaml`. Returns JSON. Options: `pruning_mode`,
-    * `tree_root`.
+    * `SchemaStats` of `model/schema-stats.yaml`. Returns JSON. Options:
+    * `only_classes_from_root_schema`, `pruning_mode`, `tree_root`.
     */
   @exported("linkml_stats")
   def stats(handle: CLongLong, options: CString, error: Ptr[CString]): CString =

@@ -154,8 +154,7 @@ export const TARGETS: Target[] = [
     lang: "json",
     view: "stats",
     options: [
-      { key: "pruning_mode", type: "select", label: "Pruning", choices: ["tree_root", "schema", "skip"], default: "schema" },
-      TREE_ROOT,
+      { key: "only_classes_from_root_schema", type: "checkbox", label: "Root schema only", default: true },
     ],
     call: (_, v, o) => v.stats(converterOptions(o)),
   },

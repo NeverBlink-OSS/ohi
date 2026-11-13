@@ -596,11 +596,17 @@ class GeneratorTest(unittest.TestCase):
 
     def test_stats(self):
         stats = self.schema.stats()
-        self.assertEqual("schema", stats["pruning_mode"])
+        self.assertTrue(stats["only_classes_from_root_schema"])
+        self.assertNotIn("pruning_mode", stats)
         self.assertEqual(2, stats["elements"]["classes"]["count"])
+        self.assertEqual(0, stats["elements"]["types"]["count"])
         self.assertEqual({"direct": 1, "transitive": 1}, stats["imports"])
         self.assertIn("", stats["languages"])
-        self.assertEqual("tree_root", self.schema.stats(pruning_mode="tree_root")["pruning_mode"])
+        everything = self.schema.stats(only_classes_from_root_schema=False)
+        self.assertFalse(everything["only_classes_from_root_schema"])
+        self.assertGreater(everything["elements"]["types"]["count"], 0)
+        # The deprecated pruning mode is accepted, and ignored
+        self.assertEqual(stats, self.schema.stats(pruning_mode="tree_root"))
 
     def test_ossie(self):
         generated = self.schema.ossie()

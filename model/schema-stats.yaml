@@ -19,9 +19,9 @@ classes:
     description: Statistics about one LinkML schema and its imports.
     notes:
       - >-
-        `pruning_mode` decides which elements are in scope. `elements` and `languages` count only
-        the elements in scope. `imports` and `metadata` describe the root schema and do not depend
-        on the mode.
+        `only_classes_from_root_schema` decides which elements are in scope. `elements` and
+        `languages` count only the elements in scope. `imports` and `metadata` describe the root
+        schema and do not depend on it.
     attributes:
       schema_id:
         range: uri
@@ -35,11 +35,21 @@ classes:
         title: schema name
         description: The `name` of the root schema.
 
+      only_classes_from_root_schema:
+        range: boolean
+        required: true
+        title: only classes from root schema
+        description: >-
+          True if the counts cover only the elements the root schema defines, false if they also
+          cover every element of every imported schema.
+
       pruning_mode:
         range: PruningMode
-        required: true
         title: pruning mode
-        description: The pruning mode. It decides the scope of the counts.
+        deprecated: No longer written. See `only_classes_from_root_schema`.
+        description: >-
+          No longer written, since the generator ignores the pruning mode now. See
+          `only_classes_from_root_schema`.
 
       metadata:
         range: MetadataStats
@@ -290,7 +300,8 @@ classes:
 enums:
   PruningMode:
     title: Pruning mode
-    description: Decides which elements are in scope.
+    deprecated: Only for older output. See `only_classes_from_root_schema`.
+    description: Decided which elements were in scope, in older versions of the generator.
     permissible_values:
       tree_root:
         description: Count the elements reachable from the `tree_root` class.
