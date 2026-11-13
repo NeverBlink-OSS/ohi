@@ -62,8 +62,8 @@ classes:
         inlined: true
         title: languages
         description: >-
-          The number of strings in each language. Strings with no language tag are counted under the
-          empty tag `""`.
+          The number of non-empty strings in each language. Strings with no language tag are counted
+          under the empty tag `""`.
         comments:
           - >-
             This counts the `title`, `description`, `aliases`, `comments`, `deprecated`, `keywords`
@@ -86,25 +86,25 @@ classes:
         range: boolean
         required: true
         title: has license
-        description: True if the root schema sets `license`.
+        description: True if the root schema sets a non-empty `license`.
 
       has_version:
         range: boolean
         required: true
         title: has version
-        description: True if the root schema sets `version`.
+        description: True if the root schema sets a non-empty `version`.
 
       has_title:
         range: boolean
         required: true
         title: has title
-        description: True if the root schema sets `title`.
+        description: True if the root schema sets a non-empty `title`.
 
       has_description:
         range: boolean
         required: true
         title: has description
-        description: True if the root schema sets `description`.
+        description: True if the root schema sets a non-empty `description`.
 
   ImportStats:
     title: Import statistics
@@ -211,14 +211,14 @@ classes:
         required: true
         minimum_value: 0
         title: with title
-        description: The number of elements with a `title`.
+        description: The number of elements with a non-empty `title`.
 
       with_description:
         range: integer
         required: true
         minimum_value: 0
         title: with description
-        description: The number of elements with a `description`.
+        description: The number of elements with a non-empty `description`.
 
       deprecated:
         range: integer

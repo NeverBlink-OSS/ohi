@@ -9,13 +9,13 @@ export interface ElementKindStats {
   deprecated: number;
   /** mappings: The number of elements with each kind of mapping. */
   mappings: MappingStats;
-  /** with description: The number of elements with a `description`. */
+  /** with description: The number of elements with a non-empty `description`. */
   with_description: number;
   /** with mappings: The number of elements with at least one mapping of any kind, including `mappings`. */
   with_mappings: number;
   /** with meaning: The number of permissible values with a `meaning`. Only permissible values have this field. */
   with_meaning?: number;
-  /** with title: The number of elements with a `title`. */
+  /** with title: The number of elements with a non-empty `title`. */
   with_title: number;
 }
 
@@ -73,13 +73,13 @@ export interface MappingStats {
 
 /** Metadata statistics: Whether the root schema has the metadata needed for publishing and reuse. */
 export interface MetadataStats {
-  /** has description: True if the root schema sets `description`. */
+  /** has description: True if the root schema sets a non-empty `description`. */
   has_description: boolean;
-  /** has license: True if the root schema sets `license`. */
+  /** has license: True if the root schema sets a non-empty `license`. */
   has_license: boolean;
-  /** has title: True if the root schema sets `title`. */
+  /** has title: True if the root schema sets a non-empty `title`. */
   has_title: boolean;
-  /** has version: True if the root schema sets `version`. */
+  /** has version: True if the root schema sets a non-empty `version`. */
   has_version: boolean;
 }
 
@@ -89,7 +89,7 @@ export interface SchemaStats {
   elements: ElementStats;
   /** imports: The number of schemas imported by the root schema. */
   imports: ImportStats;
-  /** languages: The number of strings in each language. Strings with no language tag are counted under the empty tag `""`. */
+  /** languages: The number of non-empty strings in each language. Strings with no language tag are counted under the empty tag `""`. */
   languages: Record<string, number | KeyOptional<LanguageCount, "language">>;
   /** metadata: Whether the root schema has a license, version, title and description. */
   metadata: MetadataStats;

@@ -175,6 +175,47 @@ class StatsGeneratorSpec extends AnyWordSpec, Matchers {
       s.pruningMode shouldBe PruningMode.Schema
     }
 
+    "count empty or blank text as missing" in {
+      val blank =
+        """id: https://example.org/blank
+          |name: blank
+          |title: ""
+          |description: "  "
+          |license: ""
+          |version: " "
+          |classes:
+          |  Empty:
+          |    title: ""
+          |    description: ""
+          |  Spaces:
+          |    title: "   "
+          |    description: "\t"
+          |  NoLanguage:
+          |    description:
+          |      en: ""
+          |      pl: " "
+          |  SomeLanguage:
+          |    description:
+          |      en: ""
+          |      pl: Opis
+          |  Real:
+          |    title: Real
+          |    description: A real one.
+          |""".stripMargin
+      val sv = SchemaIssues.orThrow(SchemaView.loadSchemaViewFromString(blank))
+      val s = StatsGenerator(using sv).generate(StatsGeneratorOptions(pruningMode = Pruning.Skip))
+      s.elements.classes.count shouldBe 5
+      s.elements.classes.withTitle shouldBe 1
+      s.elements.classes.withDescription shouldBe 2
+      s.metadata shouldBe MetadataStats(
+        hasDescription = false,
+        hasLicense = false,
+        hasTitle = false,
+        hasVersion = false,
+      )
+      s.languages.view.mapValues(_.count).toMap shouldBe Map("" -> 2, "pl" -> 1)
+    }
+
     "write the languages as a map from tag to count" in {
       val generator = StatsGenerator()
       val yaml = generator.serialize()

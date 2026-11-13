@@ -101,10 +101,10 @@ final class StatsGenerator(using sv: SchemaView) extends DocumentGenerator[Stats
         languages.toSeq.sortBy(_._1).map((tag, n) => tag -> LanguageCount(n, tag)),
       ),
       metadata = MetadataStats(
-        hasDescription = root.description.isDefined,
-        hasLicense = root.license.isDefined,
-        hasTitle = root.title.isDefined,
-        hasVersion = root.version.isDefined,
+        hasDescription = hasText(root.description),
+        hasLicense = root.license.exists(hasText),
+        hasTitle = hasText(root.title),
+        hasVersion = root.version.exists(hasText),
       ),
       pruningMode = options.pruningMode match {
         case PruningMode.TreeRoot => model.PruningMode.TreeRoot
@@ -155,8 +155,8 @@ object StatsGenerator {
 
     def add(cm: CommonMetadata): Unit = {
       count += 1
-      if (cm.title.isDefined) withTitle += 1
-      if (cm.description.isDefined) withDescription += 1
+      if (hasText(cm.title)) withTitle += 1
+      if (hasText(cm.description)) withDescription += 1
       if (cm.deprecated.isDefined) deprecated += 1
       if (cm.exactMappings.nonEmpty) exact += 1
       if (cm.closeMappings.nonEmpty) close += 1
@@ -188,12 +188,27 @@ object StatsGenerator {
     )
   }
 
-  /** Add the strings of [[cm]] to [[counts]], by language. */
+  /** True if [[s]] is not empty or only whitespace. */
+  private def hasText(s: String): Boolean = !s.isBlank
+
+  /** True if [[text]] has non-blank text in at least one language. */
+  private def hasText(text: LocalizedText): Boolean = text match {
+    case PlainText(value) => hasText(value)
+    case MultilingualText(mapping) => mapping.exists((_, value) => hasText(value))
+  }
+
+  /** True if [[text]] is set and is not blank: an empty string counts as missing. */
+  private def hasText(text: Option[LocalizedText]): Boolean = text.exists(hasText)
+
+  /** Add the non-blank strings of [[cm]] to [[counts]], by language. */
   private def countText(cm: CommonMetadata, counts: mutable.HashMap[String, Int]): Unit = {
     def add(text: LocalizedText): Unit = text match {
-      case PlainText(_) => counts.updateWith("")(n => Some(n.getOrElse(0) + 1))
+      case PlainText(value) =>
+        if (hasText(value)) counts.updateWith("")(n => Some(n.getOrElse(0) + 1))
       case MultilingualText(mapping) =>
-        mapping.foreachEntry((tag, _) => counts.updateWith(tag)(n => Some(n.getOrElse(0) + 1)))
+        mapping.foreachEntry { (tag, value) =>
+          if (hasText(value)) counts.updateWith(tag)(n => Some(n.getOrElse(0) + 1))
+        }
     }
     cm.title.foreachFast(add)
     cm.description.foreachFast(add)
