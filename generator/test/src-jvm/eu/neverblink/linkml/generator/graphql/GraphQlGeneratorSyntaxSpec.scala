@@ -139,6 +139,50 @@ class GraphQlGeneratorSyntaxSpec extends AnyWordSpec, Matchers, ModelCatalogueSp
       result.typeList.map(_.name) should contain("Filled")
     }
 
+    "give an implementation the parent's field type where a slot_usage doesn't narrow it" in {
+      val sv = SchemaIssues.orThrow(
+        SchemaView.loadSchemaViewFromString(
+          """id: https://example.org/narrowing/
+            |name: narrowing
+            |default_prefix: https://example.org/narrowing/
+            |imports:
+            |  - linkml:types
+            |classes:
+            |  Other:
+            |    attributes:
+            |      id:
+            |        identifier: true
+            |  Unrelated:
+            |    attributes:
+            |      id:
+            |        identifier: true
+            |  Base:
+            |    abstract: true
+            |    slots:
+            |      - label
+            |      - ref
+            |  Middle:
+            |    is_a: Base
+            |    abstract: true
+            |    slot_usage:
+            |      label:
+            |        multivalued: true
+            |      ref:
+            |        range: Unrelated
+            |  Leaf:
+            |    is_a: Middle
+            |slots:
+            |  label:
+            |    range: string
+            |  ref:
+            |    range: Other
+            |""".stripMargin,
+        ),
+      )
+      val result = parseOrThrow(dummyQuery + GraphQlGenerator(using sv).serialize())
+      result.typeList.map(_.name) should contain("Leaf")
+    }
+
     "generate the metamodel" in {
       val sv = SchemaIssues.orThrow(SchemaView.loadSchemaViewFromUri("linkml:meta"))
       val schema = {

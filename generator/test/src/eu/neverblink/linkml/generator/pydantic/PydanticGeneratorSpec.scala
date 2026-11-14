@@ -464,6 +464,34 @@ class PydanticGeneratorSpec extends AnyWordSpec, Matchers {
       py should include("            for key in (\"label\",):\n")
     }
 
+    "keep the parent's type for a field whose slot_usage gives an unrelated range" in {
+      val py = PydanticGenerator(using ModelCatalogue.kitchenSink.model).serialize()
+      val cls = py.substring(py.indexOf("class FamilialRelationship(Relationship):"))
+      cls should include("    related_to: str = Field(alias=\"related to\")\n")
+      cls should include("    type: str\n")
+    }
+
+    "keep the parent's number of values for a field whose slot_usage allows more" in {
+      val py = generate(
+        """classes:
+          |  Base:
+          |    attributes:
+          |      label: {range: string}
+          |      tags: {range: string, multivalued: true, minimum_cardinality: 2}
+          |  Item:
+          |    is_a: Base
+          |    slot_usage:
+          |      label:
+          |        multivalued: true
+          |      tags:
+          |        minimum_cardinality: 1
+          |""".stripMargin,
+      )
+      val item = py.substring(py.indexOf("class Item(Base):"))
+      item should include("    label: str | None = None\n")
+      item should include("    tags: list[str] | None = Field(None, min_length=2)\n")
+    }
+
     "fail on mixins that Python can't order" in {
       val ex = intercept[IllegalArgumentException] {
         generate(

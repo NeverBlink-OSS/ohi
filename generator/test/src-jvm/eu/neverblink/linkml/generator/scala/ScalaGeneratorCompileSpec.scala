@@ -1,6 +1,7 @@
 package eu.neverblink.linkml.generator.scala
 
 import eu.neverblink.linkml.generator.options.{ScalaErrorHandling, ScalaGeneratorOptions}
+import eu.neverblink.linkml.schemaview.{SchemaIssues, SchemaView}
 import eu.neverblink.linkml.tests.{ModelCatalogue, ModelCatalogueSpec}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -31,11 +32,11 @@ class ScalaGeneratorCompileSpec extends AnyWordSpec, Matchers, ModelCatalogueSpe
     Option.when(reporter.hasErrors)(log.toString)
   }
 
-  /** Generate [[entry]] with [[options]] and compile the result. */
-  private def compileModel(entry: ModelCatalogue.Entry, options: ScalaGeneratorOptions): Unit = {
+  /** Generate [[sv]] with [[options]] and compile the result. */
+  private def compileModel(sv: SchemaView, options: ScalaGeneratorOptions): Unit = {
     val dir = os.temp.dir(prefix = "linkml-scala-src")
     val sources =
-      ScalaGenerator(using entry.model).generate(options).map { (name, content) =>
+      ScalaGenerator(using sv).generate(options).map { (name, content) =>
         val file = dir / name
         os.write(file, content)
         file
@@ -47,14 +48,14 @@ class ScalaGeneratorCompileSpec extends AnyWordSpec, Matchers, ModelCatalogueSpe
 
   "ScalaGenerator" should {
     for
-      entry <- ModelCatalogue.all
+      entry <- ModelCatalogue.all :+ ModelCatalogue.kitchenSink
       skipLeafInterfaces <- Seq(true, false)
     do
       val variant = if skipLeafInterfaces then "" else " with leaf interfaces"
       s"generate compilable code for model '${entry.name}'$variant" in {
         processSkip(entry.name, "")
         compileModel(
-          entry,
+          entry.model,
           ScalaGeneratorOptions(`package` = "generated", skipLeafInterfaces = skipLeafInterfaces),
         )
       }
@@ -64,8 +65,80 @@ class ScalaGeneratorCompileSpec extends AnyWordSpec, Matchers, ModelCatalogueSpe
       s"generate compilable code for model '${entry.name}' with errors as Either" in {
         processSkip(entry.name, "")
         compileModel(
-          entry,
+          entry.model,
           ScalaGeneratorOptions(`package` = "generated", errorHandling = ScalaErrorHandling.Either),
+        )
+      }
+
+    // A subclass, a mixin, cardinality, and an inlined class range
+    for skipLeafInterfaces <- Seq(true, false) do
+      val variant = if skipLeafInterfaces then "" else " with leaf interfaces"
+      s"generate compilable code for slots that don't narrow the parent's$variant" in {
+        val sv = SchemaIssues.orThrow(
+          SchemaView.loadSchemaViewFromString(
+            """id: https://example.org/narrowing/
+              |name: narrowing
+              |default_prefix: https://example.org/narrowing/
+              |imports:
+              |  - linkml:types
+              |classes:
+              |  Other:
+              |    attributes:
+              |      id:
+              |        identifier: true
+              |  Unrelated:
+              |    attributes:
+              |      id:
+              |        identifier: true
+              |  Part: {}
+              |  Base:
+              |    slots:
+              |      - count
+              |      - label
+              |      - ref
+              |  Named:
+              |    mixin: true
+              |    slots:
+              |      - label
+              |  Middle:
+              |    is_a: Base
+              |    slot_usage:
+              |      count:
+              |        range: string
+              |      label:
+              |        range: Kind
+              |        multivalued: true
+              |      ref:
+              |        range: Part
+              |  Leaf:
+              |    is_a: Middle
+              |  Tagged:
+              |    is_a: Base
+              |    mixins:
+              |      - Named
+              |    slot_usage:
+              |      label:
+              |        range: Kind
+              |      ref:
+              |        range: Unrelated
+              |enums:
+              |  Kind:
+              |    permissible_values:
+              |      a: {}
+              |slots:
+              |  count:
+              |    range: integer
+              |  label:
+              |    range: string
+              |  ref:
+              |    range: Other
+              |""".stripMargin,
+          ),
+        )
+        sv.validationProblems should not be empty
+        compileModel(
+          sv,
+          ScalaGeneratorOptions(`package` = "generated", skipLeafInterfaces = skipLeafInterfaces),
         )
       }
   }

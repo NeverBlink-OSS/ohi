@@ -175,7 +175,7 @@ final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
         val collectionForm = CollectionForm.of(classView)
         // The interface declares the slots that the class lists or changes itself
         val interfaceFields = Set.newBuilder[String]
-        val scalaFields = for attribute <- classView.sortedAttributeViews yield {
+        val scalaFields = for attribute <- classView.sortedNarrowedAttributeViews yield {
           val field = makeScalaField(attribute, collectionForm, classView, options)
           val name = attribute.slotView.name
           if (
@@ -671,7 +671,7 @@ final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
       classView: ClassView,
       options: ScalaGeneratorOptions,
   ): Seq[InferredField] =
-    classView.sortedAttributeViews
+    classView.sortedNarrowedAttributeViews
       .filter(isSingleValuedString)
       .flatMap(attribute => attribute.equalsExpression.mapFast(attribute -> _))
       .map { (attribute, parsed) =>
