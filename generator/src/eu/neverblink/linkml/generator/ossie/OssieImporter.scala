@@ -198,7 +198,8 @@ object OssieImporter {
         }
         warn("Ontology mapping, which is not read", name.getOrElse("(no name)"))
       }
-      val classes = entityTypes.map(classOf)
+      // Ranks keep the order of the concepts, which would otherwise be by name.
+      val classes = entityTypes.zipWithIndex.map((c, i) => classOf(c, i + 1))
       // Only a range can refer to Any, and the class is declared only when one does.
       val any = Option.when(
         classes.exists(_.attributes.values.exists(_.range.contains(Reference(anyClass)))) &&
@@ -216,8 +217,8 @@ object OssieImporter {
         imports = Seq(Uri(linkmlNamespace.concat("types"))),
         extensions = aiContext,
         classes = byName(classes ++ any),
-        enums = byName(enumConcepts.map(enumOf)),
-        types = byName(typeConcepts.map(typeOf)),
+        enums = byName(enumConcepts.zipWithIndex.map((c, i) => enumOf(c, i + 1))),
+        types = byName(typeConcepts.zipWithIndex.map((c, i) => typeOf(c, i + 1))),
       )
     }
 
@@ -230,7 +231,7 @@ object OssieImporter {
         "ai_context" -> ExtensionImpl(extensionTag = tag, extensionValue = LinkmlAny(node.asYaml))
       }.toMap
 
-    private def classOf(concept: Concept): ClassDefinition = {
+    private def classOf(concept: Concept, rank: Int): ClassDefinition = {
       // The generator lists mixins before `is_a`, so the last entry is the one that was `is_a`.
       // Extending Any says nothing, so it's omitted.
       val parents = concept.extendsConcepts
@@ -274,6 +275,7 @@ object OssieImporter {
       ClassDefinition(
         name = name,
         alias = Option.when(name != concept.concept)(concept.concept),
+        rank = Some(rank),
         classUri = concept.iri.map(uriOf),
         description = concept.description.map(PlainText.apply),
         isA = parents.lastOption.map(Reference.apply),
@@ -364,10 +366,11 @@ object OssieImporter {
       )
     }
 
-    private def enumOf(concept: Concept): EnumDefinition = {
+    private def enumOf(concept: Concept, rank: Int): EnumDefinition = {
       warnAboutValueType(concept)
       EnumDefinition(
         name = elementNames(concept.concept),
+        rank = Some(rank),
         enumUri = concept.iri.map(uriOf),
         description = concept.description.map(PlainText.apply),
         permissibleValues = VectorMap.from(
@@ -376,7 +379,7 @@ object OssieImporter {
       )
     }
 
-    private def typeOf(concept: Concept): TypeDefinition = {
+    private def typeOf(concept: Concept, rank: Int): TypeDefinition = {
       val constraints = constraintsOf(concept.concept, Ref(concept.concept), concept.requires)
       warnAboutValueType(concept)
       concept.extendsConcepts.drop(1).foreach { p =>
@@ -390,6 +393,7 @@ object OssieImporter {
       val overAny = concept.extendsConcepts.headOption.contains(BuiltInConcept.any)
       TypeDefinition(
         name = elementNames(concept.concept),
+        rank = Some(rank),
         description = concept.description.map(PlainText.apply),
         typeUri = concept.iri.map(uriOf).orElse(Option.when(overAny)(anyUri)),
         typeof = Option.unless(overAny)(
