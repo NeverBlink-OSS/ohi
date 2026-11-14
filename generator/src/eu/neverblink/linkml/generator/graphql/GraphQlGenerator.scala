@@ -127,7 +127,7 @@ class GraphQlGenerator(using sv: SchemaView)
         GraphQlInterfaceDefinition(
           cls,
           fields,
-          cls.parents.map(getInterfaceName),
+          ancestorInterfaces(cls),
           stub = parentStub,
         ),
       )
@@ -136,14 +136,14 @@ class GraphQlGenerator(using sv: SchemaView)
         GraphQlInterfaceDefinition(
           cls,
           fields,
-          cls.parents.map(getInterfaceName),
+          ancestorInterfaces(cls),
           Some(splitInterfaceName(cls)),
           parentStub,
         ),
         GraphQlTypeDefinition(
           cls,
           fields,
-          Seq(splitInterfaceName(cls)),
+          splitInterfaceName(cls) +: ancestorInterfaces(cls),
           parentStub || hasStubInterface(cls),
         ),
       )
@@ -152,11 +152,17 @@ class GraphQlGenerator(using sv: SchemaView)
         GraphQlTypeDefinition(
           cls,
           fields,
-          cls.parents.map(getInterfaceName),
+          ancestorInterfaces(cls),
           parentStub,
         ),
       )
   }
+
+  /** The interfaces of all ancestors of the class. GraphQL requires a type or interface to also
+    * implement each interface that its interfaces implement.
+    */
+  private def ancestorInterfaces(cls: ClassView): Seq[String] =
+    cls.ancestorsWithSelf.iterator.drop(1).map(getInterfaceName).toSeq
 
   /** Whether the class has an interface without fields. GraphQL requires an interface to have a
     * field, so it gets the stub field `_`, which its implementations must have too.
