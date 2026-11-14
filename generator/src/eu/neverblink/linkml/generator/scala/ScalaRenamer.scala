@@ -17,7 +17,7 @@ trait ScalaRenamer extends Renamer {
   /** Get the scala `PascalCase` name, dodge leading digits/reserved words with an underscore. No
     * need to check for keywords - all start with lowercase.
     */
-  protected def scalaPascal(baseName: String): String = {
+  private def scalaPascal(baseName: String): String = {
     val name = Case.baseToPascal(baseName)
     if name.isEmpty then "__"
     else if Case.isNumeric(name.head) then "_" + name
@@ -28,7 +28,7 @@ trait ScalaRenamer extends Renamer {
   /** Get the scala `camelCase` name, dodge leading digits/reserved words with an underscore, and
     * quote Scala keywords in backticks.
     */
-  protected def scalaCamel(baseName: String): String = {
+  private def scalaCamel(baseName: String): String = {
     val name = Case.baseToCamel(baseName)
     val len = name.length
     if (len == 0) "__"
