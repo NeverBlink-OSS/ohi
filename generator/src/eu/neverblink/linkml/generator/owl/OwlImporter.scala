@@ -1909,37 +1909,57 @@ object OwlImporter {
     private lazy val pvTexts = mutable.HashMap.empty[String, mutable.HashMap[String, String]]
 
     /** Permissible value text: the `skos:notation` (where the generator writes it), else a label
-      * that the IRI was built from (as `gen-owl` does), else the IRI's local name.
+      * that the IRI was built from (as `gen-owl` does), else the IRI's local name. A text with the
+      * same base name as an earlier value of the enum gets a number, as element names do.
       */
-    private def permissibleValueText(e: String, member: String): String = {
-      val texts = pvTexts.getOrElseUpdate(e, mutable.HashMap.empty)
-      val cached = texts.getOrElse(member, null)
-      if (cached ne null) cached
-      else {
-        val annotations = entriesOf(annotationsOf, member)
-        var text: String = null
+    private def permissibleValueText(e: String, member: String): String =
+      pvTexts.getOrElseUpdate(e, permissibleValueTexts(e))(member)
+
+    private def permissibleValueTexts(e: String): mutable.HashMap[String, String] = {
+      val texts = mutable.HashMap.empty[String, String]
+      val bases = mutable.HashSet.empty[String]
+      // An empty base name is an error of its own, which a number would hide.
+      def free(text: String) = {
+        val base = Case.base(text)
+        base.isEmpty || bases.add(base)
+      }
+      enumMembers(e).members.foreach { member =>
+        val own = ownText(e, member)
+        var text = own
+        var n = 2
+        while (!free(text)) {
+          text = own + '_' + n
+          n += 1
+        }
+        if (text != own)
+          warn("Renamed to avoid a clash", s"$member is the permissible value '$text'")
+        texts.update(member, text)
+      }
+      texts
+    }
+
+    private def ownText(e: String, member: String): String = {
+      val annotations = entriesOf(annotationsOf, member)
+      var text: String = null
+      annotations.foreach { a =>
+        if ((text eq null) && a.property == notationProperty) {
+          a.value match {
+            case l: Literal => text = l.value
+            case _ =>
+          }
+        }
+      }
+      if (text eq null) {
         annotations.foreach { a =>
-          if ((text eq null) && a.property == notationProperty) {
+          if ((text eq null) && a.property == Rdfs.label.value) {
             a.value match {
-              case l: Literal => text = l.value
+              case l: Literal => if (defaultMeaning(e, l.value) == member) text = l.value
               case _ =>
             }
           }
         }
-        if (text eq null) {
-          annotations.foreach { a =>
-            if ((text eq null) && a.property == Rdfs.label.value) {
-              a.value match {
-                case l: Literal => if (defaultMeaning(e, l.value) == member) text = l.value
-                case _ =>
-              }
-            }
-          }
-        }
-        if (text eq null) text = styled(localName(member), config.permissibleValueStyle)
-        texts.update(member, text)
-        text
       }
+      if (text eq null) styled(localName(member), config.permissibleValueStyle) else text
     }
 
     private def defaultMeaning(e: String, text: String): String =

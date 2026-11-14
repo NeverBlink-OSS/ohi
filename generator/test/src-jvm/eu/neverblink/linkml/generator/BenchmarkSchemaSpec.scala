@@ -263,6 +263,11 @@ object BenchmarkSchemaSpec {
     "iso27001" -> "validation" -> "LNK-209: Vendored linkml:types?",
     "nmdc_microbiome" -> "validation" -> "LNK-208, LNK-209: '%'-named PV",
     "tc57cim" -> "validation" -> "LNK-208, LNK-209: '%'-named PV",
+    "cdm" -> "validation" ->
+      "The permissible values `S300` and `_S300` of CollateralEquityIndexEnum have one base name",
+    "crdch" -> "validation" ->
+      ("Enum names that differ only in case and underscores have one base name, such as " +
+        "`enum_CRDCH_Substance_role` and `enum_CRDCH_Substance__role`"),
     "ai-atlas-nexus" -> "graphql" ->
       ("Bug: emits `enum X {}` for an enum with no permissible values, " +
         "which is a syntax error in GraphQL"),
@@ -270,7 +275,8 @@ object BenchmarkSchemaSpec {
       ("Bug: emits `enum X {}` for an enum with no permissible values, " +
         "which is a syntax error in GraphQL"),
     "crdch" -> "graphql" ->
-      ("Bug: two enum names that differ only in case and underscores become one GraphQL type - " +
+      ("Not valid, see the validation skip: two enum names that differ only in case and " +
+        "underscores become one GraphQL type - " +
         "`enum_CRDCH_TimePoint_event_type` and `enum_CRDCH_TimePoint_eventType` both render as " +
         "`EnumCrdchTimePointEventType`"),
     "iso27001" -> "graphql" ->

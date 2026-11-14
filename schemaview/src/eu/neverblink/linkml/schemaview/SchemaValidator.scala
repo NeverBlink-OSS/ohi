@@ -572,7 +572,75 @@ final class SchemaValidator(using sv: SchemaView) {
         }
       },
     )
+    sv.schemas.foreach { s =>
+      def inSchema(kind: String, pointer: String, names: Iterable[String]): Unit =
+        clashes(names) { (name, renamed, all) =>
+          errors.addOne(
+            new NonUniqueName(
+              location = at(pointer + name, s.id),
+              elementName = name,
+              transformedName = renamed,
+              usedFor = s"$kind ${quotedList(all)} from '${s.name}' schema",
+            ),
+          )
+        }
+      inSchema("classes", "/classes/", s.classes.keys)
+      inSchema("enums", "/enums/", s.enums.keys)
+      inSchema("types", "/types/", s.types.keys)
+      inSchema("slots", "/slots/", s.slotDefinitions.keys)
+      inSchema("subsets", "/subsets/", s.subsets.keys)
+    }
+    // A class's slots include those of its ancestors, so a clash is reported only once. Clashes
+    // between two global slots are reported above.
+    val reportedSlots = new util.HashSet[Set[String]]
+    sv.sortedClasses.foreach { cls =>
+      clashes(cls.derivedAttributes.keys) { (name, renamed, all) =>
+        if (!all.forall(sv.slotDefinitions.contains) && reportedSlots.add(all.toSet))
+          errors.addOne(
+            new NonUniqueName(
+              location = withName(locationOf(cls), name),
+              elementName = name,
+              transformedName = renamed,
+              usedFor = s"slots ${quotedList(all)} of class '${cls.name}'",
+            ),
+          )
+      }
+    }
+    // Likewise, an enum's values include those of the enums it inherits from.
+    val reportedValues = new util.HashSet[Set[String]]
+    sv.enums.values.foreach { enumView =>
+      clashes(enumView.derivedValues.map(_.pv.text)) { (text, renamed, all) =>
+        if (reportedValues.add(all.toSet))
+          errors.addOne(
+            new NonUniqueName(
+              location = withName(locationOf(enumView), text),
+              elementName = text,
+              transformedName = renamed,
+              usedFor = s"permissible values ${quotedList(all)} of enum '${enumView.name}'",
+            ),
+          )
+      }
+    }
     errors.result()
+  }
+
+  /** Calls [[report]] for each group of names with the same base name, with the last name of the
+    * group, the base name, and all names of the group. An empty base name is left to [[EmptyName]].
+    */
+  private def clashes(
+      names: Iterable[String],
+  )(report: (String, String, Seq[String]) => Unit): Unit = {
+    val groups = mutable.LinkedHashMap.empty[String, mutable.ArrayBuffer[String]]
+    names.foreach(n => groups.getOrElseUpdate(Case.base(n), mutable.ArrayBuffer.empty).addOne(n))
+    groups.foreachEntry { (renamed, group) =>
+      if (renamed.nonEmpty && group.sizeIs > 1) report(group.last, renamed, group.toSeq)
+    }
+  }
+
+  /** `'a', 'b' and 'c'` */
+  private def quotedList(names: Seq[String]): String = {
+    val quoted = names.map(n => s"'$n'")
+    quoted.init.mkString(", ") + " and " + quoted.last
   }
 
   /** Ensure that any declared slot usages are refining some applicable slot (top level slot or
