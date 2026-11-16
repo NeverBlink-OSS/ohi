@@ -1034,6 +1034,29 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
 
     }
 
+    "give parents with spaces in their names the same Scala names as their classes" in {
+      val input =
+        s"""$schemaShared
+           |classes:
+           |  base class:
+           |    abstract: true
+           |    attributes:
+           |      base_slot:
+           |  some mixin:
+           |    mixin: true
+           |    attributes:
+           |      mixin_slot:
+           |  SomeClass:
+           |    is_a: base class
+           |    mixins:
+           |    - some mixin
+           |""".stripMargin
+
+      given SchemaView = decode(input)
+      val files = ScalaGenerator().generate(ScalaGeneratorOptions(`package` = testPkg)).toMap
+      files("SomeClass.scala") should include(") extends BaseClass, SomeMixin")
+    }
+
     "generate only changed fields in interfaces" in {
       val input =
         s"""$schemaShared
@@ -1564,6 +1587,25 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
 
       // A plain string is already a string, so it is not wrapped
       code should include(""""ref is " + inferenceInput("reference_value", referenceValue)""")
+    }
+
+    "substitute a slot with spaces in its name by its field name" in {
+      val input =
+        s"""$schemaShared
+           |classes:
+           |  SomeClass:
+           |    attributes:
+           |      source value:
+           |        range: string
+           |        required: true
+           |      message:
+           |        range: string
+           |        equals_expression: "{source value}"
+           |""".stripMargin
+      val code = ScalaGenerator(using decode(input)).generate(
+        ScalaGeneratorOptions(`package` = testPkg),
+      ).toMap
+      code("SomeClass.scala") should include("""inferOptional("message", message, sourceValue)""")
     }
 
     "refuse to substitute an inlined class into an expression" in {

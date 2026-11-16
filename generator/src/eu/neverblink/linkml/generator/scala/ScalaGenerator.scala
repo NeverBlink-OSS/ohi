@@ -194,7 +194,7 @@ final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
             name,
             options.`package`,
             scalaFields,
-            (cls.isA ++ cls.mixins).map(ref => scalaPascal(ref.value)).toSeq,
+            (cls.isA ++ cls.mixins).map(ref => className(sv.classes(ref.value))).toSeq,
             interfaceFields.result(),
             !classView.isConcrete,
             caseClassOnly,
@@ -727,8 +727,8 @@ final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
     val access = path.foldLeft(("", "")) { case ((expression, prefix), attribute) =>
       val name = attribute.slotView.slot.name
       val qualified = if prefix.isEmpty then name else s"$prefix.$name"
-      val field =
-        if expression.isEmpty then scalaCamel(name) else s"$expression.${scalaCamel(name)}"
+      val fieldName = slotName(attribute.slotView)
+      val field = if expression.isEmpty then fieldName else s"$expression.$fieldName"
       val unwrapped =
         if isOptionField(attribute, options) then s"""inferenceInput("$qualified", $field)"""
         else field
