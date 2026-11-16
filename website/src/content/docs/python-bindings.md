@@ -111,7 +111,10 @@ ohi_linkml.from_owl(document, config=None, format="yaml", full_uris=False, input
 Like the generators, they take the options of
 [`model/converter`](https://github.com/NeverBlink-OSS/ohi/tree/main/model/converter) as
 keyword arguments. Each returns a dict: the LinkML schema in `"schema"`, and what it could not
-import in `"warnings"`, which is empty if everything was. Pass the schema to `load_string()` to run
+import in `"warnings"`, one line for each kind, which is empty if everything was. `"report"` has the
+same as an
+[`ImportReport`](https://github.com/NeverBlink-OSS/ohi/blob/main/model/import-warnings.yaml), with
+one entry for each thing, and its `"warning_type"`. Pass the schema to `load_string()` to run
 a generator over it. `from_owl()` reads Turtle (and so N-Triples), or N-Triples with its own
 parser with `input_format="nt"`. `config` is the mapping config as a dict, and
 `schemas` gives the LinkML schemas the config maps `owl:imports` to, from file name to YAML text.

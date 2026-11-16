@@ -2,6 +2,8 @@ package eu.neverblink.linkml.cli
 
 import caseapp.*
 import eu.neverblink.linkml.cli.options.{FromOssieCliOptions, FromOwlCliOptions}
+import eu.neverblink.linkml.generator.ImportWarnings
+import eu.neverblink.linkml.generator.importwarnings.{Codec, ImportReport}
 import eu.neverblink.linkml.generator.ossie.OssieImporter
 import eu.neverblink.linkml.generator.owl.OwlImporter
 
@@ -30,6 +32,21 @@ abstract class From[T <: HasFromOptions: {Parser, Help}] extends BaseCommand[T] 
 
   /** Read the document from `in` and write the LinkML schema to `out`. */
   protected def convert(options: T, in: InputStream, out: OutputStream): Unit
+
+  /** List what could not be imported on stderr, one line for each kind, and write the report to
+    * `importReport` as JSON, if they are given.
+    */
+  protected final def notImported(
+      report: ImportReport,
+      listNotImported: Boolean,
+      importReport: Option[String],
+  ): Unit = {
+    if listNotImported then
+      ImportWarnings.lines(report).foreach(w => printLine(s"Not imported: $w", toStderr = true))
+    importReport.foreach { file =>
+      os.write.over(os.Path(file, os.pwd), Codec.toJson(report) + "\n", createFolders = true)
+    }
+  }
 
   override final def group = "from"
 
@@ -68,6 +85,11 @@ final case class FromOssieOptions(
     importer: FromOssieCliOptions = FromOssieCliOptions(),
     @HelpMessage("List what could not be imported, on stderr. Default: false")
     listNotImported: Boolean = false,
+    @HelpMessage(
+      "Write what could not be imported to this file, as an ImportReport " +
+        "(model/import-warnings.yaml) in JSON, with one entry for each thing.",
+    )
+    importReport: Option[String] = None,
 ) extends HasFromOptions
 
 object FromOssie extends From[FromOssieOptions] {
@@ -81,8 +103,7 @@ object FromOssie extends From[FromOssieOptions] {
     val importer = OssieImporter()
     val importerOptions = options.importer.toOptions
     val result = importer.importWithWarnings(in, importerOptions)
-    if options.listNotImported then
-      result.warnings.foreach(w => printLine(s"Not imported: $w", toStderr = true))
+    notImported(result.report, options.listNotImported, options.importReport)
     importer.writeSchema(result.schema, out, importerOptions.format, importerOptions.fullUris)
   }
 }
@@ -101,6 +122,11 @@ final case class FromOwlOptions(
     importer: FromOwlCliOptions = FromOwlCliOptions(),
     @HelpMessage("List what could not be imported, on stderr. Default: false")
     listNotImported: Boolean = false,
+    @HelpMessage(
+      "Write what could not be imported to this file, as an ImportReport " +
+        "(model/import-warnings.yaml) in JSON, with one entry for each thing.",
+    )
+    importReport: Option[String] = None,
 ) extends HasFromOptions
 
 object FromOwl extends From[FromOwlOptions] {
@@ -118,8 +144,7 @@ object FromOwl extends From[FromOwlOptions] {
       try options.importer.toOptions
       catch { case e: IllegalArgumentException => err(e.getMessage) }
     val result = importer.importWithWarnings(in, importerOptions)
-    if options.listNotImported then
-      result.warnings.foreach(w => printLine(s"Not imported: $w", toStderr = true))
+    notImported(result.report, options.listNotImported, options.importReport)
     importer.writeSchema(result.schema, out, importerOptions.format, importerOptions.fullUris)
   }
 }

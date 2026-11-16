@@ -9,6 +9,7 @@ import eu.neverblink.linkml.generator.options.{
   SomeValuesFrom,
 }
 import eu.neverblink.linkml.generator.{ImportWarnings, SchemaImporter}
+import eu.neverblink.linkml.generator.importwarnings
 import eu.neverblink.linkml.generator.importwarnings.*
 import eu.neverblink.linkml.generator.owl.Axiom.*
 import eu.neverblink.linkml.generator.owl.ClassExpr.Bound
@@ -99,8 +100,9 @@ class OwlImporter(schemas: Importer = FileSystemImporter, base: String = "")
   ): ImportResult = {
     val result = importWithWarnings(in, options)
     ImportResult(
-      serializeSchema(result.schema, options.format, options.fullUris),
-      result.warnings,
+      schema = serializeSchema(result.schema, options.format, options.fullUris),
+      warnings = result.warnings,
+      report = importwarnings.Codec.toAny(result.report),
     )
   }
 

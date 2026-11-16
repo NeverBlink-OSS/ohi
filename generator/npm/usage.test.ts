@@ -4,6 +4,7 @@
 import {
   LinkML,
   type LoadResult,
+  type ImportReport,
   type ImportResult,
   type SchemaConversionError,
   type SchemaIssue,
@@ -87,6 +88,14 @@ const owlImport: ImportResult = LinkML.fromOwl("", {
   schemas: { "other.yaml": "id: https://example.org/o\nname: o" },
 });
 const owlWarnings: string[] = owlImport.warnings;
+// The report has the same, one entry for each thing, and `warning_type` narrows each one.
+const owlReport: ImportReport = owlImport.report;
+for (const warning of owlReport.warnings) {
+  if (warning.warning_type === "UnmappedImport") {
+    const importIri: string = warning.import_iri;
+    void importIri;
+  }
+}
 const ossieSchema: string = LinkML.fromOssie("{}", { schema_id: "https://example.org/x" }).schema;
 // @ts-expect-error the options follow model/converter, in snake case
 LinkML.fromOssie("{}", { schemaId: "https://example.org/x" });

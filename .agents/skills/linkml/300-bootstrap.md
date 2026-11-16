@@ -70,7 +70,9 @@ ohi linkml from ossie --list-not-imported --schema-id https://example.org/my-sch
 ```
 
 `from owl` reads Turtle or N-Triples only. For both, `--list-not-imported` prints what was dropped,
-which goes in your report. For the other flags, including the `--config` that controls naming and maps
+which goes in your report. `--import-report report.json` writes the same as JSON, one entry for each
+dropped thing, with a `warning_type` that tells whether LinkML can't express it or the importer
+doesn't support it yet. For the other flags, including the `--config` that controls naming and maps
 `owl:imports` to existing LinkML schemas, run `--help`. The mappings are in
 the [OWL importer](https://linkml.ohi.dev/docs/importers/owl/) and the
 [Ossie importer](https://linkml.ohi.dev/docs/importers/ossie/).

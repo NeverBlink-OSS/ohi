@@ -35,6 +35,13 @@ class CodecRoundTripSpec extends AnyWordSpec, Matchers {
       )
     }
 
+    "keep an empty list of warnings as a list in a linkml:Any value" in {
+      val any = Codec.toAny(ImportReport(Nil))
+      val node = eu.neverblink.linkml.yaml.LinkmlYamlCodec.anythingCodec.encode(any)
+      Codec.codec.decode(node).shouldBe(ImportReport(Nil))
+      eu.neverblink.linkml.yaml.NodeJson.write(node).replaceAll("\\s", "").should(include("[]"))
+    }
+
     "reject a report whose warning has an unknown warning_type" in {
       val yaml =
         """warnings:

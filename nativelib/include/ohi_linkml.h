@@ -79,7 +79,9 @@ char *linkml_java(long long handle, const char *options, char **error);
 char *linkml_frictionless(long long handle, const char *options, char **error);
 char *linkml_docs(long long handle, const char *options, char **error);
 
-/* Importers. Each takes a document and returns the LinkML schema it describes. */
+/* Importers. Each takes a document and returns an ImportResult in JSON: the LinkML schema it
+ * describes in "schema", and what could not be imported, as lines in "warnings" and as an
+ * ImportReport (model/import-warnings.yaml) in "report". */
 char *linkml_from_ossie(const char *ontology, const char *options, char **error);
 char *linkml_from_owl(const char *ontology, const char *options, char **error);
 

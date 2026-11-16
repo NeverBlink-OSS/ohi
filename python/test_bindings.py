@@ -121,6 +121,13 @@ class FromOwlTest(unittest.TestCase):
         result = ohi_linkml.from_owl(self.ONTOLOGY)
         self.assertTrue(result["warnings"])
         self.assertNotIn("# Not imported:", result["schema"])
+        # The report has the same, one entry for each thing, with its type.
+        warnings = result["report"]["warnings"]
+        self.assertTrue(warnings)
+        for warning in warnings:
+            self.assertIn("warning_type", warning)
+            self.assertIn("kind", warning)
+            self.assertIn("detail", warning)
 
     def test_uses_the_terms_of_a_mapped_import(self):
         ontology = self.ONTOLOGY + textwrap.dedent(
@@ -182,6 +189,7 @@ class FromOssieTest(unittest.TestCase):
     def test_reads_an_ontology_into_a_schema(self):
         result = ohi_linkml.from_ossie(self.ONTOLOGY)
         self.assertEqual([], result["warnings"])
+        self.assertEqual({"warnings": []}, result["report"])
         schema = result["schema"]
         self.assertIn("name: flights", schema)
         self.assertIn("Airport:", schema)
@@ -193,6 +201,18 @@ class FromOssieTest(unittest.TestCase):
         self.assertEqual(
             ["Expression that cannot be read (1): Airport: NOT (Airport.code)"],
             result["warnings"],
+        )
+        self.assertEqual(
+            [
+                {
+                    "detail": "Airport: NOT (Airport.code)",
+                    "expression": "NOT (Airport.code)",
+                    "kind": "Expression that cannot be read",
+                    "owner": "Airport",
+                    "warning_type": "UnreadableExpression",
+                }
+            ],
+            result["report"]["warnings"],
         )
         self.assertIn("Airport:", result["schema"])
 

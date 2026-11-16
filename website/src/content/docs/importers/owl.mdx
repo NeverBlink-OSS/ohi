@@ -13,7 +13,7 @@ OWL can express things LinkML cannot, such as individuals. Some other things Lin
 
 <Usage name="from_owl" />
 
-The result has the schema, and in `warnings`, one line for each kind of thing that could not be imported. On the command line, add `--list-not-imported` to list them on stderr:
+The result has the schema, and in `warnings`, one line for each kind of thing that could not be imported. `report` has the same as an [`ImportReport`](https://github.com/NeverBlink-OSS/ohi/blob/main/model/import-warnings.yaml), with one entry for each thing: its `warning_type` says what kind it is, and its other fields say where. On the command line, add `--list-not-imported` to list the lines on stderr, or `--import-report <file>` to write the report to a file as JSON:
 
 ```
 Not imported: Property chain that is not supported by the importer yet (29): has_feature_kind: saref:hasFeatureKind o skos:broader (LinkML: `path_rule`); …

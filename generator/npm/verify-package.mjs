@@ -111,7 +111,7 @@ if (snippets) {
 
 // 4. Check real return values against the types generated from their LinkML models. The
 // values are written out as object literals, so `tsc` also rejects keys the types don't have.
-console.log("Type-checking real build info, validation reports and stats against index.d.ts");
+console.log("Type-checking real build info, validation reports, stats and import results against index.d.ts");
 const collect = `
 import { writeFileSync } from "node:fs";
 import { LinkML } from "@neverblink/linkml";
@@ -142,19 +142,40 @@ for (const schema of schemas)
     }
   }
 const issueTypes = new Set(reports.flatMap((r) => r.issues.map((i) => i.issue_type)));
+const ttl = "@prefix : <https://example.org/t/> .\\n" +
+  "@prefix owl: <http://www.w3.org/2002/07/owl#> .\\n" +
+  "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\\n" +
+  "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\\n" +
+  "<https://example.org/t> a owl:Ontology ; owl:imports <https://example.org/other> .\\n" +
+  ":A a owl:Class ; rdfs:subClassOf [ a owl:Class ; owl:complementOf :B ] .\\n" +
+  ":B a owl:Class .\\n" +
+  ":p a owl:ObjectProperty ; rdfs:range [ a owl:Class ; owl:intersectionOf ( :A :B ) ] .\\n" +
+  ":q a owl:ObjectProperty ; owl:propertyDisjointWith :p ; owl:propertyChainAxiom ( :p :p ) .\\n" +
+  ":x owl:sameAs :y .\\n" +
+  ":D a rdfs:Datatype ; owl:equivalentClass [ a rdfs:Datatype ; owl:onDatatype xsd:decimal ;\\n" +
+  "    owl:withRestrictions ( [ xsd:minExclusive 0 ] [ xsd:length 2 ] ) ] .\\n";
+const ossie = "version: 0.3.0.dev0\\nname: o\\nrequires: ['A.x >= 0']\\nontology:\\n  - concept: A\\n    type: EntityType\\n" +
+  "    requires: ['NOT (A.x)']\\n    relationships:\\n      - name: x\\n" +
+  "        roles: [{concept: Integer}, {concept: String}]\\n" +
+  "        verbalizes: ['{A} has x {Integer}']\\n";
+const imports = [LinkML.fromOwl(ttl), LinkML.fromOwl(""), LinkML.fromOssie(ossie)];
+const warningTypes = new Set(imports.flatMap((r) => r.report.warnings.map((w) => w.warning_type)));
 writeFileSync(
   "outputs.ts",
-  'import type { BuildInfo, SchemaStats, SchemaValidationReport } from "@neverblink/linkml";\\n' +
+  'import type { BuildInfo, ImportResult, SchemaStats, SchemaValidationReport } from "@neverblink/linkml";\\n' +
     "export const build: BuildInfo = " + JSON.stringify(LinkML.buildInfo(), null, 2) + ";\\n" +
     "export const reports: SchemaValidationReport[] = " + JSON.stringify(reports, null, 2) + ";\\n" +
-    "export const stats: SchemaStats[] = " + JSON.stringify(stats, null, 2) + ";\\n",
+    "export const stats: SchemaStats[] = " + JSON.stringify(stats, null, 2) + ";\\n" +
+    "export const imports: ImportResult[] = " + JSON.stringify(imports, null, 2) + ";\\n",
 );
 console.log([...issueTypes].sort().join(", "));
+console.log([...warningTypes].sort().join(", "));
 `;
 writeFileSync(join(work, "collect.mjs"), collect);
 try {
-  const issueTypes = run("node", ["collect.mjs"], work).trim();
+  const [issueTypes, warningTypes] = run("node", ["collect.mjs"], work).trim().split("\n");
   console.log(`  issue types covered: ${issueTypes}`);
+  console.log(`  import warning types covered: ${warningTypes}`);
   typeCheck("outputs.ts");
   console.log("  real values fit the types: OK");
 } catch (e) {

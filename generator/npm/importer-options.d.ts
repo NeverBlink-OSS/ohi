@@ -30,6 +30,8 @@ export interface ImportMapping {
 
 /** What an importer produced. */
 export interface ImportResult {
+  /** What could not be imported, one entry for each thing, as an `ImportReport` of `model/import-warnings.yaml`. Each warning's `warning_type` says what kind it is. */
+  report: unknown;
   /** The LinkML schema. */
   schema: string;
   /** One line for each kind of thing that could not be imported. Empty if everything was. */

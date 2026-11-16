@@ -14,6 +14,9 @@ object TsDefsGen {
   private val exportedName = "LinkML"
   private val objectName = "LinkMlJsApi"
 
+  /** What the importers return. index.d.ts declares it, so `report` has its type. */
+  private val importResult = "ImportResult"
+
   /** A file of TypeScript types generated from a LinkML model.
     *
     * @param name
@@ -43,6 +46,12 @@ object TsDefsGen {
       "schema-stats",
       Seq("SchemaStats"),
       "The schema statistics, generated from model/schema-stats.yaml.",
+    ),
+    ModelTypes(
+      "import-warnings",
+      Seq("ImportReport"),
+      "The report of what an importer could not import, generated from model/import-warnings.yaml.\n" +
+        "Each warning's `warning_type` names its kind, so a `switch` on it narrows the warning.",
     ),
     ModelTypes(
       "generator-options",
@@ -97,7 +106,8 @@ object TsDefsGen {
     val members = methods.map(renderMethod(scalaSource, _)).mkString("\n\n")
     // A name that an earlier file exports already, such as the `PruningMode` of both the schema
     // statistics and the generator options, would be ambiguous, so only the others are exported.
-    val exported = collection.mutable.Set.empty[String]
+    // `ImportResult` is declared below, with a typed `report`.
+    val exported = collection.mutable.Set(importResult)
     val imports = modelTypes.map { m =>
       val module = s"$modelTypesDir${m.name}.js"
       val comment = m.comment.linesIterator.map("// ".concat).mkString("\n")
@@ -138,10 +148,21 @@ object TsDefsGen {
        |  readonly report: SchemaValidationReport;
        |}
        |
+       |import type { ImportResult as GeneratedImportResult } from "${modelTypesDir}importer-options.js";
+       |
+       |/** What an importer produced: the LinkML schema, and what could not be imported. */
+       |export interface $importResult extends Omit<GeneratedImportResult, "report"> {
+       |  /**
+       |   * What could not be imported, one entry for each thing. Each warning's `warning_type` says
+       |   * what kind it is. `warnings` has the same, as one line for each kind.
+       |   */
+       |  report: ImportReport;
+       |}
+       |
        |/** Functions that take the document to import before their options. */
        |type Importers<F> = {
        |  [K in keyof F]: F[K] extends (...args: infer A) => infer R
-       |    ? (document: string, ...args: A) => R
+       |    ? (document: string, ...args: A) => R extends GeneratedImportResult ? $importResult : R
        |    : never;
        |};
        |

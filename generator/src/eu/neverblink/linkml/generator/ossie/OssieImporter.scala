@@ -2,6 +2,7 @@ package eu.neverblink.linkml.generator.ossie
 
 import eu.neverblink.linkml.generator.options.{ImportResult, OssieImporterOptions}
 import eu.neverblink.linkml.generator.{ImportWarnings, SchemaImporter}
+import eu.neverblink.linkml.generator.importwarnings
 import eu.neverblink.linkml.generator.importwarnings.*
 import eu.neverblink.linkml.generator.ossie.expression.*
 import eu.neverblink.linkml.metamodel.*
@@ -50,8 +51,9 @@ class OssieImporter extends SchemaImporter[OssieImporterOptions] {
   ): ImportResult = {
     val result = importWithWarnings(in, options)
     ImportResult(
-      serializeSchema(result.schema, options.format, options.fullUris),
-      result.warnings,
+      schema = serializeSchema(result.schema, options.format, options.fullUris),
+      warnings = result.warnings,
+      report = importwarnings.Codec.toAny(result.report),
     )
   }
 

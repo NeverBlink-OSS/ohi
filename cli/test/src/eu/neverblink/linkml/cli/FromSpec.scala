@@ -1,5 +1,7 @@
 package eu.neverblink.linkml.cli
 
+import eu.neverblink.linkml.generator.importwarnings.Codec
+
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -205,6 +207,29 @@ class FromSpec extends AnyWordSpec, Matchers {
           FromOwl.runTestCommandWithExitCode(List("from", "owl", "--list-not-imported", path))
         code shouldBe 0
         err should include("Not imported:")
+      }
+    }
+
+    "write what could not be imported as JSON with --import-report" in {
+      withOntology(owlOntology) { path =>
+        val report = Files.createTempFile("linkml-import-report", ".json")
+        try {
+          val (_, err, code) = FromOwl.runTestCommandWithExitCode(
+            List("from", "owl", "--import-report", report.toString, path),
+          )
+          code shouldBe 0
+          // Only the file, not the lines on stderr, which --list-not-imported adds.
+          err should not include "Not imported:"
+          val json = Files.readString(report)
+          json should include("\"warning_type\"")
+          // JSON is YAML, so the report's codec reads it back.
+          val node = org.virtuslab.yaml.parseYaml(json).toOption.get
+          val warnings = Codec.codec.decode(node).warnings
+          warnings should not be empty
+          warnings.foreach(w =>
+            (w.kind, w.detail) should matchPattern { case (Some(_), Some(_)) => },
+          )
+        } finally Files.deleteIfExists(report)
       }
     }
 

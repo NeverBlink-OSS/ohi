@@ -41,7 +41,7 @@ final case class FunctionalSubproperty(
       kind = inferOptional(
         "kind",
         kind,
-        "Functional subproperty of a property that is not, inexpressible in LinkML as slots inherit `multivalued`, so left multivalued",
+        "Functional subproperty of a property that is not functional, inexpressible in LinkML as slots inherit `multivalued`, so left multivalued",
       ),
     )
 }

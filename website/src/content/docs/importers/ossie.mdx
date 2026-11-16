@@ -31,7 +31,7 @@ The importer reads [Apache Ossie](https://github.com/apache/ossie) ontologies (`
 
 `version`, `requires` and `ontology_mappings` are not read. See [IRIs](#iris) for how `prefixes` and `iri` are handled.
 
-The result has the schema, and in `warnings`, one line for each kind of thing that could not be imported. On the command line, add `--list-not-imported` to list them on stderr:
+The result has the schema, and in `warnings`, one line for each kind of thing that could not be imported. `report` has the same as an [`ImportReport`](https://github.com/NeverBlink-OSS/ohi/blob/main/model/import-warnings.yaml), with one entry for each thing: its `warning_type` says what kind it is, and its other fields say where. On the command line, add `--list-not-imported` to list the lines on stderr, or `--import-report <file>` to write the report to a file as JSON:
 
 ```
 Not imported: Expression that cannot be read (1): Flight: NOT (Flight.cancelled)

@@ -120,7 +120,9 @@ The functions of `LinkML`:
 
 The importers, `fromOssie` and `fromOwl`, take the document to import, then an options object like
 the generators, such as `{ format: "json" }`. Their options are in `model/converter` too. Both
-return `{ schema, warnings }`: the schema, and what could not be imported.
+return `{ schema, warnings, report }`: the schema, and what could not be imported, as one line for
+each kind in `warnings`, and as an `ImportReport` with one entry for each thing in `report`. Each
+warning's `warning_type` names its kind, so a `switch` on it narrows the warning to that kind.
 
 See [`index.d.ts`](./index.d.ts) for full type signatures. The validation report that `lint` and
 `loadFromString`/`loadFromPath` return is fully typed: each issue's `issue_type` names its kind
