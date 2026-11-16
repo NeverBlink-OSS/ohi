@@ -1693,6 +1693,38 @@ class SchemaValidatorSpec extends AnyWordSpec, Matchers {
         )
     }
 
+    "accept a text equals_string on a slot with range Any" in {
+      // `Any` is a class, but it can hold text, so the value doesn't have to be a URI
+      val schemaYaml =
+        s"""$schemaShared
+           |prefixes:
+           |  linkml: https://w3id.org/linkml/
+           |  owl: http://www.w3.org/2002/07/owl#
+           |imports:
+           |  - linkml:types
+           |default_range: string
+           |slots:
+           |  has_text_value:
+           |    implements:
+           |      - owl:DatatypeProperty
+           |    range: Any
+           |  has_address_line1:
+           |    is_a: has_text_value
+           |classes:
+           |  Any:
+           |    class_uri: linkml:Any
+           |  GeneralDeliveryAddress:
+           |    tree_root: true
+           |    slots:
+           |      - has_address_line1
+           |    slot_usage:
+           |      has_address_line1:
+           |        equals_string: GENERAL DELIVERY
+           |""".stripMargin
+
+      load(schemaYaml).validationProblems shouldBe empty
+    }
+
     "fail on a namespace that isn't a valid URI" in {
       val schemaYaml =
         s"""$schemaShared

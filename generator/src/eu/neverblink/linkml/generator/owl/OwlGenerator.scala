@@ -608,6 +608,13 @@ object OwlGenerator {
           if (tv.isIri) iri
           else if (tv.runtimeType eq LocalizedTextType) Literal(text)
           else Literal(text, Iri(baseDatatype(tv)))
+        // `Any` may hold text as well as references. A data property only holds text.
+        case cv: ClassView if cv.isAny =>
+          if (kindOf(s) == EntityKind.DataProperty) Literal(text)
+          else {
+            val uri = s.uriValueOrNull(text)
+            if (uri ne null) Iri(uri) else Literal(text)
+          }
         case _: ClassView => iri
         case _ => Literal(text)
       }
