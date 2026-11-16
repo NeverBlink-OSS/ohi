@@ -3,7 +3,7 @@ name: import-warnings
 title: Import warnings
 description: >-
   What an importer, such as `from owl` or `from ossie`, could not carry over into the LinkML
-  schema. The warnings are grouped by `kind` in the report.
+  schema. The warnings are grouped by `kind` when they are printed.
 license: https://creativecommons.org/publicdomain/zero/1.0/
 prefixes:
   linkml: https://w3id.org/linkml/
@@ -76,6 +76,21 @@ slots:
     description: The relationships that the concept is identified by.
 
 classes:
+  ImportReport:
+    title: Import report
+    description: >-
+      What an importer could not carry over into the LinkML schema, one entry per warning.
+    tree_root: true
+    attributes:
+      warnings:
+        range: ImportWarning
+        title: warnings
+        description: The warnings, in the order the importer found them.
+        multivalued: true
+        required: true
+        inlined: true
+        inlined_as_list: true
+
   ImportWarning:
     abstract: true
     title: Import warning
