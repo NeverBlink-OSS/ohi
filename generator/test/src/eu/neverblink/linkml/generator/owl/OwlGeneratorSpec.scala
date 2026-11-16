@@ -378,6 +378,36 @@ class OwlGeneratorSpec extends AnyWordSpec, Matchers, OwlFixtures {
         "The equals_string value 'John Doe' of slot 'author' isn't a valid URI or CURIE"
     }
 
+    "write a text equals_string of a data property with range Any as a literal" in {
+      val axioms = ontologyOf(
+        """slots:
+          |  has_text_value:
+          |    implements:
+          |      - http://www.w3.org/2002/07/owl#DatatypeProperty
+          |    range: Any
+          |  has_address_line1:
+          |    is_a: has_text_value
+          |classes:
+          |  Any:
+          |    class_uri: linkml:Any
+          |  GeneralDeliveryAddress:
+          |    slots:
+          |      - has_address_line1
+          |    slot_usage:
+          |      has_address_line1:
+          |        equals_string: GENERAL DELIVERY
+          |""",
+      ).axioms
+      val line1 = ns + "has_address_line_1"
+      axioms should contain(Declaration(EntityKind.DataProperty, line1))
+      axioms should contain(
+        SubClassOf(
+          c("GeneralDeliveryAddress"),
+          HasValue(PropertyRef(line1), Literal("GENERAL DELIVERY", XmlSchema.string)),
+        ),
+      )
+    }
+
     "write descriptions as rdfs:comment, or as skos:definition when asked" in {
       val schema =
         """classes:

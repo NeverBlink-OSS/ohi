@@ -397,7 +397,8 @@ final class SchemaValidator(using sv: SchemaView) {
 
   /** Errors for an `equals_string` of a slot in a class that isn't a valid URI or CURIE, when the
     * range of the slot is a URI type or a class. The OWL generator writes such a value as an IRI,
-    * with [[SlotView.uriValueOrNull]].
+    * with [[SlotView.uriValueOrNull]]. A slot with range `Any` may hold text, so any value is
+    * accepted there.
     */
   private lazy val invalidEqualsStrings: Seq[SchemaError] = {
     val errors = Seq.newBuilder[SchemaError]
@@ -406,7 +407,7 @@ final class SchemaValidator(using sv: SchemaView) {
         s.slot.equalsString.foreachFast { text =>
           val isIri = s.derivedRange.resolve.orNullFast match {
             case tv: TypeView => tv.isIri
-            case _: ClassView => true
+            case cv: ClassView => !cv.isAny
             case _ => false
           }
           if (isIri && (s.uriValueOrNull(text) eq null)) {
