@@ -50,11 +50,20 @@ export default defineConfig({
         { label: 'Welcome', link: '/' },
         {
           label: 'Getting started',
-          items: ['getting-started/install', 'getting-started/first-ontology'],
+          items: [
+            'getting-started/install',
+            'getting-started/first-ontology',
+            'getting-started/adding-ontologies',
+          ],
         },
         {
           label: 'Guides',
-          items: ['guides/search', 'guides/projects'],
+          items: [
+            'guides/search',
+            'guides/projects',
+            'guides/requesting-ontologies',
+            'guides/contributing-ontologies',
+          ],
         },
         {
           label: 'Reference',
