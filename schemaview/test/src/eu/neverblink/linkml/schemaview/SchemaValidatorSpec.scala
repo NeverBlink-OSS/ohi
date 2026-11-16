@@ -19,6 +19,7 @@ import eu.neverblink.linkml.validation.{
   MissingRecommendedSlot,
   NonAsciiName,
   NonStandardSeparator,
+  NonUniqueName,
   RepeatedSeparator,
   SchemaError,
   SchemaFatal,
@@ -226,6 +227,105 @@ class SchemaValidatorSpec extends AnyWordSpec, Matchers {
       ) foreach { part =>
         msg should include(part)
       }
+    }
+
+    "fail for names of one kind in one schema with the same base name" in {
+      val msg = validationFailure(
+        load(s"""$schemaShared
+           |prefixes:
+           |  linkml: https://w3id.org/linkml/
+           |imports:
+           |  linkml:types
+           |classes:
+           |  some_class:
+           |  SomeClass:
+           |  some-class:
+           |enums:
+           |  event_type:
+           |  eventType:
+           |types:
+           |  my_type:
+           |    typeof: string
+           |  MyType:
+           |    typeof: string
+           |slots:
+           |  a_slot:
+           |  aSlot:
+           |subsets:
+           |  a_subset:
+           |  aSubset:
+           |""".stripMargin),
+        maxProblems = 20,
+      )
+
+      Seq(
+        "Non-unique name 'some-class' (renamed internally to 'some_class') used for classes " +
+          "'some_class', 'SomeClass' and 'some-class' from 'test' schema",
+        "Non-unique name 'eventType' (renamed internally to 'event_type') used for enums " +
+          "'event_type' and 'eventType' from 'test' schema",
+        "Non-unique name 'MyType' (renamed internally to 'my_type') used for types " +
+          "'my_type' and 'MyType' from 'test' schema",
+        "Non-unique name 'aSlot' (renamed internally to 'a_slot') used for slots " +
+          "'a_slot' and 'aSlot' from 'test' schema",
+        "Non-unique name 'aSubset' (renamed internally to 'a_subset') used for subsets " +
+          "'a_subset' and 'aSubset' from 'test' schema",
+      ).foreach(msg should include(_))
+    }
+
+    "fail for slots of a class with the same base name, once for all its subclasses" in {
+      val sv = load(s"""$schemaShared
+           |prefixes:
+           |  linkml: https://w3id.org/linkml/
+           |imports:
+           |  linkml:types
+           |classes:
+           |  Parent:
+           |    attributes:
+           |      some_slot:
+           |  Child:
+           |    is_a: Parent
+           |    attributes:
+           |      someSlot:
+           |  GrandChild:
+           |    is_a: Child
+           |""".stripMargin)
+
+      val clashes = SchemaValidator(using sv).validationProblems.collect { case n: NonUniqueName =>
+        n.infer().message.get
+      }
+      clashes shouldBe Seq(
+        "Non-unique name 'some_slot' (renamed internally to 'some_slot') used for slots " +
+          "'someSlot' and 'some_slot' of class 'Child'",
+      )
+    }
+
+    "fail for permissible values of an enum with the same base name" in {
+      val msg = validationFailure(load(s"""$schemaShared
+           |prefixes:
+           |  linkml: https://w3id.org/linkml/
+           |imports:
+           |  linkml:types
+           |enums:
+           |  Op:
+           |    permissible_values:
+           |      a-b:
+           |      a_b:
+           |      In Progress:
+           |      in_progress:
+           |      "+":
+           |      "-":
+           |""".stripMargin))
+
+      msg should include(
+        "Non-unique name 'a_b' (renamed internally to 'a_b') used for permissible values " +
+          "'a-b' and 'a_b' of enum 'Op'",
+      )
+      msg should include(
+        "Non-unique name 'in_progress' (renamed internally to 'in_progress') used for " +
+          "permissible values 'In Progress' and 'in_progress' of enum 'Op'",
+      )
+      // Names with no letters or digits are an `EmptyName` error already.
+      msg should not include "'+' and '-'"
     }
 
     "resolve unique_key_slots against the class's own attributes" in {

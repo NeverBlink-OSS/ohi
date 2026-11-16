@@ -154,6 +154,24 @@ class OwlImporterSpec extends AnyWordSpec, Matchers, OwlFixtures {
       result.schema.enums.keySet shouldBe Set("Audience")
       result.schema.classes("UseCase").disjointWith shouldBe empty
     }
+
+    "number a permissible value whose base name is the same as another value's" in {
+      // As in D3FEND, with `Reference_..._CymmetriaInc` and `Reference_..._Cymmetria_Inc`.
+      val result = importing(
+        """:UseCase a owl:Class ;
+          |    rdfs:subClassOf [ a owl:Restriction ;
+          |        owl:onProperty :hasVendor ; owl:someValuesFrom :Vendor ] .
+          |:Vendor a owl:Class .
+          |:CymmetriaInc a :Vendor, owl:NamedIndividual .
+          |:Cymmetria_Inc a :Vendor, owl:NamedIndividual .
+          |:hasVendor a owl:ObjectProperty .""",
+      )
+      val values = result.schema.enums("Vendor").permissibleValues
+      values.keys.toSeq shouldBe Seq("CymmetriaInc", "Cymmetria_Inc_2")
+      values("Cymmetria_Inc_2").meaning.map(_.original) shouldBe
+        Some("https://example.org/test/Cymmetria_Inc")
+      result.warnings.mkString should include("is the permissible value 'Cymmetria_Inc_2'")
+    }
   }
 
   "importing a datatype" should {
