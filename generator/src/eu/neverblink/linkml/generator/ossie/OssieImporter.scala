@@ -2,6 +2,7 @@ package eu.neverblink.linkml.generator.ossie
 
 import eu.neverblink.linkml.generator.options.{ImportResult, OssieImporterOptions}
 import eu.neverblink.linkml.generator.{ImportWarnings, SchemaImporter}
+import eu.neverblink.linkml.generator.importwarnings.*
 import eu.neverblink.linkml.generator.ossie.expression.*
 import eu.neverblink.linkml.metamodel.*
 import eu.neverblink.linkml.runtime.{
@@ -73,8 +74,13 @@ class OssieImporter extends SchemaImporter[OssieImporterOptions] {
 
 object OssieImporter {
 
-  /** `warnings` has one line per kind of thing that could not be imported. */
-  final case class Result(schema: SchemaDefinition, warnings: Seq[String])
+  /** The schema, and a report of what could not be imported.
+    *
+    * `warnings` has one line per kind of thing that could not be imported.
+    */
+  final case class Result(schema: SchemaDefinition, report: ImportReport) {
+    def warnings: Seq[String] = ImportWarnings.lines(report)
+  }
 
   /** The LinkML type behind each of Ossie's built-in value types. */
   private val linkmlTypes: Map[String, String] = Map(
@@ -186,17 +192,17 @@ object OssieImporter {
     /** The namespace of the schema's elements that have no `iri`. */
     private lazy val namespace: String = SchemaCodec.defaultNamespace(schemaId, None, Map.empty)
 
-    def result: Result = Result(schema, warnings.lines)
+    def result: Result = Result(schema, warnings.report)
 
     private def schema: SchemaDefinition = {
-      ontology.requires.foreach(e => warn("Ontology-wide expression, which is not read", e))
+      ontology.requires.foreach(e => warn(OntologyWideExpression(expression = e)))
       ontology.ontologyMappings.foreach { m =>
         val name = m match {
           case Node.MappingNode(entries, _) =>
             entries.collectFirst { case (Node.ScalarNode("name", _), Node.ScalarNode(n, _)) => n }
           case _ => None
         }
-        warn("Ontology mapping, which is not read", name.getOrElse("(no name)"))
+        warn(OntologyMapping(mappingName = name.getOrElse("(no name)")))
       }
       val classes = entityTypes.map(classOf)
       // Only a range can refer to Any, and the class is declared only when one does.
@@ -254,8 +260,7 @@ object OssieImporter {
       val unknownKeys = concept.identifyBy.filterNot(n => declared.contains(n) || inherited(n))
       if (unknownKeys.nonEmpty)
         warn(
-          "Identifier made of relationships the concept does not have",
-          s"${concept.concept}: ${concept.identifyBy.mkString(", ")}",
+          UnknownIdentifierRelationships(concept = concept.concept, identifyBy = concept.identifyBy),
         )
       val identifier = concept.identifyBy match {
         case Seq(only) if declared.get(only).exists(canIdentify) => Some(only)
@@ -331,7 +336,7 @@ object OssieImporter {
       // TODO: consider synthesizing a LinkML class for the relationship and using it as the range.
       val role = relationship.roles.headOption
       relationship.roles.drop(1).foreach { r =>
-        warn("Role after the first, as a slot has only one range", s"$owner: ${r.ref}")
+        warn(ExtraRole(owner = owner, role = r.ref))
       }
       notRead(owner, relationship.derivedBy)
       val constraints = constraintsOf(
@@ -380,10 +385,7 @@ object OssieImporter {
       val constraints = constraintsOf(concept.concept, Ref(concept.concept), concept.requires)
       warnAboutValueType(concept)
       concept.extendsConcepts.drop(1).foreach { p =>
-        warn(
-          "Parent of a value type after the first, as a type has only one",
-          s"${concept.concept}: $p",
-        )
+        warn(ExtraValueTypeParent(concept = concept.concept, parent = p))
       }
       // There is no LinkML type for Ossie's Any. We write `base: Any`, which LinkML does not
       // recognize, and the Ossie generator turns an unrecognized base back into Any.
@@ -409,7 +411,7 @@ object OssieImporter {
           val element = elementNames.getOrElse(concept, concept)
           if typeNames.contains(element) then element
           else {
-            warn("Value type based on something other than a value type, read as String", concept)
+            warn(NonValueTypeBase(concept = concept))
             "string"
           }
         },
@@ -424,13 +426,10 @@ object OssieImporter {
     private def warnAboutValueType(concept: Concept): Unit = {
       notRead(concept.concept, concept.derivedBy)
       concept.relationships.foreach { r =>
-        warn("Relationship of a value type", s"${concept.concept}.${r.name}")
+        warn(ValueTypeRelationship(concept = concept.concept, relationship = r.name))
       }
       if (concept.identifyBy.nonEmpty)
-        warn(
-          "Identifier of a value type",
-          s"${concept.concept}: ${concept.identifyBy.mkString(", ")}",
-        )
+        warn(ValueTypeIdentifier(concept = concept.concept, identifyBy = concept.identifyBy))
     }
 
     /** The values a value type allows, if it is the enumerated kind. */
@@ -454,7 +453,7 @@ object OssieImporter {
     ): Seq[(expression.Expression, String)] =
       texts.flatMap { text =>
         val parsed = Expression.parse(text)
-        if parsed.isEmpty then warn("Expression that cannot be read", s"$owner: $text")
+        if parsed.isEmpty then warn(UnreadableExpression(owner = owner, expression = text))
         parsed.map(_ -> text)
       }
 
@@ -475,10 +474,10 @@ object OssieImporter {
     }
 
     private def cannotExpress(owner: String, text: String): Unit =
-      warn("Expression that LinkML cannot express", s"$owner: $text")
+      warn(UnsupportedExpression(owner = owner, expression = text))
 
     private def notRead(owner: String, derivedBy: Seq[String]): Unit =
-      derivedBy.foreach(e => warn("Derivation (`derived_by`), which is not read", s"$owner: $e"))
+      derivedBy.foreach(e => warn(Derivation(owner = owner, expression = e)))
   }
 
   private def byName[T <: Element](elements: Seq[T]): Map[String, T] =

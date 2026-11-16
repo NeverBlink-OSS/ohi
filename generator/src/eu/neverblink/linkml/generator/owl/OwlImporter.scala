@@ -9,6 +9,7 @@ import eu.neverblink.linkml.generator.options.{
   SomeValuesFrom,
 }
 import eu.neverblink.linkml.generator.{ImportWarnings, SchemaImporter}
+import eu.neverblink.linkml.generator.importwarnings.*
 import eu.neverblink.linkml.generator.owl.Axiom.*
 import eu.neverblink.linkml.generator.owl.ClassExpr.Bound
 import eu.neverblink.linkml.generator.owl.OwlAnnotationReader.Documentation
@@ -134,8 +135,13 @@ class OwlImporter(schemas: Importer = FileSystemImporter, base: String = "")
 
 object OwlImporter {
 
-  /** `warnings` has one line per kind of thing that could not be imported. */
-  final case class Result(schema: SchemaDefinition, warnings: Seq[String])
+  /** The schema, and a report of what could not be imported.
+    *
+    * `warnings` has one line per kind of thing that could not be imported.
+    */
+  final case class Result(schema: SchemaDefinition, report: ImportReport) {
+    def warnings: Seq[String] = ImportWarnings.lines(report)
+  }
 
   /** Properties in these namespaces are documentation, even when the ontology declares them. */
   private val metadataVocabularies: Set[String] = Set(
@@ -329,7 +335,7 @@ object OwlImporter {
 
     private val warnings = ImportWarnings()
 
-    private def warn(kind: String, detail: String): Unit = warnings.warn(kind, detail)
+    import warnings.warn
 
     private val index = OwlAxiomIndex(ontology.axioms)
     import index.*
@@ -751,7 +757,7 @@ object OwlImporter {
       ontology.imports.foreach { i =>
         val ref = importMap.getOrElse(i, null)
         if (ref ne null) refs.addOne(ref)
-        else warn("Import that is not mapped to a LinkML schema (see `imports` in the config)", i)
+        else warn(UnmappedImport(importIri = i))
       }
       val sorted = refs.toArray
       java.util.Arrays.sort(sorted, Ordering.String)
@@ -803,10 +809,7 @@ object OwlImporter {
     importRefs.foreach { ref =>
       val reason = addTermsOf(ref)
       if (reason ne null) {
-        warn(
-          "Imported LinkML schema that could not be read, so its terms are copied in",
-          s"$ref: $reason",
-        )
+        warn(UnreadableImportedSchema(schemaRef = ref, reason = reason))
       }
     }
 
@@ -948,14 +951,14 @@ object OwlImporter {
               if (r.values.forall(v => literalType(v) == first)) typeNameFor(first) else "string"
             valuePattern = alternationOf(r.values)
           case other =>
-            warn("Datatype definition that LinkML cannot express", s"$iri: ${render(other)}")
+            warn(UnsupportedDatatypeDefinition(datatype = iri, definition = render(other)))
             typeof = "string"
         }
       }
       val seen = mutable.HashSet.empty[String]
       facets.foreach { f =>
         if (seen.add(f._1) && !typeFacets(f._1)) {
-          warn("Datatype facet that LinkML cannot express", s"$name: ${short(f._1)}")
+          warn(UnsupportedDatatypeFacet(datatype = name, facet = short(f._1)))
         }
       }
       val minimum = facetValue(facets, XmlSchema.minInclusive)
@@ -1076,18 +1079,10 @@ object OwlImporter {
           } else {
             range = slotRange(e.range)
             if (range ne null) take(e.axiom)
-            else warn("Range that LinkML cannot express", s"${names(p)}: ${render(e.range)}")
+            else warn(UnsupportedRange(property = names(p), rangeExpression = render(e.range)))
           }
         } else if (stated.length > 1) {
-          val all = new java.lang.StringBuilder
-          stated.foreach { e =>
-            if (all.length > 0) all.append(", ")
-            all.append(render(e.range))
-          }
-          warn(
-            "Several ranges (all of them apply), of which only the first is kept",
-            s"${names(p)}: $all",
-          )
+          warn(SeveralRanges(property = names(p), ranges = stated.map(e => render(e.range)).toSeq))
           take(stated.head.axiom)
           range = slotRange(stated.head.range)
         }
@@ -1188,16 +1183,13 @@ object OwlImporter {
         val known = propertyKinds.contains(e.sup)
         take(e.axiom)
         if (known) parents.addOne(e.sup)
-        else warn("Subproperty of an annotation or built-in property", s"$name: ${short(e.sup)}")
+        else warn(UnsupportedSuperproperty(property = name, superproperty = short(e.sup)))
       }
       val chosen = chooseParents(p, parents)
       // LinkML slots inherit `multivalued`, and `false` cannot override it.
       val inheritsMultivalued = config.multivalued && parents.exists(sup => !isFunctional(sup))
       if (inheritsMultivalued && has(PropertyCharacteristic.Functional)) {
-        warn(
-          "Functional subproperty of a property that is not, left multivalued as LinkML slots inherit it",
-          name,
-        )
+        warn(FunctionalSubproperty(property = name))
       }
       // `domain` takes one class. With a union or several domains, the slot is added to each
       // class instead (see `slotsByDomain`).
@@ -1237,7 +1229,7 @@ object OwlImporter {
         }
       }
       if (has(PropertyCharacteristic.InverseFunctional)) {
-        warn("Inverse functional property, which LinkML cannot say", name)
+        warn(UnsupportedInverseFunctionalProperty(property = name))
       }
       entriesOf(chains, p).foreach { a =>
         take(a)
@@ -1246,7 +1238,7 @@ object OwlImporter {
           if (chain.length > 0) chain.append(" o ")
           chain.append(render(ClassExpr.Named(r.iri)))
         }
-        warn("Property chain, which LinkML cannot say", s"$name: $chain")
+        warn(UnsupportedPropertyChain(property = name, chain = chain.toString))
       }
       val equivalent = mutable.ArrayBuffer.empty[String]
       entriesOf(equivalentProperties, p).foreach { e =>
@@ -1444,7 +1436,7 @@ object OwlImporter {
         val parents = mutable.ArrayBuffer.empty[String]
         raw(c).foreach { p =>
           if (reaches(p, c)) {
-            warn("Subclass cycle, broken by leaving out a parent", s"${names(c)} -> ${names(p)}")
+            warn(SubclassCycle(className = names(c), parent = names(p)))
           } else parents.addOne(p)
         }
         out.update(c, parents)
@@ -1496,10 +1488,7 @@ object OwlImporter {
               take(e.axiom)
               if (!wellKnownClasses(n.iri)) {
                 if (stated.length > 1) {
-                  warn(
-                    "Several domains (all of them apply), attached to each",
-                    s"${names(p)}: ${names.getOrElse(n.iri, n.iri)}",
-                  )
+                  warn(SeveralDomains(property = names(p), domain = names.getOrElse(n.iri, n.iri)))
                 }
                 attach(n.iri, p)
               }
@@ -1507,7 +1496,7 @@ object OwlImporter {
               take(e.axiom)
               u.operands.foreach(o => attach(o.asInstanceOf[ClassExpr.Named].iri, p))
             case other =>
-              warn("Domain that LinkML cannot express", s"${names(p)}: ${render(other)}")
+              warn(UnsupportedDomain(property = names(p), domainExpression = render(other)))
           }
         }
       }
@@ -1536,9 +1525,9 @@ object OwlImporter {
       val exact = mutable.ArrayBuffer.empty[UriOrCurie]
       val disjoint = mutable.ArrayBuffer.empty[String]
 
-      def unsupported(kind: String, expr: ClassExpr): Unit = {
+      def unsupported(expr: ClassExpr, warning: String => ImportWarning): Unit = {
         val text = render(expr)
-        warn(kind, s"$name: $text")
+        warn(warning(text))
         notes.addOne(s"OWL: $text")
       }
 
@@ -1614,7 +1603,7 @@ object OwlImporter {
                     pattern = r.pattern,
                   ),
               )
-            } else unsupported("Restriction that LinkML cannot express", expr)
+            } else unsupported(expr, e => UnsupportedRestriction(className = name, expression = e))
           }
         case e: ClassExpr.SomeValuesFrom
             if !e.property.inverse && propertyKinds.contains(e.property.iri) =>
@@ -1627,7 +1616,7 @@ object OwlImporter {
               restrict(p, _.copy(required = true, range = r.range.map(Reference(_))))
             } else if ((r ne null) && style == SomeValuesFrom.Required && r.range.isDefined) {
               restrict(p, withMember(_, r.range))
-            } else unsupported("Restriction that LinkML cannot express", expr)
+            } else unsupported(expr, e => UnsupportedRestriction(className = name, expression = e))
           }
         // The slot is single-valued already, see `singleTexts`
         case _ if plainTextLimit(expr) ne null =>
@@ -1642,7 +1631,11 @@ object OwlImporter {
               restrict(p, _.copy(range = r.range.map(Reference(_))))
             } else if ((r ne null) && e.bound == Bound.Min && e.n == 1 && r.range.isDefined) {
               restrict(p, withMember(_, r.range))
-            } else unsupported("Qualified cardinality that LinkML cannot express", expr)
+            } else
+              unsupported(
+                expr,
+                e => UnsupportedQualifiedCardinality(className = name, expression = e),
+              )
           } else cardinality(p, e.bound, e.n, singleValuedSlot(p), restrict)
         case e: ClassExpr.HasValue
             if !e.property.inverse && propertyKinds.contains(e.property.iri) =>
@@ -1656,7 +1649,8 @@ object OwlImporter {
           }
           restrict(p, _.copy(equalsString = Some(text)))
         case e: ClassExpr.UnionOf if isUnionOfChildren(e.operands) => isAbstract = true
-        case other => unsupported("Superclass that LinkML cannot express", other)
+        case other =>
+          unsupported(other, e => UnsupportedSuperclass(className = name, expression = e))
       }
 
       entriesOf(subClassOf, c).foreach { e =>
@@ -1674,10 +1668,7 @@ object OwlImporter {
           case u: ClassExpr.UnionOf if isUnionOfChildren(u.operands) => isAbstract = true
           case expr =>
             // Keep it as a superclass. LinkML can't say that it is also a sufficient condition.
-            warn(
-              "Class defined by an equivalence, kept as superclasses only",
-              s"$name: ${render(expr)}",
-            )
+            warn(EquivalentClassDefinition(className = name, expression = render(expr)))
             superclass(expr)
         }
       }
@@ -2106,7 +2097,7 @@ object OwlImporter {
       java.util.Arrays.sort(importedIris, Ordering.String)
       importedIris.foreach { iri =>
         if (saysSomethingAbout(iri)) {
-          warn("Statement about a term of an imported schema, which keeps its own", short(iri))
+          warn(StatementAboutImportedTerm(term = short(iri)))
         }
       }
       val importedNames = mutable.HashSet.empty[String]
@@ -2158,12 +2149,12 @@ object OwlImporter {
             } =>
         case a: ClassAssertion =>
           if (!enumIndividuals(a.individual)) {
-            warn("Individual, which is not part of an enum", s"${a.individual}: ${render(a.cls)}")
+            warn(IndividualOutsideEnum(individual = a.individual, classExpression = render(a.cls)))
           }
         case a: PropertyAssertion =>
-          warn("Property value of an individual", s"${a.individual} ${a.property}")
-        case a: SubClassOf => warn("Class axiom that LinkML cannot express", render(a))
-        case a => warn(s"${a.productPrefix} axiom that LinkML cannot express", render(a))
+          warn(IndividualPropertyValue(individual = a.individual, property = a.property))
+        case a: SubClassOf => warn(UnsupportedClassAxiom(axiom = render(a)))
+        case a => warn(UnsupportedAxiom(axiomType = a.productPrefix, axiom = render(a)))
       }
       val unparsedCounts = mutable.HashMap.empty[String, Int]
       unparsed.foreach { t =>
@@ -2173,7 +2164,7 @@ object OwlImporter {
       val unparsedProperties = unparsedCounts.keysIterator.toArray
       java.util.Arrays.sort(unparsedProperties, Ordering.String)
       unparsedProperties.foreach { p =>
-        warn("RDF that is not OWL", s"${unparsedCounts(p)} triples with $p")
+        warn(NonOwlRdf(predicate = p, tripleCount = unparsedCounts(p)))
       }
 
       if (!UriCurieValidator.isValidUri(schemaId))
@@ -2229,7 +2220,7 @@ object OwlImporter {
             s"The namespace <$ns> of the prefix '${p.prefixPrefix}' isn't a valid URI",
           )
       }
-      Result(schema.copy(prefixes = prefixes), warnings.lines)
+      Result(schema.copy(prefixes = prefixes), warnings.report)
     }
 
     /** Adds the prefixes of the CURIEs anywhere in a value, and of the URIs that are written as

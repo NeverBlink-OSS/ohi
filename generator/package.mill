@@ -15,6 +15,7 @@ object `package` extends Module, NativeOptional {
       build.schemaview.jvm,
       build.rdf.jvm,
       build.generator.stats.jvm,
+      build.generator.importwarnings.jvm,
       build.generator.options.jvm,
     )
 
@@ -141,6 +142,7 @@ object `package` extends Module, NativeOptional {
       build.schemaview.js,
       build.rdf.js,
       build.generator.stats.js,
+      build.generator.importwarnings.js,
       build.generator.options.js,
     )
 
@@ -209,6 +211,7 @@ object `package` extends Module, NativeOptional {
       build.schemaview.native,
       build.rdf.native,
       build.generator.stats.native,
+      build.generator.importwarnings.native,
       build.generator.options.native,
     )
 

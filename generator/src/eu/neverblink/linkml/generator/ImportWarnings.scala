@@ -2,45 +2,47 @@ package eu.neverblink.linkml.generator
 
 import _root_.scala.collection.mutable
 
-/** What an importer could handle during the import process. Warnings are grouped by kind to keep
-  * the report short.
-  */
+import eu.neverblink.linkml.generator.importwarnings.{ImportReport, ImportWarning}
+
+/** What an importer could not handle during the import process, in the order it was found. */
 final class ImportWarnings {
 
-  /** Warning details by kind. */
-  private val byKind = mutable.HashMap.empty[String, mutable.ArrayBuffer[String]]
+  private val warnings = mutable.ArrayBuffer.empty[ImportWarning]
 
-  /** The kinds of warnings, in the order of their first warning. */
-  private val kinds = mutable.ArrayBuffer.empty[String]
+  /** Adds a warning, with its `kind` and `detail` filled in. */
+  def warn(warning: ImportWarning): Unit = warnings.addOne(warning.infer())
 
-  def warn(kind: String, detail: String): Unit = {
-    var details = byKind.getOrElse(kind, null)
-    if (details eq null) {
-      details = mutable.ArrayBuffer.empty
-      byKind.update(kind, details)
-      kinds.addOne(kind)
+  /** The warnings so far, as a report. */
+  def report: ImportReport = ImportReport(warnings.toVector)
+}
+
+object ImportWarnings {
+
+  /** How many details of each kind [[lines]] shows. */
+  private val shownDetails = 5
+
+  /** One line per kind, in the order of each kind's first warning, with the first few distinct
+    * details. Grouping by kind keeps the text short.
+    *
+    * The warnings must be inferred
+    */
+  def lines(report: ImportReport): Seq[String] = {
+    val byKind = mutable.LinkedHashMap.empty[String, mutable.LinkedHashSet[String]]
+    report.warnings.foreach { w =>
+      byKind.getOrElseUpdate(w.kind.get, mutable.LinkedHashSet.empty).addOne(w.detail.get)
     }
-    details.addOne(detail)
-  }
-
-  /** One line per kind, with the first few details. */
-  def lines: Seq[String] = {
-    val report = Vector.newBuilder[String]
-    kinds.foreach { kind =>
-      val details = mutable.ArrayBuffer.empty[String]
-      val seen = mutable.HashSet.empty[String]
-      byKind(kind).foreach(d => if (seen.add(d)) details.addOne(d))
-      val line = new java.lang.StringBuilder(kind).append(" (").append(details.length)
-        .append("): ")
+    byKind.iterator.map { (kind, details) =>
+      val line = new java.lang.StringBuilder(kind).append(" (").append(details.size).append("): ")
       var i = 0
-      while (i < details.length && i < 5) {
+      details.iterator.take(shownDetails).foreach { d =>
         if (i > 0) line.append("; ")
-        line.append(details(i))
+        line.append(d)
         i += 1
       }
-      if (details.length > 5) line.append("; and ").append(details.length - 5).append(" more")
-      report.addOne(line.toString)
-    }
-    report.result()
+      if (details.size > shownDetails) {
+        line.append("; and ").append(details.size - shownDetails).append(" more")
+      }
+      line.toString
+    }.toVector
   }
 }
