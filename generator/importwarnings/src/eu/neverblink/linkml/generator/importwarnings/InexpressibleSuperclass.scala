@@ -5,30 +5,31 @@ package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.*
 
-/** The range of a property is something that LinkML cannot express.
+/** A superclass expression that LinkML cannot express, such as an enumeration of individuals, or a
+  * restriction on an inverse property or on a property that isn't a slot. It is kept as a note.
   *
+  * @param className
+  *   Name of the class.
   * @param detail
   *   Which element the warning is about.
+  * @param expression
+  *   The expression, as written or rendered.
   * @param kind
   *   Short description of the kind of warning. Warnings are grouped by it.
-  * @param property
-  *   Name of the property, or the slot it becomes.
-  * @param rangeExpression
-  *   The range, rendered as text.
   * @param warningType
   *   The type of the warning: name of the concrete warning class (e.g. `UnmappedImport`).
   * @see
   *   From schema: https://linkml.ohi.dev/model/import-warnings
   */
-final case class UnsupportedRange(
+final case class InexpressibleSuperclass(
+    @named("class_name")
+    className: String,
     detail: Option[String] = None,
+    expression: String,
     kind: Option[String] = None,
-    property: String,
-    @named("range_expression")
-    rangeExpression: String,
     @named("warning_type")
     @serializeDefault
-    warningType: String = "UnsupportedRange",
+    warningType: String = "InexpressibleSuperclass",
 ) extends ImportWarning {
 
   /** Fill in the slots that have an `equals_expression` with their computed values, and check that
@@ -38,9 +39,9 @@ final case class UnsupportedRange(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  override def infer(): UnsupportedRange =
+  override def infer(): InexpressibleSuperclass =
     copy(
-      detail = inferOptional("detail", detail, property + ": " + rangeExpression),
-      kind = inferOptional("kind", kind, "Range that LinkML cannot express"),
+      detail = inferOptional("detail", detail, className + ": " + expression),
+      kind = inferOptional("kind", kind, "Superclass inexpressible in LinkML"),
     )
 }

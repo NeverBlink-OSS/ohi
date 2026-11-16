@@ -176,7 +176,7 @@ Inventory:  N classes, M properties, K enums, J constraints
 Produced:   N classes, M attributes, K enums
 Method:     ohi linkml from owl --list-not-imported (or: by hand)
 Dropped:
-  - property chain hasParent o hasParent → hasGrandparent — LinkML cannot express it
+  - property chain hasParent o hasParent → hasGrandparent — the importer doesn't read property chains yet (LinkML: `path_rule`)
   - sh:or on Baz.qux — ohi LinkML supports any_of in SHACL output only, and its ranges in OWL
 Fixed after import:
   - Animal as tree_root; has_parent range Any → Animal

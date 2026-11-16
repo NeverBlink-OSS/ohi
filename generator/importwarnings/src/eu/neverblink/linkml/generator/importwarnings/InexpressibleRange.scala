@@ -5,26 +5,31 @@ package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.*
 
-/** A class axiom that LinkML cannot express.
+/** The range of a property is something that LinkML cannot express, such as a data range that names
+  * a class, a restriction on an inverse property, or a facet LinkML has no metaslot for.
   *
-  * @param axiom
-  *   The axiom, rendered as text.
   * @param detail
   *   Which element the warning is about.
   * @param kind
   *   Short description of the kind of warning. Warnings are grouped by it.
+  * @param property
+  *   Name of the property, or the slot it becomes.
+  * @param rangeExpression
+  *   The range, rendered as text.
   * @param warningType
   *   The type of the warning: name of the concrete warning class (e.g. `UnmappedImport`).
   * @see
   *   From schema: https://linkml.ohi.dev/model/import-warnings
   */
-final case class UnsupportedClassAxiom(
-    axiom: String,
+final case class InexpressibleRange(
     detail: Option[String] = None,
     kind: Option[String] = None,
+    property: String,
+    @named("range_expression")
+    rangeExpression: String,
     @named("warning_type")
     @serializeDefault
-    warningType: String = "UnsupportedClassAxiom",
+    warningType: String = "InexpressibleRange",
 ) extends ImportWarning {
 
   /** Fill in the slots that have an `equals_expression` with their computed values, and check that
@@ -34,9 +39,9 @@ final case class UnsupportedClassAxiom(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  override def infer(): UnsupportedClassAxiom =
+  override def infer(): InexpressibleRange =
     copy(
-      detail = inferOptional("detail", detail, axiom),
-      kind = inferOptional("kind", kind, "Class axiom that LinkML cannot express"),
+      detail = inferOptional("detail", detail, property + ": " + rangeExpression),
+      kind = inferOptional("kind", kind, "Range inexpressible in LinkML"),
     )
 }

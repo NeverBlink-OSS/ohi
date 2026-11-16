@@ -5,14 +5,18 @@ package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.*
 
-/** A facet of a datatype restriction that LinkML cannot express.
+/** A datatype definition that LinkML can express, such as a union, intersection or complement of
+  * data ranges, but the importer doesn't read yet. The type is read as a string.
   *
   * @param datatype
   *   Name or IRI of the datatype.
+  * @param definition
+  *   The data range, rendered as text.
   * @param detail
   *   Which element the warning is about.
-  * @param facet
-  *   The facet, such as `xsd:length`.
+  * @param feature
+  *   The LinkML metaslots that could express it, in Markdown code, such as "`all_of`". The importer
+  *   doesn't write them yet.
   * @param kind
   *   Short description of the kind of warning. Warnings are grouped by it.
   * @param warningType
@@ -20,14 +24,15 @@ import eu.neverblink.linkml.runtime.*
   * @see
   *   From schema: https://linkml.ohi.dev/model/import-warnings
   */
-final case class UnsupportedDatatypeFacet(
+final case class UnimplementedDatatypeDefinition(
     datatype: String,
+    definition: String,
     detail: Option[String] = None,
-    facet: String,
+    feature: String,
     kind: Option[String] = None,
     @named("warning_type")
     @serializeDefault
-    warningType: String = "UnsupportedDatatypeFacet",
+    warningType: String = "UnimplementedDatatypeDefinition",
 ) extends ImportWarning {
 
   /** Fill in the slots that have an `equals_expression` with their computed values, and check that
@@ -37,9 +42,14 @@ final case class UnsupportedDatatypeFacet(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  override def infer(): UnsupportedDatatypeFacet =
+  override def infer(): UnimplementedDatatypeDefinition =
     copy(
-      detail = inferOptional("detail", detail, datatype + ": " + facet),
-      kind = inferOptional("kind", kind, "Datatype facet that LinkML cannot express"),
+      detail = inferOptional(
+        "detail",
+        detail,
+        datatype + ": " + definition + " (LinkML: " + feature + ")",
+      ),
+      kind =
+        inferOptional("kind", kind, "Datatype definition that is not supported by the importer yet"),
     )
 }

@@ -5,8 +5,9 @@ package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.*
 
-/** A class is defined by an equivalence. LinkML can't say that it is also a sufficient condition,
-  * so it is kept as superclasses only.
+/** A class is defined by an equivalence. LinkML can say that the definition is also a sufficient
+  * condition with `classification_rules`, but the importer doesn't write them yet, so it is kept as
+  * superclasses only.
   *
   * @param className
   *   Name of the class.
@@ -42,7 +43,10 @@ final case class EquivalentClassDefinition(
   override def infer(): EquivalentClassDefinition =
     copy(
       detail = inferOptional("detail", detail, className + ": " + expression),
-      kind =
-        inferOptional("kind", kind, "Class defined by an equivalence, kept as superclasses only"),
+      kind = inferOptional(
+        "kind",
+        kind,
+        "Class defined by an equivalence, kept as superclasses only, as `classification_rules` are not supported by the importer yet",
+      ),
     )
 }

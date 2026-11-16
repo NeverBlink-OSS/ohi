@@ -5,14 +5,15 @@ package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.*
 
-/** A qualified cardinality on a class that LinkML cannot express. It is kept as a note.
+/** A facet of a datatype restriction that LinkML cannot express, such as `xsd:minExclusive` (LinkML
+  * bounds are inclusive) or `xsd:totalDigits`.
   *
-  * @param className
-  *   Name of the class.
+  * @param datatype
+  *   Name or IRI of the datatype.
   * @param detail
   *   Which element the warning is about.
-  * @param expression
-  *   The expression, as written or rendered.
+  * @param facet
+  *   The facet, such as `xsd:totalDigits`.
   * @param kind
   *   Short description of the kind of warning. Warnings are grouped by it.
   * @param warningType
@@ -20,15 +21,14 @@ import eu.neverblink.linkml.runtime.*
   * @see
   *   From schema: https://linkml.ohi.dev/model/import-warnings
   */
-final case class UnsupportedQualifiedCardinality(
-    @named("class_name")
-    className: String,
+final case class InexpressibleDatatypeFacet(
+    datatype: String,
     detail: Option[String] = None,
-    expression: String,
+    facet: String,
     kind: Option[String] = None,
     @named("warning_type")
     @serializeDefault
-    warningType: String = "UnsupportedQualifiedCardinality",
+    warningType: String = "InexpressibleDatatypeFacet",
 ) extends ImportWarning {
 
   /** Fill in the slots that have an `equals_expression` with their computed values, and check that
@@ -38,9 +38,9 @@ final case class UnsupportedQualifiedCardinality(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  override def infer(): UnsupportedQualifiedCardinality =
+  override def infer(): InexpressibleDatatypeFacet =
     copy(
-      detail = inferOptional("detail", detail, className + ": " + expression),
-      kind = inferOptional("kind", kind, "Qualified cardinality that LinkML cannot express"),
+      detail = inferOptional("detail", detail, datatype + ": " + facet),
+      kind = inferOptional("kind", kind, "Datatype facet inexpressible in LinkML"),
     )
 }

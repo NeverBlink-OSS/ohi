@@ -44,7 +44,7 @@ final case class SeveralRanges(
       kind = inferOptional(
         "kind",
         kind,
-        "Several ranges (all of them apply), of which only the first is kept",
+        "Several ranges (all of them apply), of which only the first is kept, as `all_of` ranges are not supported by the importer yet",
       ),
     )
 }

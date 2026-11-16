@@ -5,7 +5,9 @@ package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.*
 
-/** An expression that applies to the whole ontology (`requires`), which is not read.
+/** An expression that applies to the whole ontology (`requires`). The expressions the importer can
+  * parse say something about one relationship, which LinkML can express on its slot, but the
+  * importer doesn't read them yet.
   *
   * @param detail
   *   Which element the warning is about.
@@ -37,6 +39,10 @@ final case class OntologyWideExpression(
   override def infer(): OntologyWideExpression =
     copy(
       detail = inferOptional("detail", detail, expression),
-      kind = inferOptional("kind", kind, "Ontology-wide expression, which is not read"),
+      kind = inferOptional(
+        "kind",
+        kind,
+        "Ontology-wide expression that is not supported by the importer yet",
+      ),
     )
 }

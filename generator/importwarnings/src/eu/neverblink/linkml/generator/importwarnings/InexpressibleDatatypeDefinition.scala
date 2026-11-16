@@ -5,12 +5,13 @@ package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.*
 
-/** An axiom of another type that LinkML cannot express.
+/** A datatype definition that LinkML cannot express, such as an empty `owl:oneOf`. The type is read
+  * as a string.
   *
-  * @param axiom
-  *   The axiom, rendered as text.
-  * @param axiomType
-  *   The type of the axiom, such as `DisjointClasses`.
+  * @param datatype
+  *   Name or IRI of the datatype.
+  * @param definition
+  *   The data range, rendered as text.
   * @param detail
   *   Which element the warning is about.
   * @param kind
@@ -20,15 +21,14 @@ import eu.neverblink.linkml.runtime.*
   * @see
   *   From schema: https://linkml.ohi.dev/model/import-warnings
   */
-final case class UnsupportedAxiom(
-    axiom: String,
-    @named("axiom_type")
-    axiomType: String,
+final case class InexpressibleDatatypeDefinition(
+    datatype: String,
+    definition: String,
     detail: Option[String] = None,
     kind: Option[String] = None,
     @named("warning_type")
     @serializeDefault
-    warningType: String = "UnsupportedAxiom",
+    warningType: String = "InexpressibleDatatypeDefinition",
 ) extends ImportWarning {
 
   /** Fill in the slots that have an `equals_expression` with their computed values, and check that
@@ -38,9 +38,9 @@ final case class UnsupportedAxiom(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  override def infer(): UnsupportedAxiom =
+  override def infer(): InexpressibleDatatypeDefinition =
     copy(
-      detail = inferOptional("detail", detail, axiom),
-      kind = inferOptional("kind", kind, axiomType + " axiom that LinkML cannot express"),
+      detail = inferOptional("detail", detail, datatype + ": " + definition),
+      kind = inferOptional("kind", kind, "Datatype definition inexpressible in LinkML"),
     )
 }

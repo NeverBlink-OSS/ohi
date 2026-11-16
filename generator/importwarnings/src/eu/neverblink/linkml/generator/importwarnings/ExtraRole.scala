@@ -6,6 +6,8 @@ package eu.neverblink.linkml.generator.importwarnings
 import eu.neverblink.linkml.runtime.*
 
 /** A relationship has more than one role. A slot has only one range, so only the first is read.
+  * LinkML could express it with a class for the relationship, but the importer doesn't write one
+  * yet.
   *
   * @param detail
   *   Which element the warning is about.
@@ -40,6 +42,10 @@ final case class ExtraRole(
   override def infer(): ExtraRole =
     copy(
       detail = inferOptional("detail", detail, owner + ": " + role),
-      kind = inferOptional("kind", kind, "Role after the first, as a slot has only one range"),
+      kind = inferOptional(
+        "kind",
+        kind,
+        "Role after the first, as relationships with several roles are not supported by the importer yet",
+      ),
     )
 }

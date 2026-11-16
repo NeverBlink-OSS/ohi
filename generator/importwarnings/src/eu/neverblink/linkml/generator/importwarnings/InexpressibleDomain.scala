@@ -5,29 +5,31 @@ package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.*
 
-/** An expression that LinkML cannot express.
+/** The domain of a property is a class expression other than a class or a union of classes. A
+  * LinkML slot can only be attached to named classes.
   *
   * @param detail
   *   Which element the warning is about.
-  * @param expression
-  *   The expression, as written or rendered.
+  * @param domainExpression
+  *   The domain, rendered as text.
   * @param kind
   *   Short description of the kind of warning. Warnings are grouped by it.
-  * @param owner
-  *   The concept or relationship that the expression belongs to.
+  * @param property
+  *   Name of the property, or the slot it becomes.
   * @param warningType
   *   The type of the warning: name of the concrete warning class (e.g. `UnmappedImport`).
   * @see
   *   From schema: https://linkml.ohi.dev/model/import-warnings
   */
-final case class UnsupportedExpression(
+final case class InexpressibleDomain(
     detail: Option[String] = None,
-    expression: String,
+    @named("domain_expression")
+    domainExpression: String,
     kind: Option[String] = None,
-    owner: String,
+    property: String,
     @named("warning_type")
     @serializeDefault
-    warningType: String = "UnsupportedExpression",
+    warningType: String = "InexpressibleDomain",
 ) extends ImportWarning {
 
   /** Fill in the slots that have an `equals_expression` with their computed values, and check that
@@ -37,9 +39,9 @@ final case class UnsupportedExpression(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  override def infer(): UnsupportedExpression =
+  override def infer(): InexpressibleDomain =
     copy(
-      detail = inferOptional("detail", detail, owner + ": " + expression),
-      kind = inferOptional("kind", kind, "Expression that LinkML cannot express"),
+      detail = inferOptional("detail", detail, property + ": " + domainExpression),
+      kind = inferOptional("kind", kind, "Domain inexpressible in LinkML"),
     )
 }

@@ -5,30 +5,34 @@ package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.*
 
-/** The domain of a property is something that LinkML cannot express.
+/** A facet of a datatype restriction that LinkML can express, such as `xsd:length`, but the
+  * importer doesn't read yet.
   *
+  * @param datatype
+  *   Name or IRI of the datatype.
   * @param detail
   *   Which element the warning is about.
-  * @param domainExpression
-  *   The domain, rendered as text.
+  * @param facet
+  *   The facet, such as `xsd:length`.
+  * @param feature
+  *   The LinkML metaslots that could express it, in Markdown code, such as "`all_of`". The importer
+  *   doesn't write them yet.
   * @param kind
   *   Short description of the kind of warning. Warnings are grouped by it.
-  * @param property
-  *   Name of the property, or the slot it becomes.
   * @param warningType
   *   The type of the warning: name of the concrete warning class (e.g. `UnmappedImport`).
   * @see
   *   From schema: https://linkml.ohi.dev/model/import-warnings
   */
-final case class UnsupportedDomain(
+final case class UnimplementedDatatypeFacet(
+    datatype: String,
     detail: Option[String] = None,
-    @named("domain_expression")
-    domainExpression: String,
+    facet: String,
+    feature: String,
     kind: Option[String] = None,
-    property: String,
     @named("warning_type")
     @serializeDefault
-    warningType: String = "UnsupportedDomain",
+    warningType: String = "UnimplementedDatatypeFacet",
 ) extends ImportWarning {
 
   /** Fill in the slots that have an `equals_expression` with their computed values, and check that
@@ -38,9 +42,10 @@ final case class UnsupportedDomain(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  override def infer(): UnsupportedDomain =
+  override def infer(): UnimplementedDatatypeFacet =
     copy(
-      detail = inferOptional("detail", detail, property + ": " + domainExpression),
-      kind = inferOptional("kind", kind, "Domain that LinkML cannot express"),
+      detail =
+        inferOptional("detail", detail, datatype + ": " + facet + " (LinkML: " + feature + ")"),
+      kind = inferOptional("kind", kind, "Datatype facet that is not supported by the importer yet"),
     )
 }

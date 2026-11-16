@@ -43,7 +43,7 @@ final case class ExtraValueTypeParent(
       kind = inferOptional(
         "kind",
         kind,
-        "Parent of a value type after the first, as a type has only one",
+        "Parent of a value type after the first, inexpressible in LinkML as a type has only one",
       ),
     )
 }

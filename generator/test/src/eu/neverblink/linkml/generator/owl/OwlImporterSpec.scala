@@ -105,7 +105,8 @@ class OwlImporterSpec extends AnyWordSpec, Matchers, OwlFixtures {
           |:manages a owl:ObjectProperty .""",
       )
       result.schema.classes("Manager").isA.map(_.value) shouldBe Some("Staff")
-      // LinkML cannot say that the conditions are also sufficient, so that half is reported.
+      // `classification_rules` could say that the conditions are also sufficient, but the
+      // importer doesn't write them yet, so that half is reported.
       result.warnings should have size 1
     }
 
@@ -221,6 +222,74 @@ class OwlImporterSpec extends AnyWordSpec, Matchers, OwlFixtures {
       result.schema.classes shouldBe empty
       result.schema.types.keySet should not contain "langString"
       result.warnings shouldBe empty
+    }
+  }
+
+  "reporting what was not imported" should {
+    def warningTypes(body: String): Seq[String] =
+      importing(body).report.warnings.map(_.warningType).distinct
+
+    "tell a facet LinkML has a metaslot for from one it has none for" in {
+      warningTypes(
+        """:ShortString a rdfs:Datatype ;
+          |    owl:equivalentClass [ a rdfs:Datatype ; owl:onDatatype xsd:string ;
+          |        owl:withRestrictions ( [ xsd:length 5 ] ) ] .""",
+      ) shouldBe Seq("UnimplementedDatatypeFacet")
+      warningTypes(
+        """:Positive a rdfs:Datatype ;
+          |    owl:equivalentClass [ a rdfs:Datatype ; owl:onDatatype xsd:decimal ;
+          |        owl:withRestrictions ( [ xsd:minExclusive 0 ] ) ] .""",
+      ) shouldBe Seq("InexpressibleDatatypeFacet")
+    }
+
+    "say which LinkML metaslot could express a range" in {
+      val result = importing(
+        """:A a owl:Class .
+          |:B a owl:Class .
+          |:p a owl:ObjectProperty ;
+          |    rdfs:range [ a owl:Class ; owl:intersectionOf ( :A :B ) ] .""",
+      )
+      result.report.warnings.map(_.warningType) should contain("UnimplementedRange")
+      result.warnings.mkString should include("(LinkML: `all_of`)")
+    }
+
+    "tell a superclass LinkML can express from one it can't" in {
+      warningTypes(
+        """:A a owl:Class ; rdfs:subClassOf [ a owl:Class ; owl:complementOf :B ] .
+          |:B a owl:Class .""",
+      ) shouldBe Seq("UnimplementedSuperclass")
+      warningTypes(
+        """:A a owl:Class ; rdfs:subClassOf [ a owl:Restriction ;
+          |    owl:onProperty [ owl:inverseOf :p ] ; owl:someValuesFrom :B ] .
+          |:B a owl:Class .
+          |:p a owl:ObjectProperty .""",
+      ) shouldBe Seq("InexpressibleSuperclass")
+    }
+
+    "report a qualified cardinality above one as inexpressible" in {
+      warningTypes(
+        """:A a owl:Class ; rdfs:subClassOf [ a owl:Restriction ; owl:onProperty :p ;
+          |    owl:minQualifiedCardinality "2"^^xsd:nonNegativeInteger ; owl:onClass :B ] .
+          |:B a owl:Class .
+          |:p a owl:ObjectProperty ; rdfs:range :C .
+          |:C a owl:Class .""",
+      ) shouldBe Seq("InexpressibleQualifiedCardinality")
+    }
+
+    "report disjoint properties as not implemented, and individuals as inexpressible" in {
+      warningTypes(
+        """:p a owl:ObjectProperty .
+          |:q a owl:ObjectProperty ; owl:propertyDisjointWith :p .
+          |:x owl:sameAs :y .""",
+      ) shouldBe Seq("UnimplementedAxiom", "InexpressibleAxiom")
+    }
+
+    "tell a single-valued inverse functional property from a multivalued one" in {
+      warningTypes(
+        """:p a owl:ObjectProperty, owl:FunctionalProperty, owl:InverseFunctionalProperty .""",
+      ) shouldBe Seq("UnimplementedInverseFunctionalProperty")
+      warningTypes(""":p a owl:ObjectProperty, owl:InverseFunctionalProperty .""") shouldBe
+        Seq("InexpressibleInverseFunctionalProperty")
     }
   }
 

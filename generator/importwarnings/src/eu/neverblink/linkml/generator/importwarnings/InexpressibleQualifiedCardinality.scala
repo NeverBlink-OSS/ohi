@@ -5,26 +5,32 @@ package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.*
 
-/** An inverse functional property, which LinkML has no way to say.
+/** A qualified cardinality that LinkML cannot express: LinkML can count all the values of a slot,
+  * but not the values of one class, except to require at least one with `has_member`. It is kept as
+  * a note.
   *
+  * @param className
+  *   Name of the class.
   * @param detail
   *   Which element the warning is about.
+  * @param expression
+  *   The expression, as written or rendered.
   * @param kind
   *   Short description of the kind of warning. Warnings are grouped by it.
-  * @param property
-  *   Name of the property, or the slot it becomes.
   * @param warningType
   *   The type of the warning: name of the concrete warning class (e.g. `UnmappedImport`).
   * @see
   *   From schema: https://linkml.ohi.dev/model/import-warnings
   */
-final case class UnsupportedInverseFunctionalProperty(
+final case class InexpressibleQualifiedCardinality(
+    @named("class_name")
+    className: String,
     detail: Option[String] = None,
+    expression: String,
     kind: Option[String] = None,
-    property: String,
     @named("warning_type")
     @serializeDefault
-    warningType: String = "UnsupportedInverseFunctionalProperty",
+    warningType: String = "InexpressibleQualifiedCardinality",
 ) extends ImportWarning {
 
   /** Fill in the slots that have an `equals_expression` with their computed values, and check that
@@ -34,9 +40,9 @@ final case class UnsupportedInverseFunctionalProperty(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  override def infer(): UnsupportedInverseFunctionalProperty =
+  override def infer(): InexpressibleQualifiedCardinality =
     copy(
-      detail = inferOptional("detail", detail, property),
-      kind = inferOptional("kind", kind, "Inverse functional property, which LinkML cannot say"),
+      detail = inferOptional("detail", detail, className + ": " + expression),
+      kind = inferOptional("kind", kind, "Qualified cardinality inexpressible in LinkML"),
     )
 }

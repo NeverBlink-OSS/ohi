@@ -5,29 +5,32 @@ package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.*
 
-/** A datatype definition that LinkML cannot express. The type is read as a string.
+/** An expression that the importer can parse, but doesn't read yet: a second bound or pattern, a
+  * list of values on something other than an enumerated value type, or an expression about another
+  * concept or relationship. LinkML can express each of them, with `minimum_value`, `maximum_value`,
+  * `pattern`, `equals_string_in` or `required`, on the right slot.
   *
-  * @param datatype
-  *   Name or IRI of the datatype.
-  * @param definition
-  *   The data range, rendered as text.
   * @param detail
   *   Which element the warning is about.
+  * @param expression
+  *   The expression, as written or rendered.
   * @param kind
   *   Short description of the kind of warning. Warnings are grouped by it.
+  * @param owner
+  *   The concept or relationship that the expression belongs to.
   * @param warningType
   *   The type of the warning: name of the concrete warning class (e.g. `UnmappedImport`).
   * @see
   *   From schema: https://linkml.ohi.dev/model/import-warnings
   */
-final case class UnsupportedDatatypeDefinition(
-    datatype: String,
-    definition: String,
+final case class UnimplementedExpression(
     detail: Option[String] = None,
+    expression: String,
     kind: Option[String] = None,
+    owner: String,
     @named("warning_type")
     @serializeDefault
-    warningType: String = "UnsupportedDatatypeDefinition",
+    warningType: String = "UnimplementedExpression",
 ) extends ImportWarning {
 
   /** Fill in the slots that have an `equals_expression` with their computed values, and check that
@@ -37,9 +40,9 @@ final case class UnsupportedDatatypeDefinition(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  override def infer(): UnsupportedDatatypeDefinition =
+  override def infer(): UnimplementedExpression =
     copy(
-      detail = inferOptional("detail", detail, datatype + ": " + definition),
-      kind = inferOptional("kind", kind, "Datatype definition that LinkML cannot express"),
+      detail = inferOptional("detail", detail, owner + ": " + expression),
+      kind = inferOptional("kind", kind, "Expression that is not supported by the importer yet"),
     )
 }

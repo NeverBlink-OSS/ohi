@@ -951,14 +951,31 @@ object OwlImporter {
               if (r.values.forall(v => literalType(v) == first)) typeNameFor(first) else "string"
             valuePattern = alternationOf(r.values)
           case other =>
-            warn(UnsupportedDatatypeDefinition(datatype = iri, definition = render(other)))
+            val feature = unimplementedFeature(other)
+            if (feature ne null) {
+              warn(
+                UnimplementedDatatypeDefinition(
+                  datatype = iri,
+                  definition = render(other),
+                  feature = feature,
+                ),
+              )
+            } else warn(InexpressibleDatatypeDefinition(datatype = iri, definition = render(other)))
             typeof = "string"
         }
       }
       val seen = mutable.HashSet.empty[String]
       facets.foreach { f =>
         if (seen.add(f._1) && !typeFacets(f._1)) {
-          warn(UnsupportedDatatypeFacet(datatype = name, facet = short(f._1)))
+          if (f._1 == XmlSchema.length.value) {
+            warn(
+              UnimplementedDatatypeFacet(
+                datatype = name,
+                facet = short(f._1),
+                feature = lengthFeature,
+              ),
+            )
+          } else warn(InexpressibleDatatypeFacet(datatype = name, facet = short(f._1)))
         }
       }
       val minimum = facetValue(facets, XmlSchema.minInclusive)
@@ -1065,6 +1082,75 @@ object OwlImporter {
       SlotRange(anyOf = anyOf.result(), data = data)
     }
 
+    /** The LinkML metaslots for `xsd:length`, which the importer doesn't write yet. */
+    private val lengthFeature = "`minimum_length` and `maximum_length`"
+
+    /** The LinkML metaslot for a restriction that requires a value of a union of classes. */
+    private val hasMember = "`has_member`"
+
+    /** The LinkML metaslots that could express a range or restriction filler that [[slotRange]]
+      * can't read yet, in Markdown code, or `null` if LinkML can't express it.
+      */
+    private def unimplementedFeature(f: Filler): String = f match {
+      case _: ClassExpr.Named => "`range`"
+      // ODRL puts classes in data ranges, which LinkML can't say.
+      case d: DataRange.Datatype => if (isDeclared(d.iri, EntityKind.Class)) null else "`range`"
+      case r: DataRange.Restriction =>
+        if (r.facets.forall(f => typeFacets(f._1) || f._1 == XmlSchema.length.value)) lengthFeature
+        else null
+      case u: ClassExpr.UnionOf => ifAllExpressible(u.operands, "`any_of`")
+      case u: DataRange.UnionOf => ifAllExpressible(u.operands, "`any_of`")
+      case i: ClassExpr.IntersectionOf => ifAllExpressible(i.operands, "`all_of`")
+      case i: DataRange.IntersectionOf => ifAllExpressible(i.operands, "`all_of`")
+      case c: ClassExpr.ComplementOf => ifAllExpressible(Seq(c.operand), "`none_of`")
+      case c: DataRange.ComplementOf => ifAllExpressible(Seq(c.operand), "`none_of`")
+      case _: ClassExpr.OneOf => "an enum"
+      case o: DataRange.OneOf => if (o.values.isEmpty) null else "an enum"
+      case e: ClassExpr.SomeValuesFrom => onSlot(e.property, "`range_expression`")
+      case e: ClassExpr.AllValuesFrom => onSlot(e.property, "`range_expression`")
+      case e: ClassExpr.HasValue => onSlot(e.property, "`range_expression`")
+      case e: ClassExpr.Cardinality => onSlot(e.property, "`range_expression`")
+      case e: ClassExpr.HasSelf => onSlot(e.property, "`range_expression`")
+    }
+
+    private def ifAllExpressible(operands: Seq[Filler], feature: String): String =
+      if (operands.forall(o => (slotRange(o) ne null) || (unimplementedFeature(o) ne null))) feature
+      else null
+
+    /** `feature` if a restriction on the property could be a condition on its slot, or `null` if
+      * the property is an inverse or not a slot.
+      */
+    private def onSlot(property: PropertyRef, feature: String): String =
+      if (!property.inverse && propertyKinds.contains(property.iri)) feature else null
+
+    /** The LinkML metaslots that could express a superclass that `buildClass` can't read yet, in
+      * Markdown code, or `null` if LinkML can't express it.
+      */
+    private def superclassFeature(expr: ClassExpr): String = expr match {
+      case u: ClassExpr.UnionOf => if (u.operands.forall(isClassExpression)) "`any_of`" else null
+      case c: ClassExpr.ComplementOf => if (isClassExpression(c.operand)) "`none_of`" else null
+      // `x p x` is the same for `p` and its inverse.
+      case e: ClassExpr.HasSelf =>
+        if (propertyKinds.contains(e.property.iri)) "`locally_reflexive`" else null
+      case _ => null
+    }
+
+    /** Whether a LinkML anonymous class expression, with `slot_conditions` for the restrictions,
+      * can say the same.
+      */
+    private def isClassExpression(expr: ClassExpr): Boolean = expr match {
+      case _: ClassExpr.Named => true
+      case e: ClassExpr.IntersectionOf => e.operands.forall(isClassExpression)
+      case e: ClassExpr.UnionOf => e.operands.forall(isClassExpression)
+      case e: ClassExpr.ComplementOf => isClassExpression(e.operand)
+      case _: ClassExpr.OneOf => false
+      case e: ClassExpr.SomeValuesFrom => onSlot(e.property, "") ne null
+      case e: ClassExpr.AllValuesFrom => onSlot(e.property, "") ne null
+      case e: ClassExpr.HasValue => onSlot(e.property, "") ne null
+      case e: ClassExpr.Cardinality => onSlot(e.property, "") ne null
+      case e: ClassExpr.HasSelf => propertyKinds.contains(e.property.iri)
+    }
+
     /** The range of each property, before any class restrictions. */
     private lazy val slotRanges: mutable.HashMap[String, SlotRange] = {
       val out = mutable.HashMap.empty[String, SlotRange]
@@ -1079,11 +1165,26 @@ object OwlImporter {
           } else {
             range = slotRange(e.range)
             if (range ne null) take(e.axiom)
-            else warn(UnsupportedRange(property = names(p), rangeExpression = render(e.range)))
+            else {
+              // Reported here, so not again as an unused axiom.
+              take(e.axiom)
+              val feature = unimplementedFeature(e.range)
+              if (feature ne null) {
+                warn(
+                  UnimplementedRange(
+                    property = names(p),
+                    rangeExpression = render(e.range),
+                    feature = feature,
+                  ),
+                )
+              } else
+                warn(InexpressibleRange(property = names(p), rangeExpression = render(e.range)))
+            }
           }
         } else if (stated.length > 1) {
           warn(SeveralRanges(property = names(p), ranges = stated.map(e => render(e.range)).toSeq))
-          take(stated.head.axiom)
+          // The warning lists them all, so none is reported again as an unused axiom.
+          stated.foreach(e => take(e.axiom))
           range = slotRange(stated.head.range)
         }
         val data = propertyKinds(p).kind == EntityKind.DataProperty
@@ -1229,7 +1330,10 @@ object OwlImporter {
         }
       }
       if (has(PropertyCharacteristic.InverseFunctional)) {
-        warn(UnsupportedInverseFunctionalProperty(property = name))
+        // `unique_keys` treat the values of a multivalued slot together, not one by one.
+        if (isFunctional(p) || !config.multivalued) {
+          warn(UnimplementedInverseFunctionalProperty(property = name))
+        } else warn(InexpressibleInverseFunctionalProperty(property = name))
       }
       entriesOf(chains, p).foreach { a =>
         take(a)
@@ -1238,7 +1342,7 @@ object OwlImporter {
           if (chain.length > 0) chain.append(" o ")
           chain.append(render(ClassExpr.Named(r.iri)))
         }
-        warn(UnsupportedPropertyChain(property = name, chain = chain.toString))
+        warn(UnimplementedPropertyChain(property = name, chain = chain.toString))
       }
       val equivalent = mutable.ArrayBuffer.empty[String]
       entriesOf(equivalentProperties, p).foreach { e =>
@@ -1496,7 +1600,8 @@ object OwlImporter {
               take(e.axiom)
               u.operands.foreach(o => attach(o.asInstanceOf[ClassExpr.Named].iri, p))
             case other =>
-              warn(UnsupportedDomain(property = names(p), domainExpression = render(other)))
+              take(e.axiom)
+              warn(InexpressibleDomain(property = names(p), domainExpression = render(other)))
           }
         }
       }
@@ -1525,9 +1630,17 @@ object OwlImporter {
       val exact = mutable.ArrayBuffer.empty[UriOrCurie]
       val disjoint = mutable.ArrayBuffer.empty[String]
 
-      def unsupported(expr: ClassExpr, warning: String => ImportWarning): Unit = {
+      /** Warns with `unimplemented` if LinkML could express it with `feature`, or `inexpressible`
+        * if `feature` is `null`. Keeps the expression in the notes.
+        */
+      def unsupported(
+          expr: ClassExpr,
+          feature: String,
+          unimplemented: (String, String) => ImportWarning,
+          inexpressible: String => ImportWarning,
+      ): Unit = {
         val text = render(expr)
-        warn(warning(text))
+        warn(if (feature ne null) unimplemented(text, feature) else inexpressible(text))
         notes.addOne(s"OWL: $text")
       }
 
@@ -1603,7 +1716,13 @@ object OwlImporter {
                     pattern = r.pattern,
                   ),
               )
-            } else unsupported(expr, e => UnsupportedRestriction(className = name, expression = e))
+            } else
+              unsupported(
+                expr,
+                unimplementedFeature(e.filler),
+                (e, f) => UnimplementedRestriction(className = name, expression = e, feature = f),
+                e => InexpressibleRestriction(className = name, expression = e),
+              )
           }
         case e: ClassExpr.SomeValuesFrom
             if !e.property.inverse && propertyKinds.contains(e.property.iri) =>
@@ -1616,7 +1735,13 @@ object OwlImporter {
               restrict(p, _.copy(required = true, range = r.range.map(Reference(_))))
             } else if ((r ne null) && style == SomeValuesFrom.Required && r.range.isDefined) {
               restrict(p, withMember(_, r.range))
-            } else unsupported(expr, e => UnsupportedRestriction(className = name, expression = e))
+            } else
+              unsupported(
+                expr,
+                if (r ne null) hasMember else unimplementedFeature(e.filler),
+                (e, f) => UnimplementedRestriction(className = name, expression = e, feature = f),
+                e => InexpressibleRestriction(className = name, expression = e),
+              )
           }
         // The slot is single-valued already, see `singleTexts`
         case _ if plainTextLimit(expr) ne null =>
@@ -1634,7 +1759,13 @@ object OwlImporter {
             } else
               unsupported(
                 expr,
-                e => UnsupportedQualifiedCardinality(className = name, expression = e),
+                // At least one is `has_member`. LinkML can't count the values of one class.
+                if (e.bound != Bound.Min || e.n != 1) null
+                else if (r ne null) hasMember
+                else unimplementedFeature(filler.get),
+                (e, f) =>
+                  UnimplementedQualifiedCardinality(className = name, expression = e, feature = f),
+                e => InexpressibleQualifiedCardinality(className = name, expression = e),
               )
           } else cardinality(p, e.bound, e.n, singleValuedSlot(p), restrict)
         case e: ClassExpr.HasValue
@@ -1650,7 +1781,12 @@ object OwlImporter {
           restrict(p, _.copy(equalsString = Some(text)))
         case e: ClassExpr.UnionOf if isUnionOfChildren(e.operands) => isAbstract = true
         case other =>
-          unsupported(other, e => UnsupportedSuperclass(className = name, expression = e))
+          unsupported(
+            other,
+            superclassFeature(other),
+            (e, f) => UnimplementedSuperclass(className = name, expression = e, feature = f),
+            e => InexpressibleSuperclass(className = name, expression = e),
+          )
       }
 
       entriesOf(subClassOf, c).foreach { e =>
@@ -2153,8 +2289,24 @@ object OwlImporter {
           }
         case a: PropertyAssertion =>
           warn(IndividualPropertyValue(individual = a.individual, property = a.property))
-        case a: SubClassOf => warn(UnsupportedClassAxiom(axiom = render(a)))
-        case a => warn(UnsupportedAxiom(axiomType = a.productPrefix, axiom = render(a)))
+        case a: SubClassOf => warn(InexpressibleClassAxiom(axiom = render(a)))
+        case a: DisjointProperties =>
+          warn(
+            UnimplementedAxiom(
+              axiomType = a.productPrefix,
+              axiom = render(a),
+              feature = "`disjoint_with`",
+            ),
+          )
+        case a: DisjointClasses if a.operands.forall(_.isInstanceOf[ClassExpr.Named]) =>
+          warn(
+            UnimplementedAxiom(
+              axiomType = a.productPrefix,
+              axiom = render(a),
+              feature = "`disjoint_with`",
+            ),
+          )
+        case a => warn(InexpressibleAxiom(axiomType = a.productPrefix, axiom = render(a)))
       }
       val unparsedCounts = mutable.HashMap.empty[String, Int]
       unparsed.foreach { t =>

@@ -5,29 +5,31 @@ package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.*
 
-/** A property chain, which LinkML has no way to say.
+/** An axiom of another type that LinkML cannot express, such as `SameIndividual` (a schema holds no
+  * individuals).
   *
-  * @param chain
-  *   The properties of the chain, joined with " o ".
+  * @param axiom
+  *   The axiom, rendered as text.
+  * @param axiomType
+  *   The type of the axiom, such as `SameIndividual`.
   * @param detail
   *   Which element the warning is about.
   * @param kind
   *   Short description of the kind of warning. Warnings are grouped by it.
-  * @param property
-  *   Name of the property, or the slot it becomes.
   * @param warningType
   *   The type of the warning: name of the concrete warning class (e.g. `UnmappedImport`).
   * @see
   *   From schema: https://linkml.ohi.dev/model/import-warnings
   */
-final case class UnsupportedPropertyChain(
-    chain: String,
+final case class InexpressibleAxiom(
+    axiom: String,
+    @named("axiom_type")
+    axiomType: String,
     detail: Option[String] = None,
     kind: Option[String] = None,
-    property: String,
     @named("warning_type")
     @serializeDefault
-    warningType: String = "UnsupportedPropertyChain",
+    warningType: String = "InexpressibleAxiom",
 ) extends ImportWarning {
 
   /** Fill in the slots that have an `equals_expression` with their computed values, and check that
@@ -37,9 +39,9 @@ final case class UnsupportedPropertyChain(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  override def infer(): UnsupportedPropertyChain =
+  override def infer(): InexpressibleAxiom =
     copy(
-      detail = inferOptional("detail", detail, property + ": " + chain),
-      kind = inferOptional("kind", kind, "Property chain, which LinkML cannot say"),
+      detail = inferOptional("detail", detail, axiom),
+      kind = inferOptional("kind", kind, axiomType + " axiom inexpressible in LinkML"),
     )
 }

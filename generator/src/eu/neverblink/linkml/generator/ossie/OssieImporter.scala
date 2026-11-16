@@ -474,7 +474,7 @@ object OssieImporter {
     }
 
     private def cannotExpress(owner: String, text: String): Unit =
-      warn(UnsupportedExpression(owner = owner, expression = text))
+      warn(UnimplementedExpression(owner = owner, expression = text))
 
     private def notRead(owner: String, derivedBy: Seq[String]): Unit =
       derivedBy.foreach(e => warn(Derivation(owner = owner, expression = e)))
