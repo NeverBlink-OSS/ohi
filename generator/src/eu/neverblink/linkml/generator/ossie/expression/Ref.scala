@@ -11,8 +11,20 @@ private[ossie] object Ref {
   /** What a name may start with. */
   def isStart(c: Char): Boolean = (c.isLetter && c < 128) || c == '_'
 
-  /** What a name may continue with. There is no quoting/escaping support in Ossie right now. */
+  /** What a name may continue with. */
   def isPart(c: Char): Boolean = isStart(c) || (c >= '0' && c <= '9')
 
-  extension (r: Ref) def name: String = r
+  /** The name for use in an expression: bare if possible, otherwise in double quotes with any quote
+    * inside doubled, as in ANSI SQL.
+    */
+  def quoted(name: String): String =
+    if name.nonEmpty && isStart(name.head) && name.forall(isPart) then name
+    else "\"" + name.replace("\"", "\"\"") + "\""
+
+  extension (r: Ref) {
+    def name: String = r
+
+    /** See [[quoted]]. */
+    def written: String = quoted(r)
+  }
 }

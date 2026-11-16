@@ -26,7 +26,7 @@ private[ossie] object Expression {
 
   /** `Ref.relationship` - how a concept states that a relationship is mandatory. */
   final case class Member(ref: Ref, relationship: String) extends Expression {
-    override def render: String = s"${ref.name}.$relationship"
+    override def render: String = s"${ref.written}.${Ref.quoted(relationship)}"
   }
 
   /** `Ref IN ('a', 'b')` - how an enumerated value type states the values it allows. Also read from
@@ -34,23 +34,23 @@ private[ossie] object Expression {
     */
   final case class InList(ref: Ref, values: Seq[Literal.Text]) extends Expression {
     override def render: String =
-      s"${ref.name} IN (${values.map(_.render).mkString(", ")})"
+      s"${ref.written} IN (${values.map(_.render).mkString(", ")})"
   }
 
   /** `Ref >= 1` */
   final case class AtLeast(ref: Ref, value: Literal) extends Expression {
-    override def render: String = s"${ref.name} >= ${value.render}"
+    override def render: String = s"${ref.written} >= ${value.render}"
   }
 
   /** `Ref <= 10` */
   final case class AtMost(ref: Ref, value: Literal) extends Expression {
-    override def render: String = s"${ref.name} <= ${value.render}"
+    override def render: String = s"${ref.written} <= ${value.render}"
   }
 
   /** `REGEXP_LIKE(Ref, '^x')` */
   final case class RegexpLike(ref: Ref, pattern: Literal.Text) extends Expression {
     override def render: String =
-      s"REGEXP_LIKE(${ref.name}, ${pattern.render})"
+      s"REGEXP_LIKE(${ref.written}, ${pattern.render})"
   }
 
   /** Read an expression, or None if it is not one of the shapes above. */
@@ -63,9 +63,12 @@ private[ossie] object Expression {
   private def expression[$: P]: P[Expression] =
     P(ws ~ (regexpLike | inList | equalsAny | atLeast | atMost | member) ~ ws ~ End)
 
-  /** Ossie cannot quote a name, so a name is a bare identifier and nothing else. */
+  /** A bare identifier, or a name in double quotes, in which a doubled quote is an escaped one. */
   private def ident[$: P]: P[String] =
-    P((CharPred(Ref.isStart) ~ CharsWhile(Ref.isPart, 0)).!)
+    P((CharPred(Ref.isStart) ~ CharsWhile(Ref.isPart, 0)).! | quotedIdent)
+
+  private def quotedIdent[$: P]: P[String] =
+    P("\"" ~ (P("\"\"").map(_ => "\"") | CharPred(_ != '"').!).rep ~ "\"").map(_.mkString)
 
   private def ref[$: P]: P[Ref] = ident.map(Ref.apply)
 

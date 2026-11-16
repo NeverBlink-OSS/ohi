@@ -12,7 +12,14 @@ private[ossie] object ExpressionGen {
     rest <- Gen.listOf(Gen.oneOf(Gen.alphaNumChar, Gen.numChar, Gen.const('_')))
   } yield (first +: rest).mkString
 
-  val ref: Gen[Ref] = ident.map(Ref.apply)
+  /** Any name, including those an expression has to quote. */
+  val name: Gen[String] = Gen.frequency(
+    3 -> ident,
+    1 -> Gen.listOf(Gen.oneOf('a', ' ', '"', '.', '\'')).map(_.mkString),
+    1 -> Gen.asciiPrintableStr,
+  )
+
+  val ref: Gen[Ref] = name.map(Ref.apply)
 
   /** Text that goes inside a quoted literal. */
   val text: Gen[String] = Gen.frequency(
@@ -48,7 +55,7 @@ private[ossie] object ExpressionGen {
     }.map(Literal.Text.apply),
   )
 
-  val member: Gen[Member] = for { r <- ref; rel <- ident } yield Member(r, rel)
+  val member: Gen[Member] = for { r <- ref; rel <- name } yield Member(r, rel)
 
   val inList: Gen[InList] = for { r <- ref; vs <- Gen.listOf(literalText) } yield InList(r, vs)
 
@@ -65,12 +72,12 @@ private[ossie] object ExpressionGen {
     * not produce.
     */
   def spaced(e: Expression): String = e match {
-    case Member(r, rel) => s"  ${r.name}.$rel\t"
+    case Member(r, rel) => s"  ${r.written}.${Ref.quoted(rel)}\t"
     case InList(r, vs) =>
       val body = vs.map(_.render).mkString(" ,\t")
-      s"\t${r.name}  \t IN \t( $body\t)  "
-    case AtLeast(r, v) => s" ${r.name}\t>=  ${v.render} "
-    case AtMost(r, v) => s"  ${r.name}  <=\t${v.render}\t"
-    case RegexpLike(r, p) => s" REGEXP_LIKE\t( ${r.name} ,\t${p.render}  ) "
+      s"\t${r.written}  \t IN \t( $body\t)  "
+    case AtLeast(r, v) => s" ${r.written}\t>=  ${v.render} "
+    case AtMost(r, v) => s"  ${r.written}  <=\t${v.render}\t"
+    case RegexpLike(r, p) => s" REGEXP_LIKE\t( ${r.written} ,\t${p.render}  ) "
   }
 }
