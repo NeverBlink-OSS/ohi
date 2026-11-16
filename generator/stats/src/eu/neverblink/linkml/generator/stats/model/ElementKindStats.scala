@@ -15,13 +15,13 @@ import eu.neverblink.linkml.runtime.*
   * @param mappings
   *   The number of elements with each kind of mapping.
   * @param withDescription
-  *   The number of elements with a `description`.
+  *   The number of elements with a non-empty `description`.
   * @param withMappings
   *   The number of elements with at least one mapping of any kind, including `mappings`.
   * @param withMeaning
   *   The number of permissible values with a `meaning`. Only permissible values have this field.
   * @param withTitle
-  *   The number of elements with a `title`.
+  *   The number of elements with a non-empty `title`.
   * @see
   *   From schema: https://linkml.ohi.dev/model/schema-stats
   */

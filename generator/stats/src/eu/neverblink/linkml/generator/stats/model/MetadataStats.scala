@@ -8,13 +8,13 @@ import eu.neverblink.linkml.runtime.*
 /** Whether the root schema has the metadata needed for publishing and reuse.
   *
   * @param hasDescription
-  *   True if the root schema sets `description`.
+  *   True if the root schema sets a non-empty `description`.
   * @param hasLicense
-  *   True if the root schema sets `license`.
+  *   True if the root schema sets a non-empty `license`.
   * @param hasTitle
-  *   True if the root schema sets `title`.
+  *   True if the root schema sets a non-empty `title`.
   * @param hasVersion
-  *   True if the root schema sets `version`.
+  *   True if the root schema sets a non-empty `version`.
   * @see
   *   From schema: https://linkml.ohi.dev/model/schema-stats
   */

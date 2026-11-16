@@ -12,8 +12,8 @@ import eu.neverblink.linkml.runtime.*
   * @param imports
   *   The number of schemas imported by the root schema.
   * @param languages
-  *   The number of strings in each language. Strings with no language tag are counted under the
-  *   empty tag `""`.
+  *   The number of non-empty strings in each language. Strings with no language tag are counted
+  *   under the empty tag `""`.
   * @param metadata
   *   Whether the root schema has a license, version, title and description.
   * @param pruningMode
