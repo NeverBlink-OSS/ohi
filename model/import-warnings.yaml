@@ -1,0 +1,638 @@
+id: https://linkml.ohi.dev/model/import-warnings
+name: import-warnings
+title: Import warnings
+description: >-
+  What an importer, such as `from owl` or `from ossie`, could not carry over into the LinkML
+  schema. The warnings are grouped by `kind` in the report.
+license: https://creativecommons.org/publicdomain/zero/1.0/
+prefixes:
+  linkml: https://w3id.org/linkml/
+  warning: https://linkml.ohi.dev/model/import-warnings#
+default_prefix: warning
+imports:
+  - linkml:types
+notes:
+  - >-
+    `kind` is the heading the warnings are grouped under, and `detail` says which element the
+    warning is about. Both are set with `equals_expression` (string interpolation). Multivalued
+    slots are joined with ", " when substituted into an expression, and non-string slots are
+    stringified automatically.
+
+# Reusable slots for the warning classes.
+slots:
+  property:
+    range: string
+    required: true
+    title: property
+    description: Name of the property, or the slot it becomes.
+
+  class_name:
+    range: string
+    required: true
+    title: class name
+    description: Name of the class.
+
+  datatype:
+    range: string
+    required: true
+    title: datatype
+    description: Name or IRI of the datatype.
+
+  expression:
+    range: string
+    required: true
+    title: expression
+    description: The expression, as written or rendered.
+
+  individual:
+    range: string
+    required: true
+    title: individual
+    description: IRI of the individual.
+
+  axiom:
+    range: string
+    required: true
+    title: axiom
+    description: The axiom, rendered as text.
+
+  concept:
+    range: string
+    required: true
+    title: concept
+    description: Name of the Ossie concept.
+
+  owner:
+    range: string
+    required: true
+    title: owner
+    description: The concept or relationship that the expression belongs to.
+
+  identify_by:
+    range: string
+    required: true
+    multivalued: true
+    title: identify by
+    description: The relationships that the concept is identified by.
+
+classes:
+  ImportWarning:
+    abstract: true
+    title: Import warning
+    description: Something that an importer could not carry over into the LinkML schema.
+    attributes:
+      kind:
+        range: string
+        title: kind
+        description: Short description of the kind of warning. Warnings are grouped by it.
+        notes:
+          - This field is inferred using equals_expression.
+      detail:
+        range: string
+        title: detail
+        description: Which element the warning is about.
+        notes:
+          - This field is inferred using equals_expression.
+      warning_type:
+        designates_type: true
+        range: string
+        required: true
+        title: warning type
+        description: >-
+          The type of the warning: name of the concrete warning class (e.g. `UnmappedImport`).
+
+  # ---- OWL --------------------------------------------------------------------------------------
+
+  UnmappedImport:
+    is_a: ImportWarning
+    description: An `owl:imports` that is not mapped to a LinkML schema in the config.
+    attributes:
+      import_iri:
+        range: string
+        required: true
+        title: import IRI
+        description: IRI of the imported ontology.
+    slot_usage:
+      kind:
+        equals_expression: "Import that is not mapped to a LinkML schema (see `imports` in the config)"
+      detail:
+        equals_expression: "{import_iri}"
+
+  UnreadableImportedSchema:
+    is_a: ImportWarning
+    description: >-
+      An imported LinkML schema could not be read, so the terms of the ontology are copied in
+      instead.
+    attributes:
+      schema_ref:
+        range: string
+        required: true
+        title: schema reference
+        description: The LinkML schema that the import is mapped to.
+      reason:
+        range: string
+        required: true
+        title: reason
+        description: Why the schema could not be read.
+    slot_usage:
+      kind:
+        equals_expression: "Imported LinkML schema that could not be read, so its terms are copied in"
+      detail:
+        equals_expression: "{schema_ref}: {reason}"
+
+  UnsupportedDatatypeDefinition:
+    is_a: ImportWarning
+    description: A datatype definition that LinkML cannot express. The type is read as a string.
+    slots:
+      - datatype
+    attributes:
+      definition:
+        range: string
+        required: true
+        title: definition
+        description: The data range, rendered as text.
+    slot_usage:
+      kind:
+        equals_expression: "Datatype definition that LinkML cannot express"
+      detail:
+        equals_expression: "{datatype}: {definition}"
+
+  UnsupportedDatatypeFacet:
+    is_a: ImportWarning
+    description: A facet of a datatype restriction that LinkML cannot express.
+    slots:
+      - datatype
+    attributes:
+      facet:
+        range: string
+        required: true
+        title: facet
+        description: The facet, such as `xsd:length`.
+    slot_usage:
+      kind:
+        equals_expression: "Datatype facet that LinkML cannot express"
+      detail:
+        equals_expression: "{datatype}: {facet}"
+
+  UnsupportedRange:
+    is_a: ImportWarning
+    description: The range of a property is something that LinkML cannot express.
+    slots:
+      - property
+    attributes:
+      range_expression:
+        range: string
+        required: true
+        title: range expression
+        description: The range, rendered as text.
+    slot_usage:
+      kind:
+        equals_expression: "Range that LinkML cannot express"
+      detail:
+        equals_expression: "{property}: {range_expression}"
+
+  SeveralRanges:
+    is_a: ImportWarning
+    description: >-
+      A property has several ranges, all of which apply. A LinkML slot has one, so only the first
+      is kept.
+    slots:
+      - property
+    attributes:
+      ranges:
+        range: string
+        required: true
+        multivalued: true
+        title: ranges
+        description: The ranges, rendered as text.
+    slot_usage:
+      kind:
+        equals_expression: "Several ranges (all of them apply), of which only the first is kept"
+      detail:
+        equals_expression: "{property}: {ranges}"
+
+  UnsupportedSuperproperty:
+    is_a: ImportWarning
+    description: A property is a subproperty of an annotation property or a built-in property.
+    slots:
+      - property
+    attributes:
+      superproperty:
+        range: string
+        required: true
+        title: superproperty
+        description: The annotation or built-in property.
+    slot_usage:
+      kind:
+        equals_expression: "Subproperty of an annotation or built-in property"
+      detail:
+        equals_expression: "{property}: {superproperty}"
+
+  FunctionalSubproperty:
+    is_a: ImportWarning
+    description: >-
+      A functional property is a subproperty of one that is not. LinkML slots inherit
+      `multivalued`, so it stays multivalued.
+    slots:
+      - property
+    slot_usage:
+      kind:
+        equals_expression: "Functional subproperty of a property that is not, left multivalued as LinkML slots inherit it"
+      detail:
+        equals_expression: "{property}"
+
+  UnsupportedInverseFunctionalProperty:
+    is_a: ImportWarning
+    description: An inverse functional property, which LinkML has no way to say.
+    slots:
+      - property
+    slot_usage:
+      kind:
+        equals_expression: "Inverse functional property, which LinkML cannot say"
+      detail:
+        equals_expression: "{property}"
+
+  UnsupportedPropertyChain:
+    is_a: ImportWarning
+    description: A property chain, which LinkML has no way to say.
+    slots:
+      - property
+    attributes:
+      chain:
+        range: string
+        required: true
+        title: chain
+        description: The properties of the chain, joined with " o ".
+    slot_usage:
+      kind:
+        equals_expression: "Property chain, which LinkML cannot say"
+      detail:
+        equals_expression: "{property}: {chain}"
+
+  RenamedTerm:
+    is_a: ImportWarning
+    description: >-
+      A term is given another name than the one it would have, because that name is taken by
+      another term.
+    attributes:
+      iri:
+        range: string
+        required: true
+        title: IRI
+        description: IRI of the renamed term.
+      name:
+        range: string
+        required: true
+        title: name
+        description: The name the term is given.
+    slot_usage:
+      kind:
+        equals_expression: "Renamed to avoid a clash"
+      detail:
+        equals_expression: "{iri} is named '{name}'"
+
+  SubclassCycle:
+    is_a: ImportWarning
+    description: Classes are subclasses of each other in a loop. The loop is broken by leaving out a parent.
+    slots:
+      - class_name
+    attributes:
+      parent:
+        range: string
+        required: true
+        title: parent
+        description: Name of the parent that is left out.
+    slot_usage:
+      kind:
+        equals_expression: "Subclass cycle, broken by leaving out a parent"
+      detail:
+        equals_expression: "{class_name} -> {parent}"
+
+  SeveralDomains:
+    is_a: ImportWarning
+    description: >-
+      A property has several domains, all of which apply. The slot is attached to each of them.
+    slots:
+      - property
+    attributes:
+      domain:
+        range: string
+        required: true
+        title: domain
+        description: Name of the domain class the slot is attached to.
+    slot_usage:
+      kind:
+        equals_expression: "Several domains (all of them apply), attached to each"
+      detail:
+        equals_expression: "{property}: {domain}"
+
+  UnsupportedDomain:
+    is_a: ImportWarning
+    description: The domain of a property is something that LinkML cannot express.
+    slots:
+      - property
+    attributes:
+      domain_expression:
+        range: string
+        required: true
+        title: domain expression
+        description: The domain, rendered as text.
+    slot_usage:
+      kind:
+        equals_expression: "Domain that LinkML cannot express"
+      detail:
+        equals_expression: "{property}: {domain_expression}"
+
+  UnsupportedRestriction:
+    is_a: ImportWarning
+    description: A restriction on a class that LinkML cannot express. It is kept as a note.
+    slots:
+      - class_name
+      - expression
+    slot_usage:
+      kind:
+        equals_expression: "Restriction that LinkML cannot express"
+      detail:
+        equals_expression: "{class_name}: {expression}"
+
+  UnsupportedQualifiedCardinality:
+    is_a: ImportWarning
+    description: A qualified cardinality on a class that LinkML cannot express. It is kept as a note.
+    slots:
+      - class_name
+      - expression
+    slot_usage:
+      kind:
+        equals_expression: "Qualified cardinality that LinkML cannot express"
+      detail:
+        equals_expression: "{class_name}: {expression}"
+
+  UnsupportedSuperclass:
+    is_a: ImportWarning
+    description: A superclass expression that LinkML cannot express. It is kept as a note.
+    slots:
+      - class_name
+      - expression
+    slot_usage:
+      kind:
+        equals_expression: "Superclass that LinkML cannot express"
+      detail:
+        equals_expression: "{class_name}: {expression}"
+
+  EquivalentClassDefinition:
+    is_a: ImportWarning
+    description: >-
+      A class is defined by an equivalence. LinkML can't say that it is also a sufficient
+      condition, so it is kept as superclasses only.
+    slots:
+      - class_name
+      - expression
+    slot_usage:
+      kind:
+        equals_expression: "Class defined by an equivalence, kept as superclasses only"
+      detail:
+        equals_expression: "{class_name}: {expression}"
+
+  StatementAboutImportedTerm:
+    is_a: ImportWarning
+    description: >-
+      The ontology says something about a term of an imported schema. The imported schema keeps
+      its own definition of the term.
+    attributes:
+      term:
+        range: string
+        required: true
+        title: term
+        description: The term of the imported schema.
+    slot_usage:
+      kind:
+        equals_expression: "Statement about a term of an imported schema, which keeps its own"
+      detail:
+        equals_expression: "{term}"
+
+  IndividualOutsideEnum:
+    is_a: ImportWarning
+    description: An individual that is not part of an enum.
+    slots:
+      - individual
+    attributes:
+      class_expression:
+        range: string
+        required: true
+        title: class expression
+        description: The class of the individual, rendered as text.
+    slot_usage:
+      kind:
+        equals_expression: "Individual, which is not part of an enum"
+      detail:
+        equals_expression: "{individual}: {class_expression}"
+
+  IndividualPropertyValue:
+    is_a: ImportWarning
+    description: A property value of an individual.
+    slots:
+      - individual
+      - property
+    slot_usage:
+      kind:
+        equals_expression: "Property value of an individual"
+      detail:
+        equals_expression: "{individual} {property}"
+
+  UnsupportedClassAxiom:
+    is_a: ImportWarning
+    description: A class axiom that LinkML cannot express.
+    slots:
+      - axiom
+    slot_usage:
+      kind:
+        equals_expression: "Class axiom that LinkML cannot express"
+      detail:
+        equals_expression: "{axiom}"
+
+  UnsupportedAxiom:
+    is_a: ImportWarning
+    description: An axiom of another type that LinkML cannot express.
+    slots:
+      - axiom
+    attributes:
+      axiom_type:
+        range: string
+        required: true
+        title: axiom type
+        description: The type of the axiom, such as `DisjointClasses`.
+    slot_usage:
+      kind:
+        equals_expression: "{axiom_type} axiom that LinkML cannot express"
+      detail:
+        equals_expression: "{axiom}"
+
+  NonOwlRdf:
+    is_a: ImportWarning
+    description: RDF triples that are not part of the OWL ontology.
+    attributes:
+      predicate:
+        range: string
+        required: true
+        title: predicate
+        description: The predicate of the triples.
+      triple_count:
+        range: integer
+        required: true
+        title: triple count
+        description: How many triples have the predicate.
+    slot_usage:
+      kind:
+        equals_expression: "RDF that is not OWL"
+      detail:
+        equals_expression: "{triple_count} triples with {predicate}"
+
+  # ---- Ossie ------------------------------------------------------------------------------------
+
+  OntologyWideExpression:
+    is_a: ImportWarning
+    description: An expression that applies to the whole ontology (`requires`), which is not read.
+    slots:
+      - expression
+    slot_usage:
+      kind:
+        equals_expression: "Ontology-wide expression, which is not read"
+      detail:
+        equals_expression: "{expression}"
+
+  OntologyMapping:
+    is_a: ImportWarning
+    description: An ontology mapping, which is not read.
+    attributes:
+      mapping_name:
+        range: string
+        required: true
+        title: mapping name
+        description: Name of the mapping, or `(no name)`.
+    slot_usage:
+      kind:
+        equals_expression: "Ontology mapping, which is not read"
+      detail:
+        equals_expression: "{mapping_name}"
+
+  UnknownIdentifierRelationships:
+    is_a: ImportWarning
+    description: A concept is identified by relationships that it does not have.
+    slots:
+      - concept
+      - identify_by
+    slot_usage:
+      kind:
+        equals_expression: "Identifier made of relationships the concept does not have"
+      detail:
+        equals_expression: "{concept}: {identify_by}"
+
+  ExtraRole:
+    is_a: ImportWarning
+    description: A relationship has more than one role. A slot has only one range, so only the first is read.
+    slots:
+      - owner
+    attributes:
+      role:
+        range: string
+        required: true
+        title: role
+        description: The concept that plays the role that is not read.
+    slot_usage:
+      kind:
+        equals_expression: "Role after the first, as a slot has only one range"
+      detail:
+        equals_expression: "{owner}: {role}"
+
+  ExtraValueTypeParent:
+    is_a: ImportWarning
+    description: A value type has more than one parent. A type has only one, so only the first is read.
+    slots:
+      - concept
+    attributes:
+      parent:
+        range: string
+        required: true
+        title: parent
+        description: The parent that is not read.
+    slot_usage:
+      kind:
+        equals_expression: "Parent of a value type after the first, as a type has only one"
+      detail:
+        equals_expression: "{concept}: {parent}"
+
+  NonValueTypeBase:
+    is_a: ImportWarning
+    description: A value type is based on something other than a value type. It is read as a string.
+    slots:
+      - concept
+    slot_usage:
+      kind:
+        equals_expression: "Value type based on something other than a value type, read as String"
+      detail:
+        equals_expression: "{concept}"
+
+  ValueTypeRelationship:
+    is_a: ImportWarning
+    description: A relationship of a value type, which neither an enum nor a type can hold.
+    slots:
+      - concept
+    attributes:
+      relationship:
+        range: string
+        required: true
+        title: relationship
+        description: Name of the relationship.
+    slot_usage:
+      kind:
+        equals_expression: "Relationship of a value type"
+      detail:
+        equals_expression: "{concept}.{relationship}"
+
+  ValueTypeIdentifier:
+    is_a: ImportWarning
+    description: An identifier of a value type, which neither an enum nor a type can hold.
+    slots:
+      - concept
+      - identify_by
+    slot_usage:
+      kind:
+        equals_expression: "Identifier of a value type"
+      detail:
+        equals_expression: "{concept}: {identify_by}"
+
+  UnreadableExpression:
+    is_a: ImportWarning
+    description: An expression that cannot be read.
+    slots:
+      - owner
+      - expression
+    slot_usage:
+      kind:
+        equals_expression: "Expression that cannot be read"
+      detail:
+        equals_expression: "{owner}: {expression}"
+
+  UnsupportedExpression:
+    is_a: ImportWarning
+    description: An expression that LinkML cannot express.
+    slots:
+      - owner
+      - expression
+    slot_usage:
+      kind:
+        equals_expression: "Expression that LinkML cannot express"
+      detail:
+        equals_expression: "{owner}: {expression}"
+
+  Derivation:
+    is_a: ImportWarning
+    description: A derivation (`derived_by`), which is not read.
+    slots:
+      - owner
+      - expression
+    slot_usage:
+      kind:
+        equals_expression: "Derivation (`derived_by`), which is not read"
+      detail:
+        equals_expression: "{owner}: {expression}"
