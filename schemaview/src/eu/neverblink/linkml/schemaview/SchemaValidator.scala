@@ -683,22 +683,20 @@ final class SchemaValidator(using sv: SchemaView) {
                   ),
                 )
               }
-              if (!cardinalityReported) {
-                val exactFirst = !isWider(own.slot, inherited.slot, exactFirst = false)
-                if (!exactFirst || isWider(own.slot, inherited.slot, exactFirst = true)) {
-                  cardinalityReported = true
-                  if (location eq null) location = slotLocation(className, cls, name, schemaId)
-                  errors.addOne(
-                    new WiderSlotCardinality(
-                      location = location,
-                      className = className,
-                      slotName = name,
-                      slotCardinality = cardinality(own.slot, exactFirst),
-                      parentName = parent.name,
-                      parentCardinality = cardinality(inherited.slot, exactFirst),
-                    ),
-                  )
-                }
+              if (!cardinalityReported && !own.hasCardinalityWithin(inherited)) {
+                cardinalityReported = true
+                val exactFirst = !SlotView.isWider(own.slot, inherited.slot, exactFirst = false)
+                if (location eq null) location = slotLocation(className, cls, name, schemaId)
+                errors.addOne(
+                  new WiderSlotCardinality(
+                    location = location,
+                    className = className,
+                    slotName = name,
+                    slotCardinality = cardinality(own.slot, exactFirst),
+                    parentName = parent.name,
+                    parentCardinality = cardinality(inherited.slot, exactFirst),
+                  ),
+                )
               }
             }
           }
@@ -723,44 +721,10 @@ final class SchemaValidator(using sv: SchemaView) {
     at(pointer, schemaId)
   }
 
-  /** Whether `own` allows more values, or requires fewer values, than `parent`.
-    *
-    * A slot has both `exact_cardinality` and `minimum_cardinality` or `maximum_cardinality` when a
-    * class sets one and inherits the other. The JSON Schema, SHACL and Pydantic generators read the
-    * minimum and maximum first, and the OWL generator reads `exact_cardinality` first, so the
-    * caller checks both orders.
-    *
-    * @param exactFirst
-    *   Whether to read `exact_cardinality` before the minimum and maximum
-    */
-  private def isWider(own: SlotDefinition, parent: SlotDefinition, exactFirst: Boolean): Boolean =
-    minValues(own, exactFirst) < minValues(parent, exactFirst) ||
-      maxValues(own, exactFirst) > maxValues(parent, exactFirst)
-
-  /** The least number of values that the slot allows. */
-  private def minValues(slot: SlotDefinition, exactFirst: Boolean): Int = {
-    val min = if (slot.multivalued) {
-      val limit =
-        if (exactFirst) slot.exactCardinality.orElseFast(slot.minimumCardinality)
-        else slot.minimumCardinality.orElseFast(slot.exactCardinality)
-      limit.getOrElseFast(0)
-    } else 0
-    if (slot.required) Math.max(min, 1) else min
-  }
-
-  /** The greatest number of values that the slot allows, or `Int.MaxValue` for no limit. */
-  private def maxValues(slot: SlotDefinition, exactFirst: Boolean): Int =
-    if (slot.multivalued) {
-      val limit =
-        if (exactFirst) slot.exactCardinality.orElseFast(slot.maximumCardinality)
-        else slot.maximumCardinality.orElseFast(slot.exactCardinality)
-      limit.getOrElseFast(Int.MaxValue)
-    } else 1
-
   /** The number of values that the slot allows, as `min..max`, with `*` for no limit. */
   private def cardinality(slot: SlotDefinition, exactFirst: Boolean): String = {
-    val max = maxValues(slot, exactFirst)
-    s"${minValues(slot, exactFirst)}..${if (max == Int.MaxValue) "*" else max.toString}"
+    val max = SlotView.maxValues(slot, exactFirst)
+    s"${SlotView.minValues(slot, exactFirst)}..${if (max == Int.MaxValue) "*" else max.toString}"
   }
 
   private def rangeNames(slot: SlotView): String =

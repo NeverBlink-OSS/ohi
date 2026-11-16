@@ -156,6 +156,31 @@ private object ClassView:
     new SlotView(finalSlot, source.definingSchema)
   }
 
+  /** `slot` with the range and inlining of `parent`. The range is set explicitly, as the two slots
+    * may come from schemas with different `default_range`s.
+    */
+  def withRangeOf(slot: SlotDefinition, parent: SlotView): SlotDefinition = {
+    val p = parent.slot
+    slot.copy(
+      range = new Some(parent.derivedRange.asInstanceOf[Reference[Element]]),
+      anyOf = p.anyOf,
+      exactlyOneOf = p.exactlyOneOf,
+      allOf = p.allOf,
+      inlined = p.inlined,
+      inlinedAsList = p.inlinedAsList,
+    )
+  }
+
+  /** `slot` with the cardinality settings of `parent`. */
+  def withCardinalityOf(slot: SlotDefinition, parent: SlotDefinition): SlotDefinition =
+    slot.copy(
+      required = parent.required,
+      multivalued = parent.multivalued,
+      minimumCardinality = parent.minimumCardinality,
+      maximumCardinality = parent.maximumCardinality,
+      exactCardinality = parent.exactCardinality,
+    )
+
 final case class ClassView(cls: ClassDefinition, definingSchema: SchemaDefinition)(using
     sv: SchemaView,
 ) extends ElementView[ClassDefinition, AnyRef] {
@@ -251,6 +276,49 @@ final case class ClassView(cls: ClassDefinition, definingSchema: SchemaDefinitio
     */
   lazy val sortedAttributeViews: Seq[AttributeView] = {
     attributeViews.values.toVector.sortBy(x => sv.elementOrder(x.slotView.slot))
+  }
+
+  /** [[derivedAttributes]], but a slot with an invalid range or cardinality (`UnrelatedSlotRange`,
+    * `WiderSlotCardinality`) takes the parent's. Used by generators where fields override parents'.
+    */
+  lazy val narrowedAttributes: Map[String, SlotView] = {
+    var result = derivedAttributes
+    val ps = parents
+    if (ps.nonEmpty) {
+      derivedAttributes.foreachEntry { (name, own) =>
+        var slot = own
+        ps.foreach { parent =>
+          val inherited = parent.narrowedAttributes.getOrElse(name, null)
+          if ((inherited ne null) && (slot ne inherited)) {
+            var changed = slot.slot
+            if (!slot.hasRangeDerivedFrom(inherited)) {
+              changed = ClassView.withRangeOf(changed, inherited)
+            }
+            if (!slot.hasCardinalityWithin(inherited)) {
+              changed = ClassView.withCardinalityOf(changed, inherited.slot)
+            }
+            if (changed ne slot.slot) slot = new SlotView(changed, slot.definingSchema)
+          }
+        }
+        if (slot ne own) result = result.updated(name, slot)
+      }
+    }
+    result
+  }
+
+  /** [[attributeViews]] of the [[narrowedAttributes]]. */
+  lazy val narrowedAttributeViews: Map[String, AttributeView] =
+    if (narrowedAttributes eq derivedAttributes) attributeViews
+    else attributeViews.map((k, av) => (k, narrowedViewOf(av)))
+
+  /** [[sortedAttributeViews]] of the [[narrowedAttributes]]. */
+  lazy val sortedNarrowedAttributeViews: Seq[AttributeView] =
+    if (narrowedAttributes eq derivedAttributes) sortedAttributeViews
+    else sortedAttributeViews.map(narrowedViewOf)
+
+  private def narrowedViewOf(av: AttributeView): AttributeView = {
+    val slot = narrowedAttributes(av.slotView.name)
+    if (slot eq av.slotView) av else attributeViewOf(slot)
   }
 
   /** @return
@@ -680,6 +748,12 @@ final case class SlotView(slot: SlotDefinition, definingSchema: SchemaDefinition
     s.allOf == o.allOf && (s.range.isDefined || (definingSchema eq other.definingSchema))
   }
 
+  /** Whether this slot allows no more values, and requires no fewer values, than `other`.
+    */
+  def hasCardinalityWithin(other: SlotView): Boolean =
+    !SlotView.isWider(slot, other.slot, exactFirst = false) &&
+      !SlotView.isWider(slot, other.slot, exactFirst = true)
+
   /** The names of the ranges that the values of this slot may have: those that its `range`, and its
     * `any_of` and `exactly_one_of` lists, all allow. A `linkml:Any` range allows what the lists
     * allow.
@@ -720,6 +794,35 @@ private object SlotView:
     slotUri.foldFast(Uri.synthetic(context.defaultPrefixUri, Case.base(slotName)))(
       UriOrCurie.asUri,
     )
+
+  /** Whether `own` allows more values, or requires fewer values, than `parent`.
+    *
+    * @param exactFirst
+    *   Whether to read `exact_cardinality` before the minimum and maximum
+    */
+  def isWider(own: SlotDefinition, parent: SlotDefinition, exactFirst: Boolean): Boolean =
+    minValues(own, exactFirst) < minValues(parent, exactFirst) ||
+      maxValues(own, exactFirst) > maxValues(parent, exactFirst)
+
+  /** The least number of values that the slot allows. */
+  def minValues(slot: SlotDefinition, exactFirst: Boolean): Int = {
+    val min = if (slot.multivalued) {
+      val limit =
+        if (exactFirst) slot.exactCardinality.orElseFast(slot.minimumCardinality)
+        else slot.minimumCardinality.orElseFast(slot.exactCardinality)
+      limit.getOrElseFast(0)
+    } else 0
+    if (slot.required) Math.max(min, 1) else min
+  }
+
+  /** The greatest number of values that the slot allows, or `Int.MaxValue` for no limit. */
+  def maxValues(slot: SlotDefinition, exactFirst: Boolean): Int =
+    if (slot.multivalued) {
+      val limit =
+        if (exactFirst) slot.exactCardinality.orElseFast(slot.maximumCardinality)
+        else slot.maximumCardinality.orElseFast(slot.exactCardinality)
+      limit.getOrElseFast(Int.MaxValue)
+    } else 1
 
 final case class EnumView(_enum: EnumDefinition, definingSchema: SchemaDefinition)(using
     sv: SchemaView,

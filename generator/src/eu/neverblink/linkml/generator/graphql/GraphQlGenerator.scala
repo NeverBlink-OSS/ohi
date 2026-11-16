@@ -118,7 +118,7 @@ class GraphQlGenerator(using sv: SchemaView)
     * would change them in a way that does not give a subtype. See [[fieldOf]].
     */
   def generateClass(cls: ClassView)(using GraphQlGeneratorOptions): Iterable[GraphQlDefinition] = {
-    lazy val fields = cls.attributeViews.values.map(av => fieldOf(cls, av))
+    lazy val fields = cls.narrowedAttributeViews.values.map(av => fieldOf(cls, av))
     // A class must have the `_` field of each interface it implements that has only that field
     lazy val parentStub = cls.ancestorsWithSelf.iterator.drop(1).exists(hasStubInterface)
     if cls.isAny then Seq.empty

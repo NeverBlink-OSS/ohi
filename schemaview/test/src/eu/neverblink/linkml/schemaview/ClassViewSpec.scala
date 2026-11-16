@@ -210,4 +210,88 @@ class ClassViewSpec extends AnyWordSpec, Matchers {
       sv.classes("Base").definedSlot("other") shouldBe None
     }
   }
+
+  "ClassView.narrowedAttributes" should {
+    val sv = load(
+      """  Other:
+        |    attributes:
+        |      id:
+        |        identifier: true
+        |  SpecialOther:
+        |    is_a: Other
+        |  Unrelated:
+        |    attributes:
+        |      id:
+        |        identifier: true
+        |  Base:
+        |    slots:
+        |      - count
+        |      - label
+        |      - ref
+        |      - tags
+        |  Middle:
+        |    is_a: Base
+        |    slot_usage:
+        |      count:
+        |        range: string
+        |        required: true
+        |      label:
+        |        range: Kinds
+        |        multivalued: true
+        |      ref:
+        |        range: Unrelated
+        |      tags:
+        |        minimum_cardinality: 1
+        |  Leaf:
+        |    is_a: Middle
+        |    slot_usage:
+        |      ref:
+        |        range: SpecialOther
+        |slots:
+        |  count:
+        |    range: integer
+        |  label:
+        |    range: string
+        |  ref:
+        |    range: Other
+        |  tags:
+        |    range: string
+        |    multivalued: true
+        |    minimum_cardinality: 2
+        |""".stripMargin,
+    )
+    def narrowed(cls: String, slot: String): SlotView = sv.classes(cls).narrowedAttributes(slot)
+
+    "be the derived attributes of a class whose slots narrow its parents' slots" in {
+      val base = sv.classes("Base")
+      base.narrowedAttributes shouldBe theSameInstanceAs(base.derivedAttributes)
+      base.sortedNarrowedAttributeViews shouldBe theSameInstanceAs(base.sortedAttributeViews)
+    }
+    "give a slot the parent's range where its range is not derived from the parent's" in {
+      narrowed("Middle", "count").derivedRange.value shouldBe "integer"
+      narrowed("Middle", "label").derivedRange.value shouldBe "string"
+      narrowed("Middle", "ref").derivedRange.value shouldBe "Other"
+      sv.classes("Middle").derivedAttributes("count").derivedRange.value shouldBe "string"
+    }
+    "keep a narrower number of values where only the range is replaced" in {
+      narrowed("Middle", "count").slot.required shouldBe true
+    }
+    "give a slot the parent's number of values where it allows more values" in {
+      narrowed("Middle", "label").slot.multivalued shouldBe false
+      narrowed("Middle", "tags").slot.minimumCardinality shouldBe Some(2)
+    }
+    "compare a slot with the parent's narrowed slot" in {
+      narrowed("Leaf", "count").derivedRange.value shouldBe "integer"
+      // Narrows `Other`, not `Unrelated`
+      narrowed("Leaf", "ref").derivedRange.value shouldBe "SpecialOther"
+      narrowed("Leaf", "label").slot.multivalued shouldBe false
+    }
+    "give attribute views of the narrowed slots" in {
+      val views = sv.classes("Middle").sortedNarrowedAttributeViews
+      views.map(_.slotView.name) shouldBe Seq("count", "label", "ref", "tags")
+      views.collectFirst { case v: ClassReferenceAttributeView => v.classView.name } shouldBe
+        Some("Other")
+      sv.classes("Middle").narrowedAttributeViews("label") shouldBe a[TypeAttributeView]
+    }
+  }
 }
