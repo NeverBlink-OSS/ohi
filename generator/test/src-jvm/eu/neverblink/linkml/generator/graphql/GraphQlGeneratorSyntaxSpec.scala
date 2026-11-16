@@ -20,6 +20,7 @@ class GraphQlGeneratorSyntaxSpec extends AnyWordSpec, Matchers, ModelCatalogueSp
   def parseOrThrow(schema: String): Schema[Any, Any] = {
     val doc = QueryParser.parse(schema, ParserConfig()).get
     checkInterfaceFields(doc)
+    checkTransitiveInterfaces(doc)
     Schema.buildFromAst(doc)
   }
 
@@ -79,8 +80,25 @@ class GraphQlGeneratorSyntaxSpec extends AnyWordSpec, Matchers, ModelCatalogueSp
     }
   }
 
+  /** Checks that each type and interface also implements the interfaces of its interfaces, as
+    * GraphQL requires. Sangria doesn't check this, but graphql-js and graphql-core do.
+    */
+  private def checkTransitiveInterfaces(doc: ast.Document): Unit = {
+    val implemented = doc.definitions.collect {
+      case o: ast.ObjectTypeDefinition => o.name -> o.interfaces.map(_.name)
+      case i: ast.InterfaceTypeDefinition => i.name -> i.interfaces.map(_.name)
+    }.toMap
+    implemented.foreach { (name, interfaces) =>
+      interfaces.foreach { i =>
+        withClue(s"$name implements $i: ") {
+          interfaces should contain allElementsOf implemented.getOrElse(i, Nil)
+        }
+      }
+    }
+  }
+
   "GraphQlGenerator" should {
-    for entry <- ModelCatalogue.all do
+    for entry <- ModelCatalogue.all :+ ModelCatalogue.kitchenSink do
       s"generate a valid schema for model '${entry.name}'" in {
         processSkip(entry.name, "")
         val schema = {
