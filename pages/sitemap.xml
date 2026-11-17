@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The pages outside the docs. The docs have their own sitemap, docs/sitemap-index.xml. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://linkml.ohi.dev/</loc></url>
+  <url><loc>https://linkml.ohi.dev/playground/</loc></url>
+</urlset>

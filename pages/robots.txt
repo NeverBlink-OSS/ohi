@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 
+Sitemap: https://linkml.ohi.dev/sitemap.xml
 Sitemap: https://linkml.ohi.dev/docs/sitemap-index.xml
