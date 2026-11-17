@@ -1108,6 +1108,11 @@ object OwlImporter {
       case c: DataRange.ComplementOf => ifAllExpressible(Seq(c.operand), "`none_of`")
       case _: ClassExpr.OneOf => "an enum"
       case o: DataRange.OneOf => if (o.values.isEmpty) null else "an enum"
+      // A restriction used as a range, or inside another filler, is an anonymous class.
+      // A LinkML slot's range can express an anonymous class with `range_expression`,
+      // which puts the restriction in its `slot_conditions`.
+      // However, this can only work when a slot is created by the importer,
+      // otherwise it's inexpressible.
       case e: ClassExpr.SomeValuesFrom => onSlot(e.property, "`range_expression`")
       case e: ClassExpr.AllValuesFrom => onSlot(e.property, "`range_expression`")
       case e: ClassExpr.HasValue => onSlot(e.property, "`range_expression`")
@@ -1119,8 +1124,9 @@ object OwlImporter {
       if (operands.forall(o => (slotRange(o) ne null) || (unimplementedFeature(o) ne null))) feature
       else null
 
-    /** `feature` if a restriction on the property could be a condition on its slot, or `null` if
-      * the property is an inverse or not a slot.
+    /** `feature` if a restriction on the property could be a condition on its slot, in the
+      * `slot_conditions` of an anonymous class, or `null` if the property is an inverse or not a
+      * slot.
       */
     private def onSlot(property: PropertyRef, feature: String): String =
       if (!property.inverse && propertyKinds.contains(property.iri)) feature else null
