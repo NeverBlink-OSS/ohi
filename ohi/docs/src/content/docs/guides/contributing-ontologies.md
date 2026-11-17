@@ -8,13 +8,15 @@ Add an ontology release through a pull request in the
 
 ## Choose a release
 
-Check the [index](https://github.com/NeverBlink-OSS/ohi-index/tree/main/ontologies) for an
-existing entry. For a new version, reuse its namespace and name and use the upstream version.
-Report errors in existing releases in an issue linking to the release. If you are unsure
-about the version or namespace, ask in an issue.
+Use the version given on the ontology's official website or in its source repository.
+If no version is given, ask in an issue.
 
-Use an official source whose license permits redistribution. Include the license text and
-required copyright notices. If no license is given, ask the publisher for permission.
+Check the [index](https://github.com/NeverBlink-OSS/ohi-index/tree/main/ontologies) for that
+ontology and version. If it is already listed, report corrections in an issue and link to
+its folder.
+
+Check that the license permits redistribution. Include the license text and required
+copyright notices. If no license is given, ask the publisher for permission.
 
 ## Prepare the files
 
@@ -31,6 +33,15 @@ ontologies/biodatamodels/obograph/0.0.1/
 ├── LICENSE
 └── README.md
 ```
+
+The folder path has three parts:
+
+- `namespace` groups entries in the index, here `biodatamodels`.
+- `name` identifies the ontology within that group, here `obograph`.
+- `version` is the publisher's version, here `0.0.1`.
+
+For another version of an indexed ontology, reuse its namespace and name. Ask in an issue
+if you are unsure which namespace to use for a new ontology.
 
 Download [obograph.yaml](https://raw.githubusercontent.com/biodatamodels/obograph/5e37965de4affe91dec05928cf5abacb77a05a12/model/schema/obograph.yaml)
 and save the [CC0 license text](https://creativecommons.org/publicdomain/zero/1.0/legalcode.txt)
@@ -77,31 +88,32 @@ Set `language` and `syntax` for the source file:
 | --- | --- | --- |
 | LinkML | `linkml` | `yaml` |
 | Apache Ossie | `ossie` | `yaml` |
-| OWL | `owl` | `turtle`, `rdfxml`, `ntriples` or `jsonld` |
-| RDF Schema | `rdfs` | `turtle`, `rdfxml`, `ntriples` or `jsonld` |
-
-ohi does not generate other formats from JSON-LD sources.
+| OWL | `owl` | `turtle` or `rdfxml` |
+| RDF Schema | `rdfs` | `turtle` |
 
 Use [SPDX identifiers](https://spdx.org/licenses/) in `licenses` where available. List full
 license texts in `licenseFiles` and separate copyright notices in `copyrightFiles`, using
 paths relative to the release folder.
 
 List imported ontologies in `dependencies` as `namespace/name@version`. Each must already
-be published on ohi. Use `[]` when none are needed. The built-in `linkml:types` import needs
-no entry.
+be published on ohi. Use `[]` when none are needed. The built-in `linkml:types` import does
+not need an entry.
 
-Credit the creators in `authors` and the upstream publisher in `publishers`. If you are
-neither, add your contact details under `maintainers`:
+Credit the creators in `authors` and the publisher in `publishers`. If you are neither an
+author nor a publisher, you must add yourself or your organization under `maintainers`.
+Include contact details and a GitHub profile URL containing your username:
 
 ```yaml
 maintainers:
   - name: "Your name or organization"
     contact: "you@example.org"
+    link: "https://github.com/your-username"
 ```
 
 ## Use remote files
 
-To use a remote ontology or license file, add it to `sources`:
+Use `sources` to reference ontology or license files by URL instead of committing them.
+For `obograph.yaml`, add this entry to `ohi-package.yaml`:
 
 ```yaml
 sources:
@@ -111,9 +123,14 @@ sources:
     size: 3389
 ```
 
+With the above entry, commit `ohi-package.yaml`, `LICENSE` and `README.md` from the example.
+ohi downloads `obograph.yaml` from the URL, so leave that file out of the pull request.
+Keep `roots: [obograph.yaml]` to match the source's `name`.
+
 Pin the URL to a release or commit. GitHub file links are supported. Other URLs must use
-HTTPS and return the file without redirects. Source filenames may contain letters, digits,
-`.`, `_` or `-` and must start with a letter or digit.
+HTTPS and return the file without redirects. Each source filename must be unique across
+`sources` and files in the release folder. It may contain letters, digits, `.`, `_` or `-`
+and must start with a letter or digit.
 
 Download the file and calculate its `sha256` hash and `size` in bytes:
 
@@ -122,8 +139,7 @@ shasum -a 256 obograph.yaml
 wc -c < obograph.yaml
 ```
 
-ohi checks both values when downloading. Keep `roots: [obograph.yaml]`, but remove the local
-`obograph.yaml` before submitting. Local files and remote sources must have distinct names.
+ohi checks both values when it fetches the file.
 
 ## Open a pull request
 
