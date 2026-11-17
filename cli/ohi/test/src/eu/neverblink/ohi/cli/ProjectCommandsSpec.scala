@@ -76,7 +76,9 @@ class ProjectCommandsSpec extends AnyWordSpec, Matchers {
     s"""{
       "schema_version":2,"base_url":"$baseUrl","namespace":"test","name":"$name",
       "version":"1","title":"Example ontology","description":"Synthetic command metadata",
-      "published_at":"2026-10-15T00:00:00Z","publisher":"Example publisher",
+      "published_at":"2026-10-15T00:00:00Z","publishers":[{"name":"Example publisher"}],
+      "authors":[{"name":"Example author"}],
+      "original_sources":["https://example.org/source/"],
       "licenses":[],"keywords":[],"artifacts":[$files],"dependencies":[$refs]
     }"""
   }
@@ -87,7 +89,9 @@ class ProjectCommandsSpec extends AnyWordSpec, Matchers {
       {"document":{
         "base_url":"$baseUrl","namespace":"test","name":"example","version":"1",
         "title":"Example ontology","description":"Synthetic command metadata",
-        "published_at":"2026-10-15T00:00:00Z","licenses":[],"formats":["owl-turtle"]
+        "published_at":"2026-10-15T00:00:00Z","licenses":[],"formats":["owl-turtle"],
+        "keywords":[],"authors":[{"name":"Example author"}],"publishers":[{"name":"Example publisher"}],
+        "original_sources":["https://example.org/source/"]
       }}]}"""
 
   private def catalog(base: String): CatalogClient = new CatalogClient(

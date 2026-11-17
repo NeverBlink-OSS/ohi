@@ -114,6 +114,19 @@ class LockOperation(str, Enum):
     WRITE = "WRITE"
 
 
+class Agent(LinkMLModel):
+    """A person or organization involved with an ontology."""
+
+    model_config = ConfigDict(extra="allow")
+
+    contact: Annotated[str, Field(pattern=r"^[\s\S]*\S")] | None = None
+    """How to reach them, such as an email address."""
+    link: str | None = None
+    """A web page about them, such as a homepage or a profile."""
+    name: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
+    """Name of the person or organization."""
+
+
 class Artifact(LinkMLModel):
     """Ontology content in a declared format, with explicitly identified entry files."""
 
@@ -164,6 +177,17 @@ class CatalogError(LinkMLModel):
     """HTTP response status when visible to the client."""
     url: str | None = None
     """Original target supplied by the caller, when available."""
+
+
+class Citation(LinkMLModel):
+    """A paper that introduces or describes an ontology."""
+
+    model_config = ConfigDict(extra="allow")
+
+    link: str | None = None
+    """A web page about the paper, such as its DOI."""
+    title: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
+    """Title of the paper, or its full citation."""
 
 
 class Dependency(LinkMLModel):
@@ -235,8 +259,12 @@ class Publication(LinkMLModel):
 
     artifacts: list[Artifact] = Field(min_length=1)
     """Available artifacts of this ontology. Each artifact URL occurs once. Multiple artifacts may share a format."""
+    authors: list[Agent] = Field(min_length=1)
+    """The people or organizations that made the ontology."""
     base_url: str
     """Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns its publication JSON. Do not append a filename."""
+    contributors: list[Agent] | None = None
+    """The people or organizations that contributed to the ontology."""
     dependencies: list[Dependency]
     """Complete set of direct and indirect runtime dependency publications, excluding this publication. Each base_url occurs once. An empty list means this publication has no runtime dependencies."""
     description: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
@@ -247,6 +275,8 @@ class Publication(LinkMLModel):
     """Keywords describing the ontology's subject. An empty list means no keywords are provided."""
     licenses: list[Annotated[str, Field(pattern=r"^[\s\S]*\S")]]
     """Reported license names or standard identifiers such as Apache-2.0. Empty means no information supplied. The list specifies neither AND nor OR combination semantics."""
+    maintainers: list[Agent] | None = None
+    """The third-party people or organizations that maintain the ontology in the ohi index."""
     name: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
     """Short catalog identifier, qualified by namespace. The namespace/name pair identifies the same ontology across releases."""
     namespace: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
@@ -255,12 +285,16 @@ class Publication(LinkMLModel):
     """Optional preferred primary RDF term namespace. Preserve the complete value including any trailing delimiter. Not the catalog namespace and not necessarily the ontology IRI."""
     native_element_count: Annotated[StrictInt, Field(ge=0)] | None = None
     """Number of elements in the publication's native format, as published upstream, such as the classes and properties of an OWL ontology."""
+    original_sources: list[str] = Field(min_length=1)
+    """Upstream official sources of the ontology, such as its homepage or repository."""
     preferred_prefix: Annotated[str, Field(pattern=r"^[^\s:]+(?![\s\S])")] | None = None
     """Optional abbreviation for namespace_iri, without whitespace or a colon. Requires namespace_iri. This constraint does not certify prefix syntax for every ontology language."""
+    publications: list[Citation] | None = None
+    """Papers that introduce or describe the ontology."""
     published_at: JsonDateTime
     """First successful Hub publication time for this immutable release. Backend emits UTC date-time text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime of this publication. Not an upstream release date."""
-    publisher: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
-    """Name of the upstream person or organization responsible for publishing the ontology. Not inferred from catalog namespace."""
+    publishers: list[Agent] = Field(min_length=1)
+    """The people or organizations that publish the ontology upstream."""
     schema_version: Annotated[StrictInt, Field(ge=2, le=2)]
     """Metadata contract revision, independent of the ontology's version."""
     title: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
@@ -274,26 +308,38 @@ class SearchHit(LinkMLModel):
 
     model_config = ConfigDict(extra="allow")
 
+    authors: list[Agent] = Field(min_length=1)
+    """The people or organizations that made the ontology."""
     base_url: str
     """Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns its publication JSON. Do not append a filename."""
+    contributors: list[Agent] | None = None
+    """The people or organizations that contributed to the ontology."""
     description: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
     """Short description of the ontology's domain and intended use."""
     element_count: Annotated[StrictInt, Field(ge=0)] | None = None
     """Number of LinkML elements in the publication."""
     formats: list[Format] = Field(min_length=1)
     """Formats of the publication's available artifacts. Each value identifies both the ontology language and serialization syntax, as in artifact.format."""
-    keywords: list[str] | None = None
+    keywords: list[str]
     """Keywords describing the ontology's subject. An empty list means no keywords are provided."""
     licenses: list[Annotated[str, Field(pattern=r"^[\s\S]*\S")]]
     """Reported license names or standard identifiers such as Apache-2.0. Empty means no information supplied. The list specifies neither AND nor OR combination semantics."""
+    maintainers: list[Agent] | None = None
+    """The third-party people or organizations that maintain the ontology in the ohi index."""
     name: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
     """Short catalog identifier, qualified by namespace. The namespace/name pair identifies the same ontology across releases."""
     namespace: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
     """Namespace qualifying the ontology name, such as w3c in w3c/prov-o."""
     native_element_count: Annotated[StrictInt, Field(ge=0)] | None = None
     """Number of elements in the publication's native format, as published upstream, such as the classes and properties of an OWL ontology."""
+    original_sources: list[str] = Field(min_length=1)
+    """Upstream official sources of the ontology, such as its homepage or repository."""
+    publications: list[Citation] | None = None
+    """Papers that introduce or describe the ontology."""
     published_at: JsonDateTime
     """First successful Hub publication time for this immutable release. Backend emits UTC date-time text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime of this publication. Not an upstream release date."""
+    publishers: list[Agent] = Field(min_length=1)
+    """The people or organizations that publish the ontology upstream."""
     title: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
     """Display title of the ontology."""
     version: Annotated[str, Field(pattern=r"^[\s\S]*\S")]

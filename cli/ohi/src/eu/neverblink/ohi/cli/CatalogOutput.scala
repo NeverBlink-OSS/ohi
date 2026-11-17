@@ -4,6 +4,7 @@ import eu.neverblink.linkml.generator.util.JsonUtil
 import eu.neverblink.linkml.runtime.stringify
 import eu.neverblink.linkml.yaml.LinkmlYamlCodec
 import eu.neverblink.ohi.model.generated.{
+  Agent,
   ArtifactOrigin,
   CliFileError,
   DeliveryResultImpl,
@@ -129,7 +130,18 @@ private[cli] object CatalogOutput {
 
       section("Release details")
       field("Published to Hub", stringify(result.publishedAt))
-      field("Publisher", result.publisher)
+      field("Authors", agents(result.authors))
+      field("Publishers", agents(result.publishers))
+      if result.contributors.nonEmpty then field("Contributors", agents(result.contributors))
+      if result.maintainers.nonEmpty then field("Maintainers", agents(result.maintainers))
+      field("Original sources", result.originalSources.map(_.original).mkString(", "), code = "36")
+      if result.publications.nonEmpty then
+        field(
+          "Publications",
+          result.publications
+            .map(citation => withDetails(citation.title, citation.link.map(_.original).toSeq))
+            .mkString("; "),
+        )
       result.namespaceIri.foreach(value => field("RDF namespace", value.original, code = "36"))
       result.preferredPrefix.foreach(value => field("Preferred prefix", value))
       field("License", reported(result.licenses))
@@ -145,4 +157,15 @@ private[cli] object CatalogOutput {
 
   private def reported(values: Seq[String]): String =
     if values.isEmpty then "Not supplied" else values.mkString(", ")
+
+  /** Each person or organization as its name, then its contact and link in parentheses. Names can
+    * hold commas, so they are separated with semicolons.
+    */
+  private def agents(values: Seq[Agent]): String =
+    values
+      .map(agent => withDetails(agent.name, agent.contact.toSeq ++ agent.link.map(_.original)))
+      .mkString("; ")
+
+  private def withDetails(text: String, details: Seq[String]): String =
+    if details.isEmpty then text else s"$text (${details.mkString(", ")})"
 }

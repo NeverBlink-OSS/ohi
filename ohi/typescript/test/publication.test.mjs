@@ -26,7 +26,7 @@ test("maps publication fields", () => {
   assert.equal(publication.name, "sensors");
   assert.equal(publication.title, "Sensors");
   assert.equal(publication.published_at, "2026-10-13T12:30:00Z");
-  assert.equal(publication.publisher, "Example Project");
+  assert.deepEqual(publication.publishers, [{ name: "Example Project" }]);
   assert.deepEqual(publication.licenses, ["Apache-2.0"]);
   assert.equal(publication.namespace_iri, "https://example.org/sensors#");
   assert.equal(publication.preferred_prefix, "sensors");

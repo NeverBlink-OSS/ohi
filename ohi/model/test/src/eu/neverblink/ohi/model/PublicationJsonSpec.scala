@@ -52,7 +52,7 @@ class PublicationJsonSpec extends AnyWordSpec, Matchers {
       publication.name shouldBe "sensors"
       publication.title shouldBe "Sensors"
       publication.publishedAt.value shouldBe "2026-10-13T12:30:00Z"
-      publication.publisher shouldBe "Example Project"
+      publication.publishers.map(_.name) shouldBe Seq("Example Project")
       publication.licenses shouldBe Seq("Apache-2.0")
       publication.namespaceIri.map(_.original) shouldBe Some("https://example.org/sensors#")
       publication.preferredPrefix shouldBe Some("sensors")
@@ -127,8 +127,10 @@ class PublicationJsonSpec extends AnyWordSpec, Matchers {
         "dependencies",
         "title",
         "published_at",
-        "publisher",
         "licenses",
+        "authors",
+        "publishers",
+        "original_sources",
       )
     ) {
       s"require publication $field" in {

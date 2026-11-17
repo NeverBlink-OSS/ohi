@@ -69,13 +69,25 @@
   ],
   "title": "Sensors",
   "published_at": "2026-10-13T12:30:00Z",
-  "publisher": "Example Project",
+  "authors": [
+    {
+      "name": "Example Author"
+    }
+  ],
+  "publishers": [
+    {
+      "name": "Example Project"
+    }
+  ],
+  "original_sources": [
+    "https://example.org/sensors/"
+  ],
   "licenses": [
     "Apache-2.0"
   ],
   "namespace_iri": "https://example.org/sensors#",
   "preferred_prefix": "sensors",
-  "maintainers": [
+  "funders": [
     {
       "name": "Example Project",
       "email": null

@@ -22,11 +22,15 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
   private val hits = """[
     {"document":{"base_url":"https://example.org/z?revision=2","namespace":"example","name":"z",
       "version":"2.0","title":"Z sensors","description":"Sensor\nmeasurements","formats":["rdfs-turtle","owl-turtle"],
-      "licenses":[],"published_at":"2026-10-13T12:30:00Z","element_count":120,
+      "licenses":[],"published_at":"2026-10-13T12:30:00Z",
+      "keywords":[],"authors":[{"name":"Example author"}],"publishers":[{"name":"Example publisher"}],
+      "original_sources":["https://example.org/z/"],"element_count":120,
       "native_element_count":95}},
     {"document":{"base_url":"https://example.org/a/","namespace":"example","name":"a",
       "version":"1.0","title":"A devices","description":"Device descriptions","formats":["linkml-yaml"],
-      "licenses":["MIT"],"published_at":"2026-10-12T12:30:00Z"}}
+      "licenses":["MIT"],"published_at":"2026-10-12T12:30:00Z",
+      "keywords":[],"authors":[{"name":"Example author"}],"publishers":[{"name":"Example publisher"}],
+      "original_sources":["https://example.org/a/"]}}
   ]"""
   private val facets = """[
     {"field_name":"namespace","counts":[{"value":"z","count":2},{"value":"a","count":5}]},
@@ -41,7 +45,9 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
     "schema_version":2,"base_url":"https://example.org/publications/z?revision=2",
     "namespace":"example","name":"z","version":"2.0","title":"Z sensors",
     "description":"Sensor measurements","published_at":"2026-10-13T12:30:00Z",
-    "publisher":"Example publisher","licenses":[],"keywords":[],
+    "authors":[{"name":"Example author"}],
+    "original_sources":["https://example.org/z/"],
+    "publishers":[{"name":"Example publisher"}],"licenses":[],"keywords":[],
     "namespace_iri":"https://example.org/terms#","preferred_prefix":"ex",
     "artifacts":[{"format":"owl-turtle","url":"https://example.org/file.ttl?revision=2",
       "origin":"UPSTREAM","roots":["https://example.org/z.ttl","https://example.org/a.ttl"],
@@ -182,7 +188,9 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
     s"""{"document":{"base_url":"$base/files/packages/example/$name/$version/",
       "namespace":"example","name":"$name","version":"$version","title":"Z sensors",
       "description":"Sensor measurements","formats":["owl-turtle"],"licenses":[],
-      "published_at":"2026-10-01T00:00:00Z"}}"""
+      "published_at":"2026-10-01T00:00:00Z",
+      "keywords":[],"authors":[{"name":"Example author"}],"publishers":[{"name":"Example publisher"}],
+      "original_sources":["https://example.org/z/"]}}"""
 
   // The latest search returns example/z@3. The release search returns example/z@2.0 at `hub`, a
   // look-alike example/Z@5, then example/z@1, @10 and @3. The hits share one date. Their order
@@ -313,11 +321,15 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           "hits":[
             {"base_url":"https://example.org/z?revision=2","namespace":"example","name":"z","version":"2.0",
              "title":"Z sensors","description":"Sensor\nmeasurements","formats":["rdfs-turtle","owl-turtle"],
-             "licenses":[],"published_at":"2026-10-13T12:30:00Z","element_count":120,
+             "licenses":[],"published_at":"2026-10-13T12:30:00Z",
+             "keywords":[],"authors":[{"name":"Example author"}],"publishers":[{"name":"Example publisher"}],
+             "original_sources":["https://example.org/z/"],"element_count":120,
              "native_element_count":95},
             {"base_url":"https://example.org/a/","namespace":"example","name":"a","version":"1.0",
              "title":"A devices","description":"Device descriptions","formats":["linkml-yaml"],
-             "licenses":["MIT"],"published_at":"2026-10-12T12:30:00Z"}],
+             "licenses":["MIT"],"published_at":"2026-10-12T12:30:00Z",
+             "keywords":[],"authors":[{"name":"Example author"}],"publishers":[{"name":"Example publisher"}],
+             "original_sources":["https://example.org/a/"]}],
           "facet_counts":[
             {"field_name":"namespace","counts":[{"value":"z","count":2},{"value":"a","count":5}]},
             {"field_name":"formats","counts":[{"value":"rdfs-turtle","count":1}]}]
@@ -620,7 +632,9 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           "title",
           "description",
           "published_at",
-          "publisher",
+          "authors",
+          "publishers",
+          "original_sources",
           "licenses",
           "keywords",
           "artifacts",

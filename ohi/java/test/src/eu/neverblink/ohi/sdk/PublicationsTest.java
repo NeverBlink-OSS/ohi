@@ -81,6 +81,10 @@ class PublicationsTest {
         assertEquals(declared(Publication.class), keys(complete));
         assertEquals(declared(Artifact.class), keys(complete.get("artifacts").get(0)));
         assertEquals(declared(Dependency.class), keys(complete.get("dependencies").get(0)));
+        for (String field : List.of("authors", "publishers", "contributors", "maintainers")) {
+            assertEquals(declared(Agent.class), keys(complete.get(field).get(0)));
+        }
+        assertEquals(declared(Citation.class), keys(complete.get("publications").get(0)));
         assertEquals(complete, json(decode(complete)));
     }
 
@@ -94,7 +98,7 @@ class PublicationsTest {
         assertEquals("sensors", publication.getName());
         assertEquals("Sensors", publication.getTitle());
         assertEquals(OffsetDateTime.of(2026, 10, 13, 12, 30, 0, 0, ZoneOffset.UTC), publication.getPublishedAt());
-        assertEquals("Example Project", publication.getPublisher());
+        assertEquals("Example Project", publication.getPublishers().get(0).getName());
         assertEquals(List.of("Apache-2.0"), publication.getLicenses());
         assertEquals("https://example.org/sensors#", publication.getNamespaceIri());
         assertEquals("sensors", publication.getPreferredPrefix());
@@ -123,7 +127,8 @@ class PublicationsTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"namespace", "keywords", "dependencies", "title", "published_at", "publisher", "licenses"})
+    @ValueSource(strings = {"namespace", "keywords", "dependencies", "title", "published_at", "licenses",
+            "authors", "publishers", "original_sources"})
     void requiresPublicationFields(String field) {
         data.remove(field);
         reject();

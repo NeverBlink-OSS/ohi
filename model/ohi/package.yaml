@@ -28,9 +28,12 @@ classes:
     - keywords
     - element_count
     - native_element_count
-    slot_usage:
-      keywords:
-        required: true
+    - authors
+    - publishers
+    - contributors
+    - maintainers
+    - original_sources
+    - publications
     attributes:
       schema_version:
         description: Metadata contract revision, independent of the ontology's version.
@@ -38,12 +41,6 @@ classes:
         required: true
         minimum_value: 2
         maximum_value: 2
-      publisher:
-        description: Name of the upstream person or organization responsible for publishing the ontology.
-          Not inferred from catalog namespace.
-        range: string
-        required: true
-        pattern: ^[\s\S]*\S
       namespace_iri:
         description: Optional preferred primary RDF term namespace. Preserve the complete value including
           any trailing delimiter. Not the catalog namespace and not necessarily the ontology IRI.

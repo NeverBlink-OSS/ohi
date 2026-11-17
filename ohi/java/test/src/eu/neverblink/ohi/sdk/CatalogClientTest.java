@@ -133,6 +133,10 @@ class CatalogClientTest {
                     .put("published_at", "2026-10-14T10:20:30Z");
             document.putArray("formats").add("owl-turtle");
             document.putArray("licenses");
+            document.putArray("keywords");
+            document.putArray("authors").addObject().put("name", "Example Author");
+            document.putArray("publishers").addObject().put("name", "Example Project");
+            document.putArray("original_sources").add("https://example.org/sensors/");
         }
         body.put("found", total).put("page", page).put("search_cutoff", false);
         body.putObject("request_params").put("per_page", perPage);
@@ -377,7 +381,8 @@ class CatalogClientTest {
             bodies.add(body);
         }
         for (String field : List.of("base_url", "namespace", "name", "version", "title", "description",
-                "formats", "licenses", "published_at")) {
+                "formats", "licenses", "published_at", "keywords", "authors", "publishers",
+                "original_sources")) {
             ObjectNode body = searchBody(List.of("urn:a"), 1, 10, 3);
             ((ObjectNode) body.get("hits").get(0).get("document")).remove(field);
             bodies.add(body);
@@ -417,7 +422,7 @@ class CatalogClientTest {
         String url = route("/opaque", example("sensors-package.json")) + "?token=a%2Bb";
         Publication publication = new CatalogClient().inspect(url);
         assertEquals("sensors", publication.getName());
-        assertEquals("Example Project", publication.getPublisher());
+        assertEquals("Example Project", publication.getPublishers().get(0).getName());
         assertEquals(List.of(new Request("/opaque?token=a%2Bb", "identity")), requests);
     }
 
