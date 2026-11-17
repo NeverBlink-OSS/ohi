@@ -14,10 +14,16 @@ const SCALA_BUNDLE = "../out/generator/js/fullLinkJS.dest/main.js";
 const DIST = "public/dist";
 
 // main.ts is the page; worker/worker.ts is the generation worker it spawns as a sibling
-// dist/worker.js. The ohi.dev SDK goes into its own dist/ohi.js.
-// All three are emitted into dist/ by outdir.
+// dist/worker.js. The ohi.dev SDK goes into its own dist/ohi.js. analytics.ts is loaded on its own
+// by the playground and the landing page, as dist/analytics.js.
+// All four are emitted into dist/ by outdir.
 const appOptions = {
-  entryPoints: { app: "src/main.ts", worker: "src/worker/worker.ts", ohi: "@neverblink/ohi" },
+  entryPoints: {
+    app: "src/main.ts",
+    worker: "src/worker/worker.ts",
+    ohi: "@neverblink/ohi",
+    analytics: "src/analytics.ts",
+  },
   bundle: true,
   format: "esm",
   target: "es2020",

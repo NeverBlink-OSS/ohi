@@ -39,6 +39,7 @@ export default defineConfig({
       customCss: ['./src/styles/theme.css'],
       components: {
         EditLink: './src/components/EditLink.astro',
+        Head: './src/components/Head.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',
       },
       social: [

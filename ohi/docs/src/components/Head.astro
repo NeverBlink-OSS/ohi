@@ -1,0 +1,13 @@
+---
+// Starlight's head, plus Plausible Analytics under the same site as the rest of ohi.dev.
+import Default from '@astrojs/starlight/components/Head.astro';
+---
+
+<Default />
+
+<script>
+  // Page views, outbound link clicks and file downloads. Plausible skips visits on localhost.
+  import { init } from '@plausible-analytics/tracker';
+
+  init({ domain: 'ohi.dev', endpoint: '/ev', outboundLinks: true, fileDownloads: true });
+</script>
