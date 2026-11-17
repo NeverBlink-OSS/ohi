@@ -1,0 +1,26 @@
+---
+title: Adding ontologies to the index
+description: Contribute an ontology package or request an ontology for the ohi index.
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+import '../../../styles/welcome.css';
+
+<div className="welcome-page">
+
+Did we miss your favorite ontology or one you created yourself and wish to share with the world?
+
+<CardGrid>
+  <LinkCard
+    title="Contribute an Ontology"
+    description="Submit an ontology package through a pull request."
+    href="/docs/guides/contributing-ontologies/"
+  />
+  <LinkCard
+    title="Request an ontology"
+    description="Open an issue to request an ontology or a new release."
+    href="/docs/guides/requesting-ontologies/"
+  />
+</CardGrid>
+
+</div>
