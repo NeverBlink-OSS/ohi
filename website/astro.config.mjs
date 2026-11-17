@@ -95,6 +95,7 @@ export default defineConfig({
       favicon: '/favicon.svg',
       customCss: ['./src/styles/theme.css'],
       components: {
+        Head: './src/components/Head.astro',
         SiteTitle: './src/components/SiteTitle.astro',
         ThemeProvider: './src/components/ThemeProvider.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',

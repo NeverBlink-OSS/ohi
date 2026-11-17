@@ -1,0 +1,14 @@
+---
+// Starlight's head, plus Plausible Analytics under the same site as the landing page and the
+// playground (see ui/src/analytics.ts).
+import Default from '@astrojs/starlight/components/Head.astro';
+---
+
+<Default />
+
+<script>
+  // Page views, outbound link clicks and file downloads. Plausible skips visits on localhost.
+  import { init } from '@plausible-analytics/tracker';
+
+  init({ domain: 'linkml.ohi.dev', endpoint: 'https://ohi.dev/ev', outboundLinks: true, fileDownloads: true });
+</script>
