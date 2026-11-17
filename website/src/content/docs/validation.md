@@ -1,6 +1,9 @@
 ---
 title: Validating schemas
 description: Check LinkML schemas for problems, and read the validation report.
+head:
+  - tag: title
+    content: 'Validate LinkML schemas | ohi LinkML'
 ---
 
 The `validate` command (also available as `lint`) checks LinkML schemas for structural and logical problems:

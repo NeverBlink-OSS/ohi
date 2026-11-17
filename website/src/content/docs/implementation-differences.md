@@ -1,6 +1,9 @@
 ---
 title: Implementation differences
 description: Where ohi LinkML differs from LinkML-Python.
+head:
+  - tag: title
+    content: 'ohi LinkML vs LinkML-Python: differences'
 ---
 
 ## Feature comparison with LinkML-Python

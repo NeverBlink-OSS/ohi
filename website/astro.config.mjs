@@ -105,7 +105,22 @@ export default defineConfig({
       ],
       editLink: { baseUrl: `${repoUrl}/edit/main/website/` },
       sidebar,
-      plugins: [starlightLinksValidator(), starlightLlmsTxt()],
+      plugins: [
+        starlightLinksValidator(),
+        starlightLlmsTxt({
+          // Written after the description at the top of llms.txt, so AI tools also know the old name
+          details: `ohi LinkML was formerly called LinkML-Scala. It is an alternative to LinkML-Python that needs no Python to run: it works in browsers, Node.js, the JVM and as native binaries, and has Python bindings too. It is free and open source under the Apache 2.0 license.
+
+## Start here
+
+- [ohi LinkML](https://linkml.ohi.dev/): what it does and how to install it
+- [Playground](https://linkml.ohi.dev/playground/): try LinkML in the browser, with nothing to install
+- [Differences from LinkML-Python](https://linkml.ohi.dev/docs/implementation-differences/)
+- [Benchmarks against LinkML-Python](https://linkml.ohi.dev/docs/benchmarks/)
+- [Source code](${repoUrl})
+- [Paper: LinkML-Scala: a Robust, Fast, and Portable Implementation of LinkML](https://arxiv.org/abs/2607.22335)`,
+        }),
+      ],
     }),
   ],
 });

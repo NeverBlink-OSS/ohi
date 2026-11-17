@@ -1,6 +1,9 @@
 ---
 title: Benchmarks
 description: How fast ohi LinkML generates SHACL and JSON Schema, compared with LinkML-Python.
+head:
+  - tag: title
+    content: 'LinkML benchmarks: ohi LinkML vs LinkML-Python'
 ---
 
 We benchmarked ohi LinkML against the reference [`linkml` Python package](https://github.com/linkml/linkml) by measuring the **throughput** (generations per second) of the SHACL and JSON Schema generators.
