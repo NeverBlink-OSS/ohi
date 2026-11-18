@@ -960,14 +960,18 @@ class OssieImporterSpec extends AnyWordSpec, Matchers, OssieFixtures {
       result.schema.classes("Person").attributes("age").minimumValue.map(_.value) shouldBe
         Some("0")
       result.warnings shouldBe Seq(
-        "Ontology-wide expression, which is not read (1): Person.age >= 0",
+        "Ontology-wide expression that is not supported by the importer yet (1): " +
+          "Person.age >= 0",
         "Ontology mapping, which is not read (1): warehouse",
         "Expression that cannot be read (2): Person: NOT (Person.name); Person.age: Integer <> 5",
-        "Expression that LinkML cannot express (3): Person: Person.nickname; " +
+        "Expression that is not supported by the importer yet (3): Person: Person.nickname; " +
           "Person.age: Integer >= 1; Code: Code IN ('A', 'B')",
         "Derivation (`derived_by`), which is not read (1): Person: SELECT * FROM people",
-        "Role after the first, as a slot has only one range (1): Person.marriedTo: Date",
-        "Parent of a value type after the first, as a type has only one (1): Code: Integer",
+        "Role after the first, as relationships with several roles are not supported by the " +
+          "importer yet (1): " +
+          "Person.marriedTo: Date",
+        "Parent of a value type after the first, inexpressible in LinkML as a type has only one " +
+          "(1): Code: Integer",
       )
     }
 

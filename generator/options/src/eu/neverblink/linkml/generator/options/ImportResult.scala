@@ -3,8 +3,13 @@
 
 package eu.neverblink.linkml.generator.options
 
+import eu.neverblink.linkml.runtime.*
+
 /** What an importer produced.
   *
+  * @param report
+  *   What could not be imported, one entry for each thing, as an `ImportReport` of
+  *   `model/import-warnings.yaml`. Each warning's `warning_type` says what kind it is.
   * @param schema
   *   The LinkML schema.
   * @param warnings
@@ -13,6 +18,7 @@ package eu.neverblink.linkml.generator.options
   *   From schema: https://linkml.ohi.dev/model/converter/shared
   */
 final case class ImportResult(
+    report: LinkmlAny,
     schema: String,
     warnings: Seq[String],
 ) {

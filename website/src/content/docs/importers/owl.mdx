@@ -10,16 +10,16 @@ import { Options, Usage } from '../../../components/converter';
 
 The `owl` importer reads an [OWL 2](https://www.w3.org/TR/owl2-overview/) ontology, or an RDFS vocabulary, in Turtle or N-Triples, into a LinkML schema. The [OWL generator](/docs/generators/owl/) does the reverse, and the two should preserve most axioms of an OWL ontology.
 
-OWL can express things LinkML cannot (property chains, defined classes, individuals). Those are lost on the way, and the importer lists them.
+OWL can express things LinkML cannot, such as individuals. Some other things LinkML can express, but the importer doesn't read yet, such as property chains (`path_rule`) and defined classes (`classification_rules`). Both are lost on the way, and the importer lists them, saying which is which.
 
 ## Usage
 
 <Usage name="from_owl" />
 
-The result has the schema, and in `warnings`, one line for each kind of thing that could not be imported. On the command line, add `--list-not-imported` to list them on stderr:
+The result has the schema, and in `warnings`, one line for each kind of thing that could not be imported. `report` has the same as an [`ImportReport`](https://github.com/NeverBlink-OSS/ohi/blob/main/model/import-warnings.yaml), with one entry for each thing: its `warning_type` says what kind it is, and its other fields say where. On the command line, add `--list-not-imported` to list the lines on stderr, or `--import-report <file>` to write the report to a file as JSON:
 
 ```
-Not imported: Property chain, which LinkML cannot express (29): has_feature_kind: saref:hasFeatureKind o skos:broader; …
+Not imported: Property chain that is not supported by the importer yet (29): has_feature_kind: saref:hasFeatureKind o skos:broader (LinkML: `path_rule`); …
 ```
 
 The import stops with an error for an IRI that can't be a URI in the schema: an IRI that isn't a valid URI, such as `<http://example.org/q[2]>`, and an IRI whose text would be read back as a CURIE, such as `<xsd:string>`, as `xsd` is a prefix of the LinkML metamodel.

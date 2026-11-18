@@ -1,0 +1,39 @@
+package build.generator.importwarnings
+
+import mill.*
+import millbuild.*
+
+/** The warnings of the schema importers, generated into Scala by this project's own Scala
+  * generator.
+  */
+object `package` extends Module, NativeOptional, LinkMlModelModule {
+  def modelGeneratorCli = build.cli.jvm.runner
+
+  def modelSchema = Task { "model/import-warnings.yaml" }
+
+  def modelPackage = "eu.neverblink.linkml.generator.importwarnings"
+
+  // The npm package ships these types, see `TsDefsGen.modelTypes`
+  override def otherModelOutputs =
+    Seq(ModelOutput("typescript", build.generator.moduleDir / "npm" / "import-warnings.d.ts"))
+
+  object jvm extends CommonModule {
+    def moduleDeps = Seq(
+      build.yaml.jvm,
+    )
+
+    object test extends ScalaTests, CommonTestModule
+  }
+
+  object js extends CommonModule, NoBspModule, CommonScalaJsModule {
+    def moduleDeps = Seq(
+      build.yaml.js,
+    )
+  }
+
+  object native extends CommonModule, NoBspModule, CommonScalaNativeModule {
+    def moduleDeps = Seq(
+      build.yaml.native,
+    )
+  }
+}

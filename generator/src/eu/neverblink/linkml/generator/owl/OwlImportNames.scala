@@ -1,5 +1,6 @@
 package eu.neverblink.linkml.generator.owl
 
+import eu.neverblink.linkml.generator.importwarnings.{ImportWarning, RenamedTerm}
 import eu.neverblink.linkml.generator.owl.config.OwlImportConfigs.{prefixMap, renameMap}
 import eu.neverblink.linkml.generator.options.{NameStyle, OwlImportConfig}
 import eu.neverblink.linkml.rdf.{Iri, Literal}
@@ -33,7 +34,7 @@ private[owl] final class OwlImportNames(
     config: OwlImportConfig,
     ownTerms: collection.Seq[String],
     allTerms: collection.Seq[String],
-    warn: (String, String) => Unit,
+    warn: ImportWarning => Unit,
 ) {
   import OwlImportNames.*
 
@@ -328,7 +329,7 @@ private[owl] final class OwlImportNames(
           n += 1
         }
       }
-      if (name != own) warn("Renamed to avoid a clash", s"$iri is named '$name'")
+      if (name != own) warn(RenamedTerm(iri = iri, name = name))
       taken.addOne(name)
       bases.addOne(Case.base(name))
       byIri.update(iri, name)

@@ -1,5 +1,6 @@
 package eu.neverblink.linkml.generator
 
+import eu.neverblink.linkml.generator.importwarnings.{Codec, ImportReport}
 import eu.neverblink.linkml.generator.options.{ImportResult, JsonOutputFormat, SchemaOutputOptions}
 import eu.neverblink.linkml.generator.util.JsonUtil
 import eu.neverblink.linkml.metamodel.SchemaDefinition
@@ -50,7 +51,11 @@ trait SchemaImporter[O <: SchemaOutputOptions] {
 
   /** The schema as a document, with what could not be imported, as the bindings return them. */
   def importResult(in: InputStream, options: O = defaultOptions): ImportResult =
-    ImportResult(serialize(in, options), warnings = Nil)
+    ImportResult(
+      schema = serialize(in, options),
+      warnings = Nil,
+      report = Codec.toAny(ImportReport(Nil)),
+    )
 
   /** Write the schema to `out`. Flushes, but closes neither stream. */
   final def writeTo(in: InputStream, out: OutputStream, options: O = defaultOptions): Unit =

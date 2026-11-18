@@ -14,9 +14,14 @@ export * from "../../generator/npm/build-info.js";
 import type { SchemaStats } from "../../generator/npm/schema-stats.js";
 export * from "../../generator/npm/schema-stats.js";
 
+// The report of what an importer could not import, generated from model/import-warnings.yaml.
+// Each warning's `warning_type` names its kind, so a `switch` on it narrows the warning.
+import type { ImportReport } from "../../generator/npm/import-warnings.js";
+export * from "../../generator/npm/import-warnings.js";
+
 // The generators and their options, generated from model/converter/all_generators.yaml.
 import type { GeneratorFunctions, StatsGeneratorOptions } from "../../generator/npm/generator-options.js";
-export type { DocsGeneratorOptions, ErDiagramGeneratorOptions, File, Files, FrictionlessGeneratorOptions, GraphQlGeneratorOptions, ImportResult, JavaGeneratorOptions, JsonSchemaGeneratorOptions, LinkMlGeneratorOptions, MetadataLanguageOptions, OssieGeneratorOptions, OwlGeneratorOptions, PruningOptions, PydanticGeneratorOptions, RdfOptions, RdfsGeneratorOptions, ScalaGeneratorOptions, SchemaOutputOptions, ShaclGeneratorOptions, StatsGeneratorOptions, TranslationGeneratorOptions, TypeScriptGeneratorOptions, JavaStyle, JsonOutputFormat, OwlMetadataProfile, OwlPermissibleValueKind, RdfFormat, ScalaErrorHandling, TypeScriptErrorHandling, GeneratorFunctions } from "../../generator/npm/generator-options.js";
+export type { DocsGeneratorOptions, ErDiagramGeneratorOptions, File, Files, FrictionlessGeneratorOptions, GraphQlGeneratorOptions, JavaGeneratorOptions, JsonSchemaGeneratorOptions, LinkMlGeneratorOptions, MetadataLanguageOptions, OssieGeneratorOptions, OwlGeneratorOptions, PruningOptions, PydanticGeneratorOptions, RdfOptions, RdfsGeneratorOptions, ScalaGeneratorOptions, SchemaOutputOptions, ShaclGeneratorOptions, StatsGeneratorOptions, TranslationGeneratorOptions, TypeScriptGeneratorOptions, JavaStyle, JsonOutputFormat, OwlMetadataProfile, OwlPermissibleValueKind, RdfFormat, ScalaErrorHandling, TypeScriptErrorHandling, GeneratorFunctions } from "../../generator/npm/generator-options.js";
 
 // The importers and their options, generated from model/converter/all_importers.yaml.
 import type { ImporterFunctions } from "../../generator/npm/importer-options.js";
@@ -43,10 +48,21 @@ export interface LoadResult {
   readonly report: SchemaValidationReport;
 }
 
+import type { ImportResult as GeneratedImportResult } from "../../generator/npm/importer-options.js";
+
+/** What an importer produced: the LinkML schema, and what could not be imported. */
+export interface ImportResult extends Omit<GeneratedImportResult, "report"> {
+  /**
+   * What could not be imported, one entry for each thing. Each warning's `warning_type` says
+   * what kind it is. `warnings` has the same, as one line for each kind.
+   */
+  report: ImportReport;
+}
+
 /** Functions that take the document to import before their options. */
 type Importers<F> = {
   [K in keyof F]: F[K] extends (...args: infer A) => infer R
-    ? (document: string, ...args: A) => R
+    ? (document: string, ...args: A) => R extends GeneratedImportResult ? ImportResult : R
     : never;
 };
 
