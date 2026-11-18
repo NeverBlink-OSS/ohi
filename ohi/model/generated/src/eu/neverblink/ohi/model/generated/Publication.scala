@@ -11,9 +11,13 @@ import eu.neverblink.linkml.runtime.*
   * @param artifacts
   *   Available artifacts of this ontology. Each artifact URL occurs once. Multiple artifacts may
   *   share a format.
+  * @param authors
+  *   The people or organizations that made the ontology.
   * @param baseUrl
   *   Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns
   *   its publication JSON. Do not append a filename.
+  * @param contributors
+  *   The people or organizations that contributed to the ontology.
   * @param dependencies
   *   Complete set of direct and indirect runtime dependency publications, excluding this
   *   publication. Each base_url occurs once. An empty list means this publication has no runtime
@@ -27,6 +31,8 @@ import eu.neverblink.linkml.runtime.*
   * @param licenses
   *   Reported license names or standard identifiers such as Apache-2.0. Empty means no information
   *   supplied. The list specifies neither AND nor OR combination semantics.
+  * @param maintainers
+  *   The third-party people or organizations that maintain the ontology in the ohi index.
   * @param name
   *   Short catalog identifier, qualified by namespace. The namespace/name pair identifies the same
   *   ontology across releases.
@@ -38,16 +44,19 @@ import eu.neverblink.linkml.runtime.*
   * @param nativeElementCount
   *   Number of elements in the publication's native format, as published upstream, such as the
   *   classes and properties of an OWL ontology.
+  * @param originalSources
+  *   Upstream official sources of the ontology, such as its homepage or repository.
   * @param preferredPrefix
   *   Optional abbreviation for namespace_iri, without whitespace or a colon. Requires
   *   namespace_iri. This constraint does not certify prefix syntax for every ontology language.
+  * @param publications
+  *   Papers that introduce or describe the ontology.
   * @param publishedAt
   *   First successful Hub publication time for this immutable release. Backend emits UTC date-time
   *   text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime of this
   *   publication. Not an upstream release date.
-  * @param publisher
-  *   Name of the upstream person or organization responsible for publishing the ontology. Not
-  *   inferred from catalog namespace.
+  * @param publishers
+  *   The people or organizations that publish the ontology upstream.
   * @param schemaVersion
   *   Metadata contract revision, independent of the ontology's version.
   * @param title
@@ -60,25 +69,31 @@ import eu.neverblink.linkml.runtime.*
 @extraSlotsAllowed
 final case class Publication(
     artifacts: Seq[Artifact],
+    authors: Seq[Agent],
     @named("base_url")
     baseUrl: Uri,
+    contributors: Seq[Agent] = Seq(),
     dependencies: Seq[Dependency],
     description: String,
     @named("element_count")
     elementCount: Option[Int] = None,
     keywords: Seq[String],
     licenses: Seq[String],
+    maintainers: Seq[Agent] = Seq(),
     name: String,
     namespace: String,
     @named("namespace_iri")
     namespaceIri: Option[Uri] = None,
     @named("native_element_count")
     nativeElementCount: Option[Int] = None,
+    @named("original_sources")
+    originalSources: Seq[Uri],
     @named("preferred_prefix")
     preferredPrefix: Option[String] = None,
+    publications: Seq[Citation] = Seq(),
     @named("published_at")
     publishedAt: LinkmlDateTime,
-    publisher: String,
+    publishers: Seq[Agent],
     @named("schema_version")
     schemaVersion: Int,
     title: String,

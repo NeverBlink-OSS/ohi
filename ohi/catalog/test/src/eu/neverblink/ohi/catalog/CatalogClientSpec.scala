@@ -98,6 +98,10 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
         "formats" -> ujson.Arr("owl-turtle"),
         "licenses" -> ujson.Arr(),
         "published_at" -> "2026-10-13T12:30:00Z",
+        "keywords" -> ujson.Arr(),
+        "authors" -> ujson.Arr(ujson.Obj("name" -> "Example Author")),
+        "publishers" -> ujson.Arr(ujson.Obj("name" -> "Example Project")),
+        "original_sources" -> ujson.Arr("https://example.org/sensors/"),
       ),
     )
 

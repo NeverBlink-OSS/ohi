@@ -85,6 +85,7 @@ of what it does and does not accept, and the fastest way to sanity-check a data 
 | `inlines/selfCompact3Required` | 0 | 0 |  |
 | `inlines/selfSimple2` | 0 | 0 |  |
 | `inlines/selfSimple2Required` | 0 | 0 |  |
+| `kitchenSink` | 0 | 0 | Kitchen Sink Schema This schema does not do anything useful… |
 | `langString` | 12 | 17 |  |
 | `metadata/title` | 0 | 0 | This schema is used to test the title and description metad… |
 | `mixin` | 0 | 0 |  |

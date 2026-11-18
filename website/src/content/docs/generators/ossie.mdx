@@ -1,6 +1,9 @@
 ---
 title: Apache Ossie
 description: The Ossie generator, which writes an Apache Ossie ontology for a LinkML schema.
+head:
+  - tag: title
+    content: 'LinkML to Apache Ossie generator | ohi LinkML'
 ---
 
 import { Description, Options, Usage } from '../../../components/converter';
@@ -44,6 +47,7 @@ The generator writes [Apache Ossie](https://github.com/apache/ossie) ontologies 
 | `identifier`, `key`, or `unique_keys`                                                | `identify_by`   |
 | Required slots: `Concept.relationship`. Enums and named types: see [Expressions](#expressions). | `requires` |
 | The class' derived slots, minus the ones stated identically in a supertype.          | `relationships` |
+| `rank`, then name. Classes come first, then enums, then types.                      | *(concept order)* |
 
 `derived_by` is not written.
 
@@ -100,6 +104,8 @@ An **enum** becomes a `ValueType` extending `String`, with its permissible value
 | `permissible_values`             | `Ref IN ('a', 'b')`     |
 | `minimum_value`, `maximum_value` | `Ref >= v`, `Ref <= v`  |
 | `pattern`                        | `REGEXP_LIKE(Ref, 'p')` |
+
+A name that isn't a plain identifier is put in double quotes, as in SQL, such as `Person."related to"`.
 
 ### IRIs
 

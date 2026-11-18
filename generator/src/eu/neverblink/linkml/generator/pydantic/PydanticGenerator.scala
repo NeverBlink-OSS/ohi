@@ -350,7 +350,7 @@ final class PydanticGenerator(using sv: SchemaView)
       if doc.nonEmpty then sink.append('\n')
       sink.append(s"    model_config = ConfigDict(extra=${pyString(value)})\n")
     }
-    val attributes = cls.sortedAttributeViews
+    val attributes = cls.sortedNarrowedAttributeViews
     if (doc.nonEmpty || extra.isDefined) && attributes.nonEmpty then sink.append('\n')
     attributes.foreach(a => writeField(sink, a, cls, ctx))
     val parentKeys =

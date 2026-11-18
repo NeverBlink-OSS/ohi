@@ -60,6 +60,7 @@ slots:
     description: Keywords describing the ontology's subject. An empty list means no keywords are
       provided.
     range: string
+    required: true
     multivalued: true
   published_at:
     description: First successful Hub publication time for this immutable release. Backend emits UTC
@@ -81,10 +82,81 @@ slots:
     - Counted before any conversion, so it can differ from element_count.
     range: integer
     minimum_value: 0
+  authors:
+    description: The people or organizations that made the ontology.
+    range: Agent
+    required: true
+    multivalued: true
+    minimum_cardinality: 1
+    inlined: true
+    inlined_as_list: true
+  publishers:
+    description: The people or organizations that publish the ontology upstream.
+    range: Agent
+    required: true
+    multivalued: true
+    minimum_cardinality: 1
+    inlined: true
+    inlined_as_list: true
+  contributors:
+    description: The people or organizations that contributed to the ontology.
+    range: Agent
+    multivalued: true
+    inlined: true
+    inlined_as_list: true
+  maintainers:
+    description: The third-party people or organizations that maintain the ontology in the ohi index.
+    range: Agent
+    multivalued: true
+    inlined: true
+    inlined_as_list: true
+  original_sources:
+    description: Upstream official sources of the ontology, such as its homepage or repository.
+    range: uri
+    required: true
+    multivalued: true
+    minimum_cardinality: 1
+  publications:
+    description: Papers that introduce or describe the ontology.
+    range: Citation
+    multivalued: true
+    inlined: true
+    inlined_as_list: true
   sha256:
     description: SHA-256 of the file bytes before HTTP content encoding.
     range: string
     pattern: ^[0-9a-f]{64}(?![\s\S])
+classes:
+  Agent:
+    description: A person or organization involved with an ontology.
+    extra_slots:
+      allowed: true
+    attributes:
+      name:
+        description: Name of the person or organization.
+        range: string
+        required: true
+        pattern: ^[\s\S]*\S
+      contact:
+        description: How to reach them, such as an email address.
+        range: string
+        pattern: ^[\s\S]*\S
+      link:
+        description: A web page about them, such as a homepage or a profile.
+        range: uri
+  Citation:
+    description: A paper that introduces or describes an ontology.
+    extra_slots:
+      allowed: true
+    attributes:
+      title:
+        description: Title of the paper, or its full citation.
+        range: string
+        required: true
+        pattern: ^[\s\S]*\S
+      link:
+        description: A web page about the paper, such as its DOI.
+        range: uri
 enums:
   Format:
     description: A combination of ontology language and syntax.

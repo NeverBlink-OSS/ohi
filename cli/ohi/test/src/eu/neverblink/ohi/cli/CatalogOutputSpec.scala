@@ -1,7 +1,7 @@
 package eu.neverblink.ohi.cli
 
 import eu.neverblink.linkml.runtime.{LinkmlDateTime, Uri}
-import eu.neverblink.ohi.model.generated.{ArtifactOrigin, Format, SearchHit}
+import eu.neverblink.ohi.model.generated.{Agent, ArtifactOrigin, Citation, Format, SearchHit}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -25,6 +25,14 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
     preferredPrefix = Some("ex"),
     licenses = Seq("MIT"),
     keywords = Seq("sensors"),
+    authors = Seq(
+      Agent(
+        name = "Ada Example",
+        contact = Some("ada@example.org"),
+        link = Some(Uri("https://example.org/ada")),
+      ),
+      Agent(name = "Sensors, Inc."),
+    ),
   )
   private val expected = """Example ontology
     |  Ontology: test/example
@@ -55,7 +63,9 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
     |
     |Release details
     |  Published to Hub: 2026-10-15T00:00:00Z
-    |  Publisher: Example publisher
+    |  Authors: Ada Example (ada@example.org, https://example.org/ada); Sensors, Inc.
+    |  Publishers: Example publisher
+    |  Original sources: https://example.org/source/
     |  RDF namespace: https://example.org/terms#
     |  Preferred prefix: ex
     |  License: MIT
@@ -66,9 +76,13 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
       baseUrl = Uri(s"https://example.org/release/$version/"),
       description = "Synthetic release",
       formats = Seq.empty,
+      keywords = Seq.empty,
       licenses = Seq.empty,
       name = "example",
       namespace = "test",
+      authors = Seq(Agent(name = "Example author")),
+      publishers = Seq(Agent(name = "Example publisher")),
+      originalSources = Seq(Uri("https://example.org/source/")),
       publishedAt = LinkmlDateTime("2026-10-15T00:00:00Z"),
       title = "Example ontology",
       version = version,
@@ -112,8 +126,41 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
       )
       output should include("\nFiles\n  None\n\nDependencies\n  None\n")
       output should endWith("  License: Not supplied\n  Tags: Not supplied")
-      output should not include "RDF namespace"
-      output should not include "Preferred prefix"
+      output should include(
+        "\n  Authors: Example author\n  Publishers: Example publisher\n" +
+          "  Original sources: https://example.org/source/\n",
+      )
+      Seq(
+        "RDF namespace",
+        "Preferred prefix",
+        "Contributors",
+        "Maintainers",
+        "Publications",
+      ).foreach(output should not include _)
+    }
+
+    "show the optional attribution after the publishers" in {
+      val output = CatalogOutput.publication(
+        publication.copy(
+          contributors = Seq(Agent(name = "Sensor Working Group")),
+          maintainers = Seq(Agent(name = "Index Team", contact = Some("index@example.org"))),
+          originalSources =
+            Seq(Uri("https://example.org/sensors/"), Uri("https://example.org/git")),
+          publications = Seq(
+            Citation(title = "Sensors explained", link = Some(Uri("https://doi.org/10.0/s"))),
+            Citation(title = "More sensors"),
+          ),
+        ),
+        json = false,
+      )
+      output should include(
+        """  Publishers: Example publisher
+          |  Contributors: Sensor Working Group
+          |  Maintainers: Index Team (index@example.org)
+          |  Original sources: https://example.org/sensors/, https://example.org/git
+          |  Publications: Sensors explained (https://doi.org/10.0/s); More sensors
+          |  RDF namespace:""".stripMargin,
+      )
     }
 
     "style headings and URLs without changing the plain result" in {

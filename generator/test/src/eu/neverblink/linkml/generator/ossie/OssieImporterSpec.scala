@@ -36,7 +36,7 @@ class OssieImporterSpec extends AnyWordSpec, Matchers, OssieFixtures {
           OssieGenerator(using reimport(original)).serialize() shouldBe original
         }
 
-      for entry <- ModelCatalogue.all do
+      for entry <- ModelCatalogue.all :+ ModelCatalogue.kitchenSink do
         s"Model catalogue: ${entry.name}" in {
           assume(entry.name != "mixinFacets", "LNK-250: Fix Ossie naming properly")
           val original = OssieGenerator(using entry.model)
@@ -77,6 +77,17 @@ class OssieImporterSpec extends AnyWordSpec, Matchers, OssieFixtures {
         """))
       schema.name shouldBe "spec"
       schema.description shouldBe Some(PlainText("A demo ontology."))
+    }
+
+    "keep the order of the concepts" in {
+      val sv = reimport(ossie("""
+        |ontology:
+        |  - concept: Zebra
+        |    type: EntityType
+        |  - concept: Apple
+        |    type: EntityType
+        """))
+      sv.sortedClasses.map(_.name) shouldBe Seq("Zebra", "Apple")
     }
 
     "invent a schema id, since an Ossie ontology has none" in {

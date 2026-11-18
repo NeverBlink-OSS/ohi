@@ -26,22 +26,34 @@ import java.util.Objects;
     setterVisibility = JsonAutoDetect.Visibility.NONE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
+    "authors",
     "base_url",
+    "contributors",
     "description",
     "element_count",
     "formats",
     "keywords",
     "licenses",
+    "maintainers",
     "name",
     "namespace",
     "native_element_count",
+    "original_sources",
+    "publications",
     "published_at",
+    "publishers",
     "title",
     "version",
 })
 public class SearchHit {
+    @JsonProperty("authors")
+    private List<Agent> authors;
+
     @JsonProperty("base_url")
     private String baseUrl;
+
+    @JsonProperty("contributors")
+    private List<Agent> contributors;
 
     @JsonProperty("description")
     private String description;
@@ -58,6 +70,9 @@ public class SearchHit {
     @JsonProperty("licenses")
     private List<String> licenses;
 
+    @JsonProperty("maintainers")
+    private List<Agent> maintainers;
+
     @JsonProperty("name")
     private String name;
 
@@ -67,7 +82,16 @@ public class SearchHit {
     @JsonProperty("native_element_count")
     private Long nativeElementCount;
 
+    @JsonProperty("original_sources")
+    private List<String> originalSources;
+
+    @JsonProperty("publications")
+    private List<Citation> publications;
+
     private OffsetDateTime publishedAt;
+
+    @JsonProperty("publishers")
+    private List<Agent> publishers;
 
     @JsonProperty("title")
     private String title;
@@ -76,6 +100,15 @@ public class SearchHit {
     private String version;
 
     private final Map<String, Object> extraProperties = new LinkedHashMap<>();
+
+    /** The people or organizations that made the ontology. */
+    public List<Agent> getAuthors() {
+        return authors;
+    }
+
+    public void setAuthors(List<Agent> authors) {
+        this.authors = authors;
+    }
 
     /**
      * Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns its publication JSON. Do not append a filename.
@@ -86,6 +119,15 @@ public class SearchHit {
 
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
+    }
+
+    /** The people or organizations that contributed to the ontology. */
+    public List<Agent> getContributors() {
+        return contributors;
+    }
+
+    public void setContributors(List<Agent> contributors) {
+        this.contributors = contributors;
     }
 
     /** Short description of the ontology's domain and intended use. */
@@ -137,6 +179,15 @@ public class SearchHit {
         this.licenses = licenses;
     }
 
+    /** The third-party people or organizations that maintain the ontology in the ohi index. */
+    public List<Agent> getMaintainers() {
+        return maintainers;
+    }
+
+    public void setMaintainers(List<Agent> maintainers) {
+        this.maintainers = maintainers;
+    }
+
     /**
      * Short catalog identifier, qualified by namespace. The namespace/name pair identifies the same ontology across releases.
      */
@@ -168,6 +219,24 @@ public class SearchHit {
         this.nativeElementCount = nativeElementCount;
     }
 
+    /** Upstream official sources of the ontology, such as its homepage or repository. */
+    public List<String> getOriginalSources() {
+        return originalSources;
+    }
+
+    public void setOriginalSources(List<String> originalSources) {
+        this.originalSources = originalSources;
+    }
+
+    /** Papers that introduce or describe the ontology. */
+    public List<Citation> getPublications() {
+        return publications;
+    }
+
+    public void setPublications(List<Citation> publications) {
+        this.publications = publications;
+    }
+
     /**
      * First successful Hub publication time for this immutable release. Backend emits UTC date-time text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime of this publication. Not an upstream release date.
      */
@@ -177,6 +246,15 @@ public class SearchHit {
 
     public void setPublishedAt(OffsetDateTime publishedAt) {
         this.publishedAt = publishedAt;
+    }
+
+    /** The people or organizations that publish the ontology upstream. */
+    public List<Agent> getPublishers() {
+        return publishers;
+    }
+
+    public void setPublishers(List<Agent> publishers) {
+        this.publishers = publishers;
     }
 
     /** Display title of the ontology. */
@@ -211,16 +289,22 @@ public class SearchHit {
             return false;
         }
         SearchHit other = (SearchHit) o;
-        return Objects.equals(baseUrl, other.baseUrl)
+        return Objects.equals(authors, other.authors)
+            && Objects.equals(baseUrl, other.baseUrl)
+            && Objects.equals(contributors, other.contributors)
             && Objects.equals(description, other.description)
             && Objects.equals(elementCount, other.elementCount)
             && Objects.equals(formats, other.formats)
             && Objects.equals(keywords, other.keywords)
             && Objects.equals(licenses, other.licenses)
+            && Objects.equals(maintainers, other.maintainers)
             && Objects.equals(name, other.name)
             && Objects.equals(namespace, other.namespace)
             && Objects.equals(nativeElementCount, other.nativeElementCount)
+            && Objects.equals(originalSources, other.originalSources)
+            && Objects.equals(publications, other.publications)
             && Objects.equals(publishedAt, other.publishedAt)
+            && Objects.equals(publishers, other.publishers)
             && Objects.equals(title, other.title)
             && Objects.equals(version, other.version)
             && Objects.equals(extraProperties, other.extraProperties);
@@ -228,22 +312,28 @@ public class SearchHit {
 
     @Override
     public int hashCode() {
-        return Objects.hash(baseUrl, description, elementCount, formats, keywords, licenses, name, namespace, nativeElementCount, publishedAt, title, version, extraProperties);
+        return Objects.hash(authors, baseUrl, contributors, description, elementCount, formats, keywords, licenses, maintainers, name, namespace, nativeElementCount, originalSources, publications, publishedAt, publishers, title, version, extraProperties);
     }
 
     @Override
     public String toString() {
         return "SearchHit{"
-            + "baseUrl=" + getBaseUrl()
+            + "authors=" + getAuthors()
+            + ", baseUrl=" + getBaseUrl()
+            + ", contributors=" + getContributors()
             + ", description=" + getDescription()
             + ", elementCount=" + getElementCount()
             + ", formats=" + getFormats()
             + ", keywords=" + getKeywords()
             + ", licenses=" + getLicenses()
+            + ", maintainers=" + getMaintainers()
             + ", name=" + getName()
             + ", namespace=" + getNamespace()
             + ", nativeElementCount=" + getNativeElementCount()
+            + ", originalSources=" + getOriginalSources()
+            + ", publications=" + getPublications()
             + ", publishedAt=" + getPublishedAt()
+            + ", publishers=" + getPublishers()
             + ", title=" + getTitle()
             + ", version=" + getVersion()
             + ", extraProperties=" + getExtraProperties()
@@ -254,29 +344,41 @@ public class SearchHit {
 
     @JsonCreator
     private static SearchHit json$create(
+            @JsonProperty(value = "authors", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> authors,
             @JsonProperty(value = "base_url", required = true) String baseUrl,
+            @JsonProperty("contributors") @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> contributors,
             @JsonProperty(value = "description", required = true) String description,
             @JsonProperty("element_count") Long elementCount,
             @JsonProperty(value = "formats", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Format> formats,
-            @JsonProperty("keywords") @JsonSetter(contentNulls = Nulls.FAIL) List<String> keywords,
+            @JsonProperty(value = "keywords", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> keywords,
             @JsonProperty(value = "licenses", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> licenses,
+            @JsonProperty("maintainers") @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> maintainers,
             @JsonProperty(value = "name", required = true) String name,
             @JsonProperty(value = "namespace", required = true) String namespace,
             @JsonProperty("native_element_count") Long nativeElementCount,
+            @JsonProperty(value = "original_sources", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> originalSources,
+            @JsonProperty("publications") @JsonSetter(contentNulls = Nulls.FAIL) List<Citation> publications,
             @JsonProperty(value = "published_at", required = true) Object publishedAt,
+            @JsonProperty(value = "publishers", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> publishers,
             @JsonProperty(value = "title", required = true) String title,
             @JsonProperty(value = "version", required = true) String version) {
         SearchHit json$item = new SearchHit();
+        json$item.setAuthors(authors);
         json$item.setBaseUrl(baseUrl);
+        json$item.setContributors(contributors);
         json$item.setDescription(description);
         json$item.setElementCount(elementCount);
         json$item.setFormats(formats);
         json$item.setKeywords(keywords);
         json$item.setLicenses(licenses);
+        json$item.setMaintainers(maintainers);
         json$item.setName(name);
         json$item.setNamespace(namespace);
         json$item.setNativeElementCount(nativeElementCount);
+        json$item.setOriginalSources(originalSources);
+        json$item.setPublications(publications);
         json$item.setPublishedAt(LinkMLJson.dateTime(publishedAt));
+        json$item.setPublishers(publishers);
         json$item.setTitle(title);
         json$item.setVersion(version);
         return json$item;

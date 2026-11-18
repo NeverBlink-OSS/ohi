@@ -29,19 +29,24 @@ import java.util.Objects;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
     "artifacts",
+    "authors",
     "base_url",
+    "contributors",
     "dependencies",
     "description",
     "element_count",
     "keywords",
     "licenses",
+    "maintainers",
     "name",
     "namespace",
     "namespace_iri",
     "native_element_count",
+    "original_sources",
     "preferred_prefix",
+    "publications",
     "published_at",
-    "publisher",
+    "publishers",
     "schema_version",
     "title",
     "version",
@@ -50,8 +55,14 @@ public class Publication {
     @JsonProperty("artifacts")
     private List<Artifact> artifacts;
 
+    @JsonProperty("authors")
+    private List<Agent> authors;
+
     @JsonProperty("base_url")
     private String baseUrl;
+
+    @JsonProperty("contributors")
+    private List<Agent> contributors;
 
     @JsonProperty("dependencies")
     private List<Dependency> dependencies;
@@ -68,6 +79,9 @@ public class Publication {
     @JsonProperty("licenses")
     private List<String> licenses;
 
+    @JsonProperty("maintainers")
+    private List<Agent> maintainers;
+
     @JsonProperty("name")
     private String name;
 
@@ -80,13 +94,19 @@ public class Publication {
     @JsonProperty("native_element_count")
     private Long nativeElementCount;
 
+    @JsonProperty("original_sources")
+    private List<String> originalSources;
+
     @JsonProperty("preferred_prefix")
     private String preferredPrefix;
 
+    @JsonProperty("publications")
+    private List<Citation> publications;
+
     private OffsetDateTime publishedAt;
 
-    @JsonProperty("publisher")
-    private String publisher;
+    @JsonProperty("publishers")
+    private List<Agent> publishers;
 
     @JsonProperty("schema_version")
     private Long schemaVersion;
@@ -110,6 +130,15 @@ public class Publication {
         this.artifacts = artifacts;
     }
 
+    /** The people or organizations that made the ontology. */
+    public List<Agent> getAuthors() {
+        return authors;
+    }
+
+    public void setAuthors(List<Agent> authors) {
+        this.authors = authors;
+    }
+
     /**
      * Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns its publication JSON. Do not append a filename.
      */
@@ -119,6 +148,15 @@ public class Publication {
 
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
+    }
+
+    /** The people or organizations that contributed to the ontology. */
+    public List<Agent> getContributors() {
+        return contributors;
+    }
+
+    public void setContributors(List<Agent> contributors) {
+        this.contributors = contributors;
     }
 
     /**
@@ -170,6 +208,15 @@ public class Publication {
         this.licenses = licenses;
     }
 
+    /** The third-party people or organizations that maintain the ontology in the ohi index. */
+    public List<Agent> getMaintainers() {
+        return maintainers;
+    }
+
+    public void setMaintainers(List<Agent> maintainers) {
+        this.maintainers = maintainers;
+    }
+
     /**
      * Short catalog identifier, qualified by namespace. The namespace/name pair identifies the same ontology across releases.
      */
@@ -212,6 +259,15 @@ public class Publication {
         this.nativeElementCount = nativeElementCount;
     }
 
+    /** Upstream official sources of the ontology, such as its homepage or repository. */
+    public List<String> getOriginalSources() {
+        return originalSources;
+    }
+
+    public void setOriginalSources(List<String> originalSources) {
+        this.originalSources = originalSources;
+    }
+
     /**
      * Optional abbreviation for namespace_iri, without whitespace or a colon. Requires namespace_iri. This constraint does not certify prefix syntax for every ontology language.
      */
@@ -221,6 +277,15 @@ public class Publication {
 
     public void setPreferredPrefix(String preferredPrefix) {
         this.preferredPrefix = preferredPrefix;
+    }
+
+    /** Papers that introduce or describe the ontology. */
+    public List<Citation> getPublications() {
+        return publications;
+    }
+
+    public void setPublications(List<Citation> publications) {
+        this.publications = publications;
     }
 
     /**
@@ -234,15 +299,13 @@ public class Publication {
         this.publishedAt = publishedAt;
     }
 
-    /**
-     * Name of the upstream person or organization responsible for publishing the ontology. Not inferred from catalog namespace.
-     */
-    public String getPublisher() {
-        return publisher;
+    /** The people or organizations that publish the ontology upstream. */
+    public List<Agent> getPublishers() {
+        return publishers;
     }
 
-    public void setPublisher(String publisher) {
-        this.publisher = publisher;
+    public void setPublishers(List<Agent> publishers) {
+        this.publishers = publishers;
     }
 
     /** Metadata contract revision, independent of the ontology's version. */
@@ -287,19 +350,24 @@ public class Publication {
         }
         Publication other = (Publication) o;
         return Objects.equals(artifacts, other.artifacts)
+            && Objects.equals(authors, other.authors)
             && Objects.equals(baseUrl, other.baseUrl)
+            && Objects.equals(contributors, other.contributors)
             && Objects.equals(dependencies, other.dependencies)
             && Objects.equals(description, other.description)
             && Objects.equals(elementCount, other.elementCount)
             && Objects.equals(keywords, other.keywords)
             && Objects.equals(licenses, other.licenses)
+            && Objects.equals(maintainers, other.maintainers)
             && Objects.equals(name, other.name)
             && Objects.equals(namespace, other.namespace)
             && Objects.equals(namespaceIri, other.namespaceIri)
             && Objects.equals(nativeElementCount, other.nativeElementCount)
+            && Objects.equals(originalSources, other.originalSources)
             && Objects.equals(preferredPrefix, other.preferredPrefix)
+            && Objects.equals(publications, other.publications)
             && Objects.equals(publishedAt, other.publishedAt)
-            && Objects.equals(publisher, other.publisher)
+            && Objects.equals(publishers, other.publishers)
             && Objects.equals(schemaVersion, other.schemaVersion)
             && Objects.equals(title, other.title)
             && Objects.equals(version, other.version)
@@ -308,26 +376,31 @@ public class Publication {
 
     @Override
     public int hashCode() {
-        return Objects.hash(artifacts, baseUrl, dependencies, description, elementCount, keywords, licenses, name, namespace, namespaceIri, nativeElementCount, preferredPrefix, publishedAt, publisher, schemaVersion, title, version, extraProperties);
+        return Objects.hash(artifacts, authors, baseUrl, contributors, dependencies, description, elementCount, keywords, licenses, maintainers, name, namespace, namespaceIri, nativeElementCount, originalSources, preferredPrefix, publications, publishedAt, publishers, schemaVersion, title, version, extraProperties);
     }
 
     @Override
     public String toString() {
         return "Publication{"
             + "artifacts=" + getArtifacts()
+            + ", authors=" + getAuthors()
             + ", baseUrl=" + getBaseUrl()
+            + ", contributors=" + getContributors()
             + ", dependencies=" + getDependencies()
             + ", description=" + getDescription()
             + ", elementCount=" + getElementCount()
             + ", keywords=" + getKeywords()
             + ", licenses=" + getLicenses()
+            + ", maintainers=" + getMaintainers()
             + ", name=" + getName()
             + ", namespace=" + getNamespace()
             + ", namespaceIri=" + getNamespaceIri()
             + ", nativeElementCount=" + getNativeElementCount()
+            + ", originalSources=" + getOriginalSources()
             + ", preferredPrefix=" + getPreferredPrefix()
+            + ", publications=" + getPublications()
             + ", publishedAt=" + getPublishedAt()
-            + ", publisher=" + getPublisher()
+            + ", publishers=" + getPublishers()
             + ", schemaVersion=" + getSchemaVersion()
             + ", title=" + getTitle()
             + ", version=" + getVersion()
@@ -340,37 +413,47 @@ public class Publication {
     @JsonCreator
     private static Publication json$create(
             @JsonProperty(value = "artifacts", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Artifact> artifacts,
+            @JsonProperty(value = "authors", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> authors,
             @JsonProperty(value = "base_url", required = true) String baseUrl,
+            @JsonProperty("contributors") @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> contributors,
             @JsonProperty(value = "dependencies", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Dependency> dependencies,
             @JsonProperty(value = "description", required = true) String description,
             @JsonProperty("element_count") Long elementCount,
             @JsonProperty(value = "keywords", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> keywords,
             @JsonProperty(value = "licenses", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> licenses,
+            @JsonProperty("maintainers") @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> maintainers,
             @JsonProperty(value = "name", required = true) String name,
             @JsonProperty(value = "namespace", required = true) String namespace,
             @JsonProperty("namespace_iri") String namespaceIri,
             @JsonProperty("native_element_count") Long nativeElementCount,
+            @JsonProperty(value = "original_sources", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> originalSources,
             @JsonProperty("preferred_prefix") String preferredPrefix,
+            @JsonProperty("publications") @JsonSetter(contentNulls = Nulls.FAIL) List<Citation> publications,
             @JsonProperty(value = "published_at", required = true) Object publishedAt,
-            @JsonProperty(value = "publisher", required = true) String publisher,
+            @JsonProperty(value = "publishers", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> publishers,
             @JsonProperty(value = "schema_version", required = true) Long schemaVersion,
             @JsonProperty(value = "title", required = true) String title,
             @JsonProperty(value = "version", required = true) String version) {
         Publication json$item = new Publication();
         json$item.setArtifacts(artifacts);
+        json$item.setAuthors(authors);
         json$item.setBaseUrl(baseUrl);
+        json$item.setContributors(contributors);
         json$item.setDependencies(dependencies);
         json$item.setDescription(description);
         json$item.setElementCount(elementCount);
         json$item.setKeywords(keywords);
         json$item.setLicenses(licenses);
+        json$item.setMaintainers(maintainers);
         json$item.setName(name);
         json$item.setNamespace(namespace);
         json$item.setNamespaceIri(namespaceIri);
         json$item.setNativeElementCount(nativeElementCount);
+        json$item.setOriginalSources(originalSources);
         json$item.setPreferredPrefix(preferredPrefix);
+        json$item.setPublications(publications);
         json$item.setPublishedAt(LinkMLJson.dateTime(publishedAt));
-        json$item.setPublisher(publisher);
+        json$item.setPublishers(publishers);
         json$item.setSchemaVersion(schemaVersion);
         json$item.setTitle(title);
         json$item.setVersion(version);

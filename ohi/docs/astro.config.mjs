@@ -39,6 +39,7 @@ export default defineConfig({
       customCss: ['./src/styles/theme.css'],
       components: {
         EditLink: './src/components/EditLink.astro',
+        Head: './src/components/Head.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',
       },
       social: [
@@ -50,11 +51,20 @@ export default defineConfig({
         { label: 'Welcome', link: '/' },
         {
           label: 'Getting started',
-          items: ['getting-started/install', 'getting-started/first-ontology'],
+          items: [
+            'getting-started/install',
+            'getting-started/first-ontology',
+            'getting-started/adding-ontologies',
+          ],
         },
         {
           label: 'Guides',
-          items: ['guides/search', 'guides/projects'],
+          items: [
+            'guides/search',
+            'guides/projects',
+            'guides/requesting-ontologies',
+            'guides/contributing-ontologies',
+          ],
         },
         {
           label: 'Reference',

@@ -23,6 +23,13 @@ class ExpressionSpec extends AnyWordSpec, Matchers, ScalaCheckPropertyChecks {
       Member(Ref("Person"), "name").render shouldBe "Person.name"
     }
 
+    "quote a name that is not a bare identifier" in {
+      Member(Ref("Familial relationship"), "related to").render shouldBe
+        "\"Familial relationship\".\"related to\""
+      Member(Ref("Person"), "say \"hi\"").render shouldBe "Person.\"say \"\"hi\"\"\""
+      AtLeast(Ref("2nd"), Literal.Number("5")).render shouldBe "\"2nd\" >= 5"
+    }
+
     "write an IN list with the values quoted" in {
       InList(Ref("Status"), Seq(Literal.Text("ALIVE"), Literal.Text("DEAD"))).render shouldBe
         "Status IN ('ALIVE', 'DEAD')"
@@ -112,10 +119,16 @@ class ExpressionSpec extends AnyWordSpec, Matchers, ScalaCheckPropertyChecks {
       Expression.parse("Integer >= abc") shouldBe None
     }
 
-    "refuse a name that is not a bare identifier" in {
+    "read a quoted name, with a doubled quote as an escaped one" in {
+      parsed("Person.\"related to\"") shouldBe Member(Ref("Person"), "related to")
+      parsed("\"say \"\"hi\"\"\" >= 5") shouldBe AtLeast(Ref("say \"hi\""), Literal.Number("5"))
+    }
+
+    "refuse a name that is neither a bare identifier nor quoted" in {
       Expression.parse("Order.line.nr") shouldBe None
       Expression.parse("'Order'.nr") shouldBe None
       Expression.parse("Order line >= 5") shouldBe None
+      Expression.parse("\"Order.nr") shouldBe None
     }
 
     "not be fooled by REGEXP_LIKE used as a name" in {

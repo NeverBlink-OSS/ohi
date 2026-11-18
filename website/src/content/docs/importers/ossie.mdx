@@ -1,6 +1,9 @@
 ---
 title: Apache Ossie
 description: The Ossie importer, which reads an Apache Ossie ontology into a LinkML schema.
+head:
+  - tag: title
+    content: 'Convert Apache Ossie to LinkML | ohi LinkML'
 ---
 
 import { Description, Options, Usage } from '../../../components/converter';
@@ -51,6 +54,7 @@ By default, the importer invents an identifier for the LinkML schema as `https:/
 | `identify_by`   | One entry, `OneToOne`, or scalar range → `identifier`. Otherwise `unique_keys`.                                   |
 | `requires`      | `Concept.relationship` makes the slot required. For enums and types, see [Expressions](#expressions). Any other restriction is ignored. |
 | `relationships` | One attribute each.                                                                                               |
+| *(concept order)* | `rank`                                                                                                        |
 
 `derived_by` is not read.
 
@@ -95,6 +99,8 @@ The generator maps several LinkML types to one Ossie concept, so a round trip ch
 | `Ref == 'a' OR Ref = 'b'`  | `permissible_values`, written back as `IN` |
 | `Ref >= v`, `Ref <= v`     | `minimum_value`, `maximum_value`           |
 | `REGEXP_LIKE(Ref, 'p')`    | `pattern`                                  |
+
+A name in an expression can be in double quotes, as in SQL, such as `Person."related to"`.
 
 ### IRIs
 
