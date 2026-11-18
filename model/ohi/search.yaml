@@ -68,6 +68,7 @@ classes:
     - description
     - licenses
     - published_at
+    - hub_version
     - keywords
     - element_count
     - native_element_count
