@@ -37,7 +37,44 @@
         ],
         "published_at": "2026-10-13T12:30:00Z",
         "element_count": 12,
-        "native_element_count": 34
+        "native_element_count": 34,
+        "authors": [
+          {
+            "name": "Ada Example",
+            "contact": "ada@example.org",
+            "link": "https://example.org/people/ada"
+          }
+        ],
+        "publishers": [
+          {
+            "name": "Example Project",
+            "contact": "info@example.org",
+            "link": "https://example.org/"
+          }
+        ],
+        "contributors": [
+          {
+            "name": "Sensor Working Group",
+            "contact": "sensors@example.org",
+            "link": "https://example.org/groups/sensors"
+          }
+        ],
+        "maintainers": [
+          {
+            "name": "Example Maintainers",
+            "contact": "maintainers@example.org",
+            "link": "https://example.org/maintainers"
+          }
+        ],
+        "original_sources": [
+          "https://example.org/sensors/"
+        ],
+        "publications": [
+          {
+            "title": "Sensors: an ontology of sensors and observations",
+            "link": "https://doi.org/10.0000/example.sensors"
+          }
+        ]
       }
     }
   ]

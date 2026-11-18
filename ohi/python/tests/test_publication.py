@@ -3,7 +3,7 @@ import unittest
 from datetime import datetime, timezone
 from pathlib import Path
 
-from ohi.generated import Artifact, Dependency, Publication
+from ohi.generated import Agent, Artifact, Citation, Dependency, Publication
 from ohi.publication import decode_publication
 
 
@@ -36,6 +36,9 @@ class PublicationTests(unittest.TestCase):
         self.assertEqual(set(complete), set(Publication.model_fields))
         self.assertEqual(set(complete["artifacts"][0]), set(Artifact.model_fields))
         self.assertEqual(set(complete["dependencies"][0]), set(Dependency.model_fields))
+        for field in ("authors", "publishers", "contributors", "maintainers"):
+            self.assertEqual(set(complete[field][0]), set(Agent.model_fields))
+        self.assertEqual(set(complete["publications"][0]), set(Citation.model_fields))
         self.assertEqual(dumped(decode(complete)), complete)
 
     def test_maps_publication_fields(self):
@@ -48,7 +51,7 @@ class PublicationTests(unittest.TestCase):
         self.assertEqual(publication.name, "sensors")
         self.assertEqual(publication.title, "Sensors")
         self.assertEqual(publication.published_at, datetime(2026, 10, 13, 12, 30, tzinfo=timezone.utc))
-        self.assertEqual(publication.publisher, "Example Project")
+        self.assertEqual([p.name for p in publication.publishers], ["Example Project"])
         self.assertEqual(publication.licenses, ["Apache-2.0"])
         self.assertEqual(publication.namespace_iri, "https://example.org/sensors#")
         self.assertEqual(publication.preferred_prefix, "sensors")
@@ -83,7 +86,8 @@ class PublicationTests(unittest.TestCase):
         self.assertEqual(decode(example("units")).keywords, [])
 
     def test_requires_new_publication_fields(self):
-        for field in ("namespace", "keywords", "dependencies", "title", "published_at", "publisher", "licenses"):
+        for field in ("namespace", "keywords", "dependencies", "title", "published_at", "licenses",
+                      "authors", "publishers", "original_sources"):
             with self.subTest(field=field):
                 self.data = example()
                 del self.data[field]

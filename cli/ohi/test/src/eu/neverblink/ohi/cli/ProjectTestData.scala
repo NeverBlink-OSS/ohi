@@ -14,6 +14,7 @@ private[cli] object ProjectTestData {
     val identity = java.net.URI.create(baseUrl).getRawPath.split("/", -1).toSeq
     val hub = identity.take(3) == Seq("", "files", "packages") && identity.size >= 6
     Publication(
+      authors = Seq(Agent(name = "Example author")),
       artifacts = artifacts.map { (url, format) =>
         Artifact(
           format = format,
@@ -31,8 +32,9 @@ private[cli] object ProjectTestData {
       licenses = Seq.empty,
       name = if hub then identity(4) else "example",
       namespace = if hub then identity(3) else "test",
+      originalSources = Seq(Uri("https://example.org/source/")),
       publishedAt = LinkmlDateTime("2026-10-15T00:00:00Z"),
-      publisher = "Example publisher",
+      publishers = Seq(Agent(name = "Example publisher")),
       schemaVersion = 2,
       title = "Example ontology",
       version = if hub then identity(5) else "1",

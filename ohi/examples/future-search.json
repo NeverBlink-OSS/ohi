@@ -51,9 +51,22 @@
           "sensors"
         ],
         "published_at": "2026-10-13T12:30:00Z",
+        "authors": [
+          {
+            "name": "Example Author"
+          }
+        ],
+        "publishers": [
+          {
+            "name": "Example Project"
+          }
+        ],
+        "original_sources": [
+          "https://example.org/sensors/"
+        ],
         "publisher": "Example Project",
         "download_count": 7,
-        "maintainers": [
+        "funders": [
           {
             "name": "Example Project"
           }
@@ -77,7 +90,21 @@
           "owl-jsonld"
         ],
         "licenses": [],
-        "published_at": "2026-10-14T12:30:00Z"
+        "keywords": [],
+        "published_at": "2026-10-14T12:30:00Z",
+        "authors": [
+          {
+            "name": "Example Author"
+          }
+        ],
+        "publishers": [
+          {
+            "name": "Example Project"
+          }
+        ],
+        "original_sources": [
+          "https://example.org/devices/"
+        ]
       }
     },
     {
@@ -92,7 +119,21 @@
           "owl-turtle"
         ],
         "licenses": [],
-        "published_at": "2026-10-12T12:30:00Z"
+        "keywords": [],
+        "published_at": "2026-10-12T12:30:00Z",
+        "authors": [
+          {
+            "name": "Example Author"
+          }
+        ],
+        "publishers": [
+          {
+            "name": "Example Project"
+          }
+        ],
+        "original_sources": [
+          "https://example.org/units/"
+        ]
       }
     }
   ]

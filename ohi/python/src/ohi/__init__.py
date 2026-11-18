@@ -2,6 +2,7 @@
 
 from .catalog import CatalogClient, CatalogException
 from .generated import (
+    Agent,
     Artifact,
     ArtifactOrigin,
     ArtifactSelection,
@@ -9,6 +10,7 @@ from .generated import (
     CatalogError,
     CatalogErrorCode,
     CatalogOperation,
+    Citation,
     Dependency,
     FacetCount,
     FacetValueCount,
@@ -28,8 +30,8 @@ from .publication import decode_publication
 from .lock import LockException, decode_lock, encode_lock, read_lock, write_lock
 
 __all__ = [
-    "Artifact", "ArtifactOrigin", "ArtifactSelection", "CatalogClient", "CatalogConfig", "CatalogError",
-    "CatalogErrorCode", "CatalogException", "CatalogOperation", "Dependency", "FacetCount",
+    "Agent", "Artifact", "ArtifactOrigin", "ArtifactSelection", "CatalogClient", "CatalogConfig", "CatalogError",
+    "CatalogErrorCode", "CatalogException", "CatalogOperation", "Citation", "Dependency", "FacetCount",
     "FacetValueCount", "Format", "Lock", "LockedFile", "LockError", "LockErrorCode", "LockException",
     "LockOperation", "Publication", "Release", "SearchHit", "SearchRequest", "SearchResult",
     "decode_publication", "decode_lock", "encode_lock", "ohi_release_page", "read_lock", "write_lock",

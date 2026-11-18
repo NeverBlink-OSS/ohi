@@ -25,7 +25,9 @@ def search_body(urls=(), page=1, per_page=2, total=3, cutoff=False):
         "hits": [{"document": {
             "base_url": url, "namespace": "example", "name": "sensors", "version": "1.2+fix",
             "title": "Sensors", "description": "Sensor observations", "formats": ["owl-turtle"],
-            "licenses": [], "published_at": "2026-10-14T10:20:30Z",
+            "licenses": [], "published_at": "2026-10-14T10:20:30Z", "keywords": [],
+            "authors": [{"name": "Example Author"}], "publishers": [{"name": "Example Project"}],
+            "original_sources": ["https://example.org/sensors/"],
         }} for url in urls],
         "found": total, "page": page, "request_params": {"per_page": per_page},
         "search_cutoff": cutoff,
@@ -52,7 +54,8 @@ class SearchCodecTests(unittest.TestCase):
         fields = {
             "response": ("found", "page", "request_params", "search_cutoff", "hits"),
             "hit": ("base_url", "namespace", "name", "version", "title", "description",
-                    "formats", "licenses", "published_at"),
+                    "formats", "licenses", "published_at", "keywords", "authors", "publishers",
+                    "original_sources"),
         }
         for scope, names in fields.items():
             for field in names:
@@ -81,6 +84,8 @@ class SearchCodecTests(unittest.TestCase):
                         "shacl-turtle"],
             "licenses": ["MIT", "Apache-2.0"], "published_at": "2026-10-14T10:20:30.123456+02:30",
             "keywords": ["sensors", "observations"],
+            "authors": [{"name": "Example Author"}], "publishers": [{"name": "Example Project"}],
+            "original_sources": ["https://example.org/sensors/"],
         })
         self.assertEqual(result.hits[0].published_at,
                          datetime(2026, 10, 14, 10, 20, 30, 123456, timezone(timedelta(hours=2, minutes=30))))
@@ -89,7 +94,8 @@ class SearchCodecTests(unittest.TestCase):
     def test_rejects_invalid_summary_values(self):
         values = [(field, " \t") for field in ("namespace", "name", "version", "title", "description")]
         values += [("title", 1), ("formats", []), ("formats", [1]), ("formats", "owl-turtle"),
-                   ("licenses", [" "]), ("keywords", [1]),
+                   ("licenses", [" "]), ("keywords", [1]), ("original_sources", []),
+                   ("authors", []), ("publishers", []), ("authors", [{"name": " "}]),
                    ("published_at", "2026-02-30T10:20:30Z"), ("published_at", 1791973230)]
         for field, value in values:
             with self.subTest(field=field, value=value):
@@ -407,7 +413,7 @@ class CatalogTests(unittest.TestCase):
     def test_inspect_uses_exact_opaque_path_and_does_not_fetch_dependencies(self):
         url = self.route("/opaque", (EXAMPLES / "sensors-package.json").read_bytes()) + "?token=a%2Bb"
         result = self.client().inspect(url)
-        self.assertEqual((result.name, result.title, result.publisher), ("sensors", "Sensors", "Example Project"))
+        self.assertEqual((result.name, result.title, result.publishers[0].name), ("sensors", "Sensors", "Example Project"))
         self.assertEqual([d.base_url for d in result.dependencies], ["https://example.org/packages/units/2.0.0/"])
         self.assertEqual(self.server.requests, [("/opaque?token=a%2Bb", "identity")])
 
