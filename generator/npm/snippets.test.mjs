@@ -145,7 +145,7 @@ import { LinkML } from "@neverblink/linkml";
   const yaml = readFileSync("prov-o.linkml.yaml", "utf8");
   const { view, report } = LinkML.loadFromString(yaml, {});
   if (!view) throw new Error(JSON.stringify(report));
-  const result = view.stats({ pruning_mode: "skip" });
+  const result = view.stats({ only_classes_from_root_schema: false });
   if (!result) throw new Error("stats gave nothing");
 }
 

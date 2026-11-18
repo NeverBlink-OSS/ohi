@@ -5,7 +5,7 @@ package eu.neverblink.linkml.generator.stats.model
 
 import eu.neverblink.linkml.runtime.*
 
-/** Decides which elements are in scope.
+/** Decided which elements were in scope, in older versions of the generator.
   *
   * @see
   *   From schema: https://linkml.ohi.dev/model/schema-stats

@@ -1,14 +1,13 @@
 package eu.neverblink.linkml.generator.stats
 
-import eu.neverblink.linkml.generator.options.{JsonOutputFormat, PruningMode, StatsGeneratorOptions}
+import eu.neverblink.linkml.generator.options.{JsonOutputFormat, StatsGeneratorOptions}
 import eu.neverblink.linkml.generator.DocumentGenerator
-import eu.neverblink.linkml.generator.stats.model.{PruningMode as _, *}
+import eu.neverblink.linkml.generator.stats.model.*
 import eu.neverblink.linkml.generator.util.JsonUtil
-import eu.neverblink.linkml.generator.util.Pruning.pruning
-import eu.neverblink.linkml.metamodel.{CommonMetadata, SlotDefinition}
+import eu.neverblink.linkml.metamodel.CommonMetadata
 import eu.neverblink.linkml.runtime.FastUtils.foreachFast
-import eu.neverblink.linkml.runtime.{LocalizedText, MultilingualText, PlainText, Reference}
-import eu.neverblink.linkml.schemaview.SchemaView
+import eu.neverblink.linkml.runtime.{LocalizedText, MultilingualText, PlainText}
+import eu.neverblink.linkml.schemaview.{ElementView, SchemaView}
 import eu.neverblink.linkml.yaml.LinkmlYamlCodec
 
 import java.io.OutputStream
@@ -18,6 +17,9 @@ import scala.collection.mutable
 /** Statistics about a schema: how many elements of each kind it has, how many of them are
   * documented, deprecated or mapped, which languages its text is in, and how many schemas it
   * imports. Follows the `schema-stats.yaml` model.
+  *
+  * Which elements it counts is set by `onlyClassesFromRootSchema`, the same as in the SHACL and
+  * RDFS generators. The `pruningMode` option is deprecated and ignored.
   */
 final class StatsGenerator(using sv: SchemaView) extends DocumentGenerator[StatsGeneratorOptions] {
   import StatsGenerator.*
@@ -25,16 +27,16 @@ final class StatsGenerator(using sv: SchemaView) extends DocumentGenerator[Stats
   override protected def defaultOptions: StatsGeneratorOptions = StatsGeneratorOptions()
 
   def generate(options: StatsGeneratorOptions = StatsGeneratorOptions()): SchemaStats = {
-    val query = options.pruning.derivedQuery(false, true)
-    val skip = options.pruningMode == PruningMode.Skip
     val root = sv.root
+    val onlyRoot = options.onlyClassesFromRootSchema
+    // Like the SHACL and RDFS generators: an element is in scope if the root schema defines it,
+    // or always if the option is off. `pruningMode` and `treeRoot` are deprecated and ignored.
+    def inScope(view: ElementView[?, ?]): Boolean = !onlyRoot || view.definingSchema.eq(root)
     val languages = mutable.HashMap.empty[String, Int]
-    val subsetsUsed = mutable.HashSet.empty[String]
 
     def count(kind: Kind, cm: CommonMetadata): Unit = {
       kind.add(cm)
       countText(cm, languages)
-      cm.inSubset.foreach(s => subsetsUsed.add(s.value))
     }
 
     val classes = Kind()
@@ -46,24 +48,17 @@ final class StatsGenerator(using sv: SchemaView) extends DocumentGenerator[Stats
     val subsets = Kind()
     val functions = Kind()
 
-    val slotNames = mutable.HashSet.empty[String]
     sv.classes.foreachEntry { (_, cv) =>
-      if (!cv.isAny && query.reachable(cv)) {
+      if (!cv.isAny && inScope(cv)) {
         count(classes, cv.cls)
         cv.cls.attributes.foreachEntry((_, attribute) => count(attributes, attribute))
-        if (!skip) cv.derivedAttributes.foreachEntry { (name, _) =>
-          if (
-            sv.slotDefinitions.contains(name) &&
-            !cv.isSlotFromAttributes(new Reference[SlotDefinition](name))
-          ) slotNames.add(name)
-        }
       }
     }
-    sv.slotDefinitions.foreachEntry { (name, slot) =>
-      if (skip || slotNames.contains(name) || query.reachable(slot)) count(slots, slot.slot)
+    sv.slotDefinitions.foreachEntry { (_, slot) =>
+      if (inScope(slot)) count(slots, slot.slot)
     }
     sv.enums.foreachEntry { (_, ev) =>
-      if (query.reachable(ev)) {
+      if (inScope(ev)) {
         count(enums, ev._enum)
         ev._enum.permissibleValues.foreachEntry { (_, pv) =>
           count(permissibleValues, pv)
@@ -72,16 +67,13 @@ final class StatsGenerator(using sv: SchemaView) extends DocumentGenerator[Stats
       }
     }
     sv.types.foreachEntry { (_, tv) =>
-      if (query.reachable(tv)) count(types, tv._type)
+      if (inScope(tv)) count(types, tv._type)
     }
     sv.functions.foreachEntry { (_, fv) =>
-      if (query.reachable(fv)) count(functions, fv.function)
+      if (inScope(fv)) count(functions, fv.function)
     }
-    // Pruning follows ranges, which never lead to a subset, so we patch it here
-    // TODO: fix pruning of subsets?
-    sv.subsets.foreachEntry { (name, sub) =>
-      if (skip || root.subsets.contains(name) || subsetsUsed.contains(name))
-        count(subsets, sub.subset)
+    sv.subsets.foreachEntry { (_, sub) =>
+      if (inScope(sub)) count(subsets, sub.subset)
     }
     countText(root, languages)
 
@@ -106,11 +98,7 @@ final class StatsGenerator(using sv: SchemaView) extends DocumentGenerator[Stats
         hasTitle = hasText(root.title),
         hasVersion = root.version.exists(hasText),
       ),
-      pruningMode = options.pruningMode match {
-        case PruningMode.TreeRoot => model.PruningMode.TreeRoot
-        case PruningMode.Schema => model.PruningMode.Schema
-        case PruningMode.Skip => model.PruningMode.Skip
-      },
+      onlyClassesFromRootSchema = onlyRoot,
       schemaId = root.id,
       schemaName = root.name.toString,
     )
