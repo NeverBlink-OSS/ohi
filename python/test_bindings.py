@@ -601,10 +601,12 @@ class GeneratorTest(unittest.TestCase):
         self.assertEqual(2, stats["elements"]["classes"]["count"])
         self.assertEqual(0, stats["elements"]["types"]["count"])
         self.assertEqual({"direct": 1, "transitive": 1}, stats["imports"])
-        self.assertIn("", stats["languages"])
+        # The person schema itself has no text; the imported types do.
+        self.assertEqual({}, stats["languages"])
         everything = self.schema.stats(only_classes_from_root_schema=False)
         self.assertFalse(everything["only_classes_from_root_schema"])
         self.assertGreater(everything["elements"]["types"]["count"], 0)
+        self.assertIn("", everything["languages"])
         # The deprecated pruning mode is accepted, and ignored
         self.assertEqual(stats, self.schema.stats(pruning_mode="tree_root"))
 
