@@ -35,7 +35,7 @@ slots:
     required: true
     pattern: ^[\s\S]*\S
   version:
-    description: Complete publication version label, including amendments.
+    description: Complete publication version label, including the revision id if present.
     range: string
     required: true
     pattern: ^[\s\S]*\S
@@ -67,6 +67,10 @@ slots:
       date-time text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime
       of this publication. Not an upstream release date.
     range: datetime
+    required: true
+  hub_version:
+    description: Hub version that released this publication.
+    range: string
     required: true
   element_count:
     description: Number of LinkML elements in the publication.
