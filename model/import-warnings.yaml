@@ -400,6 +400,28 @@ classes:
       detail:
         equals_expression: "{iri} is named '{name}'"
 
+  RenamedPermissibleValue:
+    is_a: ImportWarning
+    description: >-
+      An individual is given another permissible value text than the one it would have, because
+      that text is taken by another value of the same enum, once the texts are normalized.
+    attributes:
+      iri:
+        range: string
+        required: true
+        title: IRI
+        description: IRI of the individual.
+      text:
+        range: string
+        required: true
+        title: text
+        description: The text of the permissible value it is given.
+    slot_usage:
+      kind:
+        equals_expression: "Renamed to avoid a clash"
+      detail:
+        equals_expression: "{iri} is the permissible value '{text}'"
+
   SubclassCycle:
     is_a: ImportWarning
     description: Classes are subclasses of each other in a loop. The loop is broken by leaving out a parent.

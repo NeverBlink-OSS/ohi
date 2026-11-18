@@ -2066,8 +2066,7 @@ object OwlImporter {
           text = own + '_' + n
           n += 1
         }
-        if (text != own)
-          warn("Renamed to avoid a clash", s"$member is the permissible value '$text'")
+        if (text != own) warn(RenamedPermissibleValue(iri = member, text = text))
         texts.update(member, text)
       }
       texts

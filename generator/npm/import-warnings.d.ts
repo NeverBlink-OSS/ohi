@@ -98,6 +98,7 @@ export type ImportWarning =
   | NonValueTypeBase
   | OntologyMapping
   | OntologyWideExpression
+  | RenamedPermissibleValue
   | RenamedTerm
   | SeveralDomains
   | SeveralRanges
@@ -333,6 +334,20 @@ export interface OntologyWideExpression {
   kind?: string;
   /** warning type: The type of the warning: name of the concrete warning class (e.g. `UnmappedImport`). */
   warning_type: "OntologyWideExpression";
+}
+
+/** An individual is given another permissible value text than the one it would have, because that text is taken by another value of the same enum, once the texts are normalized. */
+export interface RenamedPermissibleValue {
+  /** detail: Which element the warning is about. */
+  detail?: string;
+  /** IRI: IRI of the individual. */
+  iri: string;
+  /** kind: Short description of the kind of warning. Warnings are grouped by it. */
+  kind?: string;
+  /** text: The text of the permissible value it is given. */
+  text: string;
+  /** warning type: The type of the warning: name of the concrete warning class (e.g. `UnmappedImport`). */
+  warning_type: "RenamedPermissibleValue";
 }
 
 /** A term is given another name than the one it would have, because that name is taken by another term. */

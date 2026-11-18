@@ -42,6 +42,7 @@ import eu.neverblink.linkml.runtime.*
   typeDesignator.Member(classOf[NonValueTypeBase], "NonValueTypeBase"),
   typeDesignator.Member(classOf[OntologyMapping], "OntologyMapping"),
   typeDesignator.Member(classOf[OntologyWideExpression], "OntologyWideExpression"),
+  typeDesignator.Member(classOf[RenamedPermissibleValue], "RenamedPermissibleValue"),
   typeDesignator.Member(classOf[RenamedTerm], "RenamedTerm"),
   typeDesignator.Member(classOf[SeveralDomains], "SeveralDomains"),
   typeDesignator.Member(classOf[SeveralRanges], "SeveralRanges"),
