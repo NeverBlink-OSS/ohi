@@ -131,8 +131,9 @@ int main(void) {
         out = linkml_er_diagram(handle, NULL, &error);
         expect("er-diagram", out, &error, "erDiagram");
 
-        out = linkml_stats(handle, "{\"pruning_mode\":\"skip\"}", &error);
-        expect("stats", out, &error, "\"pruning_mode\": \"skip\"");
+        /* The default is true, so seeing false back means the option arrived. */
+        out = linkml_stats(handle, "{\"only_classes_from_root_schema\":false}", &error);
+        expect("stats", out, &error, "\"only_classes_from_root_schema\": false");
 
         out = linkml_lint(handle, NULL, &error);
         expect("lint returns a report", out, &error, "issues");
