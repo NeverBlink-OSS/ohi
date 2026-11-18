@@ -55,6 +55,9 @@ import eu.neverblink.linkml.runtime.*
   *   First successful Hub publication time for this immutable release. Backend emits UTC date-time
   *   text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime of this
   *   publication. Not an upstream release date.
+  * @param publisher
+  *   Deprecated, use `publishers`. Name of the upstream person or organization responsible for
+  *   publishing the ontology. Not inferred from catalog namespace.
   * @param publishers
   *   The people or organizations that publish the ontology upstream.
   * @param schemaVersion
@@ -93,6 +96,7 @@ final case class Publication(
     publications: Seq[Citation] = Seq(),
     @named("published_at")
     publishedAt: LinkmlDateTime,
+    publisher: String,
     publishers: Seq[Agent],
     @named("schema_version")
     schemaVersion: Int,

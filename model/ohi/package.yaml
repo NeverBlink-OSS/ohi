@@ -41,6 +41,13 @@ classes:
         required: true
         minimum_value: 2
         maximum_value: 2
+      publisher:
+        description: Deprecated, use `publishers`. Name of the upstream person or organization responsible
+          for publishing the ontology. Not inferred from catalog namespace.
+        deprecated: Use `publishers`.
+        range: string
+        required: true
+        pattern: ^[\s\S]*\S
       namespace_iri:
         description: Optional preferred primary RDF term namespace. Preserve the complete value including
           any trailing delimiter. Not the catalog namespace and not necessarily the ontology IRI.

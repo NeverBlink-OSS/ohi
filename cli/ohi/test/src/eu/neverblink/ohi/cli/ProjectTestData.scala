@@ -34,6 +34,7 @@ private[cli] object ProjectTestData {
       namespace = if hub then identity(3) else "test",
       originalSources = Seq(Uri("https://example.org/source/")),
       publishedAt = LinkmlDateTime("2026-10-15T00:00:00Z"),
+      publisher = "Example publisher",
       publishers = Seq(Agent(name = "Example publisher")),
       schemaVersion = 2,
       title = "Example ontology",
