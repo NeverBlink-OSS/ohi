@@ -46,6 +46,7 @@ import java.util.Objects;
     "preferred_prefix",
     "publications",
     "published_at",
+    "publisher",
     "publishers",
     "schema_version",
     "title",
@@ -104,6 +105,9 @@ public class Publication {
     private List<Citation> publications;
 
     private OffsetDateTime publishedAt;
+
+    @JsonProperty("publisher")
+    private String publisher;
 
     @JsonProperty("publishers")
     private List<Agent> publishers;
@@ -299,6 +303,17 @@ public class Publication {
         this.publishedAt = publishedAt;
     }
 
+    /**
+     * Deprecated, use `publishers`. Name of the upstream person or organization responsible for publishing the ontology. Not inferred from catalog namespace.
+     */
+    public String getPublisher() {
+        return publisher;
+    }
+
+    public void setPublisher(String publisher) {
+        this.publisher = publisher;
+    }
+
     /** The people or organizations that publish the ontology upstream. */
     public List<Agent> getPublishers() {
         return publishers;
@@ -367,6 +382,7 @@ public class Publication {
             && Objects.equals(preferredPrefix, other.preferredPrefix)
             && Objects.equals(publications, other.publications)
             && Objects.equals(publishedAt, other.publishedAt)
+            && Objects.equals(publisher, other.publisher)
             && Objects.equals(publishers, other.publishers)
             && Objects.equals(schemaVersion, other.schemaVersion)
             && Objects.equals(title, other.title)
@@ -376,7 +392,7 @@ public class Publication {
 
     @Override
     public int hashCode() {
-        return Objects.hash(artifacts, authors, baseUrl, contributors, dependencies, description, elementCount, keywords, licenses, maintainers, name, namespace, namespaceIri, nativeElementCount, originalSources, preferredPrefix, publications, publishedAt, publishers, schemaVersion, title, version, extraProperties);
+        return Objects.hash(artifacts, authors, baseUrl, contributors, dependencies, description, elementCount, keywords, licenses, maintainers, name, namespace, namespaceIri, nativeElementCount, originalSources, preferredPrefix, publications, publishedAt, publisher, publishers, schemaVersion, title, version, extraProperties);
     }
 
     @Override
@@ -400,6 +416,7 @@ public class Publication {
             + ", preferredPrefix=" + getPreferredPrefix()
             + ", publications=" + getPublications()
             + ", publishedAt=" + getPublishedAt()
+            + ", publisher=" + getPublisher()
             + ", publishers=" + getPublishers()
             + ", schemaVersion=" + getSchemaVersion()
             + ", title=" + getTitle()
@@ -430,6 +447,7 @@ public class Publication {
             @JsonProperty("preferred_prefix") String preferredPrefix,
             @JsonProperty("publications") @JsonSetter(contentNulls = Nulls.FAIL) List<Citation> publications,
             @JsonProperty(value = "published_at", required = true) Object publishedAt,
+            @JsonProperty(value = "publisher", required = true) String publisher,
             @JsonProperty(value = "publishers", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> publishers,
             @JsonProperty(value = "schema_version", required = true) Long schemaVersion,
             @JsonProperty(value = "title", required = true) String title,
@@ -453,6 +471,7 @@ public class Publication {
         json$item.setPreferredPrefix(preferredPrefix);
         json$item.setPublications(publications);
         json$item.setPublishedAt(LinkMLJson.dateTime(publishedAt));
+        json$item.setPublisher(publisher);
         json$item.setPublishers(publishers);
         json$item.setSchemaVersion(schemaVersion);
         json$item.setTitle(title);
