@@ -522,7 +522,11 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
         code shouldBe 0
         err shouldBe empty
         json(out) shouldBe inspectionPublication(base)
-        requests.asScala.toSeq.map(value => new URI(value).getPath) shouldBe Seq(revisionPath, searchPath, hub)
+        requests.asScala.toSeq.map(value => new URI(value).getPath) shouldBe Seq(
+          revisionPath,
+          searchPath,
+          hub,
+        )
       }
     }
 
@@ -552,7 +556,13 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
             "Files\n",
         )
         val recorded = requests.asScala.toSeq
-        recorded.map(value => new URI(value).getPath) shouldBe Seq(revisionPath, searchPath, hub, latestPath, searchPath)
+        recorded.map(value => new URI(value).getPath) shouldBe Seq(
+          revisionPath,
+          searchPath,
+          hub,
+          latestPath,
+          searchPath,
+        )
         query(recorded.last) shouldBe Map(
           "q" -> "*",
           "query_by" -> "name",
@@ -724,7 +734,11 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           err should include(s"Files\n  $base/first.ttl\n  $base/second.ttl")
           err should include(s"ohi get $base/first.ttl --to '$destination'")
           err should not include "Error:"
-          requests.asScala.toSeq.map(value => new URI(value).getPath) shouldBe Seq(revisionPath, searchPath, hub)
+          requests.asScala.toSeq.map(value => new URI(value).getPath) shouldBe Seq(
+            revisionPath,
+            searchPath,
+            hub,
+          )
           os.exists(destination) shouldBe false
           os.list(directory) shouldBe empty
         }
@@ -750,7 +764,11 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           err should startWith("Error: Could not update the project.")
           err should include("example/z@2.0 has more than one file in owl-turtle format.")
           err should include("standalone ohi get for an exact file URL")
-          requests.asScala.toSeq.map(value => new URI(value).getPath) shouldBe Seq(revisionPath, searchPath, hub)
+          requests.asScala.toSeq.map(value => new URI(value).getPath) shouldBe Seq(
+            revisionPath,
+            searchPath,
+            hub,
+          )
           os.exists(destination) shouldBe false
           os.list(directory) shouldBe empty
         }

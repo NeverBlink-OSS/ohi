@@ -370,9 +370,21 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
             searchResponse(
               10,
               Seq(
-                hit(s"$origin/files/packages/w3c/DCAT/2-revision-9/", "w3c", "DCAT", "2-revision-9", Some("2")),
+                hit(
+                  s"$origin/files/packages/w3c/DCAT/2-revision-9/",
+                  "w3c",
+                  "DCAT",
+                  "2-revision-9",
+                  Some("2"),
+                ),
                 hit(s"$origin/files/packages/w3c/dcat/2.0/", "w3c", "dcat", "2.0", Some("2.0")),
-                hit(s"$origin/files/packages/w3c/dcat/2-revision-1/", "w3c", "dcat", "2-revision-1", Some("2")),
+                hit(
+                  s"$origin/files/packages/w3c/dcat/2-revision-1/",
+                  "w3c",
+                  "dcat",
+                  "2-revision-1",
+                  Some("2"),
+                ),
               ),
             )
           else packageJson
@@ -380,7 +392,10 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
       } { (url, requests) =>
         configured(url + searchPath).inspect("w3c/dcat@2")
         val targets = requests.asScala.toSeq.map(_._1)
-        targets.map(_.takeWhile(_ != '?')) shouldBe Seq(revisionPath, "/files/packages/w3c/dcat/2-revision-1/")
+        targets.map(_.takeWhile(_ != '?')) shouldBe Seq(
+          revisionPath,
+          "/files/packages/w3c/dcat/2-revision-1/",
+        )
         parameters(targets.head) shouldBe Map(
           "q" -> "*",
           "query_by" -> "name,description",
@@ -473,14 +488,19 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
           reply(
             exchange,
             200,
-            searchResponse(10, Seq(hit("urn:ohi:20", "w3c", "dcat", "2.0"), hit("urn:ohi:2", "w3c", "dcat", "2"))),
+            searchResponse(
+              10,
+              Seq(hit("urn:ohi:20", "w3c", "dcat", "2.0"), hit("urn:ohi:2", "w3c", "dcat", "2")),
+            ),
           )
       } { (url, requests) =>
         configured(url + searchPath).latest("w3c/dcat@2").map(_.baseUrl.original) shouldBe
           Some("urn:ohi:2")
         val targets = requests.asScala.toSeq.map(_._1)
         targets.map(_.takeWhile(_ != '?')) shouldBe Seq(revisionPath, searchPath)
-        parameters(targets.last)("filter_by") shouldBe "namespace:=`w3c` && name:=`dcat` && version:=`2`"
+        parameters(targets.last)(
+          "filter_by",
+        ) shouldBe "namespace:=`w3c` && name:=`dcat` && version:=`2`"
       }
     }
 
@@ -492,11 +512,15 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
           searchResponse(10, Seq(hit("urn:ohi:2", "w3c", "dcat", "2"))),
         )
       } { (url, requests) =>
-        configured(url + searchPath).latest("w3c/dcat@2-no-revision").map(_.baseUrl.original) shouldBe
+        configured(url + searchPath).latest("w3c/dcat@2-no-revision").map(
+          _.baseUrl.original,
+        ) shouldBe
           Some("urn:ohi:2")
         val targets = requests.asScala.toSeq.map(_._1)
         targets.map(_.takeWhile(_ != '?')) shouldBe Seq(searchPath)
-        parameters(targets.head)("filter_by") shouldBe "namespace:=`w3c` && name:=`dcat` && version:=`2`"
+        parameters(targets.head)(
+          "filter_by",
+        ) shouldBe "namespace:=`w3c` && name:=`dcat` && version:=`2`"
       }
     }
 
@@ -518,7 +542,12 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
 
     "report other failures of the latest revision search" in {
       withServer(exchange => reply(exchange, 503, Array.empty)) { (url, _) =>
-        error(CatalogErrorCode.HttpError, CatalogOperation.Search, Some(url + revisionPath), Some(503))(
+        error(
+          CatalogErrorCode.HttpError,
+          CatalogOperation.Search,
+          Some(url + revisionPath),
+          Some(503),
+        )(
           configured(url + searchPath).latest("w3c/dcat@2"),
         )
       }
