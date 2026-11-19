@@ -3,8 +3,6 @@
 
 package eu.neverblink.ohi.model.generated
 
-import eu.neverblink.linkml.runtime.*
-
 /** @param message
   *   Human-readable explanation of the failure.
   * @param path

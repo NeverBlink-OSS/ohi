@@ -939,8 +939,10 @@ class ProjectSpec extends AnyWordSpec, Matchers {
     val revisionUrl = revisionBase + "file.ttl"
     val newerBase = "https://example.org/files/packages/test/example/1-revision-3/"
     val newerUrl = newerBase + "file.ttl"
-    val revision = ProjectTestData.publication(revisionBase, Seq(revisionUrl -> Format.OwlTurtle), sha256 = sha)
-    val newer = ProjectTestData.publication(newerBase, Seq(newerUrl -> Format.OwlTurtle), sha256 = sha)
+    val revision =
+      ProjectTestData.publication(revisionBase, Seq(revisionUrl -> Format.OwlTurtle), sha256 = sha)
+    val newer =
+      ProjectTestData.publication(newerBase, Seq(newerUrl -> Format.OwlTurtle), sha256 = sha)
     val revisionLock = s"""{"format_version":2,
       "selections":[{"base_url":"$revisionBase","url":"$revisionUrl"}],
       "files":[{"base_url":"$revisionBase","url":"$revisionUrl","format":"owl-turtle","sha256":"$sha"}]}"""
@@ -1026,14 +1028,23 @@ class ProjectSpec extends AnyWordSpec, Matchers {
     "keep a locked revision when another dependency is added" in {
       withDirectory { directory =>
         val otherBase = "https://example.org/files/packages/test/other/5/"
-        val other = ProjectTestData.publication(otherBase, Seq(otherBase + "file.ttl" -> Format.OwlTurtle), sha256 = sha)
+        val other = ProjectTestData.publication(
+          otherBase,
+          Seq(otherBase + "file.ttl" -> Format.OwlTurtle),
+          sha256 = sha,
+        )
         os.write(directory / "ohi.yaml", selectedDeclaration)
         os.write(directory / "ohi.lock.json", revisionLock)
         new Project(directory.toNIO, ProjectOperation.Add).add(
           "test/other@5",
           None,
           Some("owl-turtle"),
-          Map("test/example@1" -> newer, revisionBase -> revision, "test/other@5" -> other, otherBase -> other),
+          Map(
+            "test/example@1" -> newer,
+            revisionBase -> revision,
+            "test/other@5" -> other,
+            otherBase -> other,
+          ),
           _ => bytes,
         )
         val selections = ujson.read(os.read(directory / "ohi.lock.json"))("selections").arr
@@ -1046,10 +1057,22 @@ class ProjectSpec extends AnyWordSpec, Matchers {
         format = Format.OwlTurtle,
         ontology = ontology,
       )
-      ProjectLock.satisfies(dependency("test/example@1"), dependency("test/example@1-revision-2")) shouldBe true
-      ProjectLock.satisfies(dependency("test/example@1"), dependency("test/example@1")) shouldBe true
-      ProjectLock.satisfies(dependency("test/example@1"), dependency("test/example@1.5")) shouldBe false
-      ProjectLock.satisfies(dependency("test/example@1"), dependency("test/other@1-revision-2")) shouldBe false
+      ProjectLock.satisfies(
+        dependency("test/example@1"),
+        dependency("test/example@1-revision-2"),
+      ) shouldBe true
+      ProjectLock.satisfies(
+        dependency("test/example@1"),
+        dependency("test/example@1"),
+      ) shouldBe true
+      ProjectLock.satisfies(
+        dependency("test/example@1"),
+        dependency("test/example@1.5"),
+      ) shouldBe false
+      ProjectLock.satisfies(
+        dependency("test/example@1"),
+        dependency("test/other@1-revision-2"),
+      ) shouldBe false
       ProjectLock.satisfies(
         dependency("test/example@1-revision-2"),
         dependency("test/example@1-revision-3"),
@@ -1058,7 +1081,10 @@ class ProjectSpec extends AnyWordSpec, Matchers {
         dependency("test/example@1"),
         dependency("test/example@1-revision-2").copy(format = Format.LinkmlYaml),
       ) shouldBe false
-      ProjectLock.satisfies(dependency("test/example@1-no-revision"), dependency("test/example@1")) shouldBe
+      ProjectLock.satisfies(
+        dependency("test/example@1-no-revision"),
+        dependency("test/example@1"),
+      ) shouldBe
         true
       ProjectLock.satisfies(
         dependency("test/example@1-no-revision"),
