@@ -16,12 +16,12 @@ from .generated import (
     SearchRequest,
     SearchResult,
 )
+from ._version_tag import parse_version_tag
 from .publication import _is_new, decode_publication
 
 _SEARCH_PATH = "/search/collections/packages/documents/search"
 _REFERENCE = re.compile(r"([^/@\s`]+)/([^/@\s`]+)(?:@([^/@\s+`]+))?")
 _FORMATS = {value.value for value in Format}
-_REVISION = "-revision-"
 
 
 class CatalogException(Exception):
@@ -137,13 +137,12 @@ class CatalogClient:
             raise _failure("INVALID_RESPONSE", "SEARCH", str(error), url, 200) from error
 
     def latest(self, reference: str) -> SearchHit | None:
-        """Return the search hit of the newest release of namespace/name or namespace/name@version,
-        or None when the catalog has no such ontology or version.
+        """Return the search hit of the release a reference requests, or None when the catalog has
+        none.
 
-        namespace/name gives the latest revision of the latest version. namespace/name@1.0 gives
-        the latest revision of version 1.0, or 1.0 itself when it has no revisions. A revision
-        version such as 1.0-revision-2026-12-01 counts as 1.0 here. Hubs older than 0.2.0 have no
-        revisions, so there namespace/name@1.0 gives 1.0 itself.
+        namespace/name requests the latest version, namespace/name@1.0 the latest revision of
+        1.0, namespace/name@1.0-no-revision the 1.0 version without its revisions, and
+        namespace/name@1.0-revision-2026-12-01 exactly that revision.
         """
         match = _REFERENCE.fullmatch(reference)
         if match is None:
@@ -151,48 +150,52 @@ class CatalogClient:
                            "reference must be namespace/name or namespace/name@version", reference)
         namespace, name, version = match.groups()
         filter_by = f"namespace:=`{namespace}` && name:=`{name}`"
+
+        # The := filter ignores case and separators, so look-alikes such as w3c/DCAT can match.
+        def same(hit):
+            return (hit.namespace, hit.name) == (namespace, name)
+
         if version is None:
             result = self.search(SearchRequest(q="*", filter_by=filter_by))
-            # The := filter ignores case and separators, so look-alikes such as w3c/DCAT can match.
-            return next((hit for hit in result.hits
-                         if (hit.namespace, hit.name) == (namespace, name)), None)
-        original = version.split(_REVISION, 1)[0]
+            return next((hit for hit in result.hits if same(hit)), None)
+        tag = parse_version_tag(version)
+        if tag.exact is None:
+            if (hit := self._latest_revision(filter_by, tag.original, same)) is not None:
+                return hit
+        # The release itself; for a version, also on a hub without revisions or before its
+        # revisions are indexed
+        release = tag.exact or tag.original
+        result = self._search(self._search_url, SearchRequest(
+            q="*", filter_by=f"{filter_by} && version:=`{release}`"))
+        return next((hit for hit in result.hits if same(hit) and hit.version == release), None)
+
+    def _latest_revision(self, filter_by, original, same) -> SearchHit | None:
+        """The latest revision of a version from packages_latest_revision, or None when it has none
+        there. A hub before 0.2.0 doesn't have that collection."""
         try:
             result = self._search(self._latest_revision_url, SearchRequest(
                 q="*", filter_by=f"{filter_by} && original_version:=`{original}`"))
-            hit = next((hit for hit in result.hits
-                        if (hit.namespace, hit.name, hit.original_version) == (namespace, name, original)),
-                       None)
         except CatalogException as error:
-            # Hubs before 0.2.0 have no packages_latest_revision collection.
-            if error.error.code.value != "HTTP_ERROR" or error.error.status != 404:
-                raise
-            hit = None
-        if hit is not None:
-            return hit
-        # The version itself, on a hub without revisions or before its revisions are indexed
-        result = self._search(self._search_url, SearchRequest(
-            q="*", filter_by=f"{filter_by} && version:=`{original}`"))
+            if error.error.code.value == "HTTP_ERROR" and error.error.status == 404:
+                return None
+            raise
         return next((hit for hit in result.hits
-                     if (hit.namespace, hit.name, hit.version) == (namespace, name, original)), None)
+                     if same(hit) and hit.original_version == original), None)
 
     def inspect(self, base_url: str) -> Publication:
-        """Return the publication at an absolute HTTP(S) URL or of a namespace/name reference.
-
-        namespace/name gives the latest revision of the latest version. namespace/name@1.0 gives
-        the latest revision of version 1.0, or 1.0 itself when it has no revisions. A revision
-        version such as 1.0-revision-2026-12-01 gives exactly that revision. On hubs older than
-        0.2.0, namespace/name@1.0 gives 1.0 itself.
-        """
+        """Return the publication at an absolute HTTP(S) URL, or of the release a reference
+        requests, as latest describes."""
         url = base_url
         if (match := _REFERENCE.fullmatch(base_url)) is not None:
             if match[3] is not None:
-                hit = None if _REVISION in match[3] else self.latest(base_url)
+                exact = parse_version_tag(match[3]).exact
+                hit = None if exact is not None else self.latest(base_url)
                 if hit is not None:
                     url = hit.base_url
                 else:
-                    path = "/".join(quote(part, safe="") for part in match.groups())
-                    url = self._files_url + path + "/"
+                    # The release path when the catalog doesn't know the version
+                    parts = (match[1], match[2], exact or match[3])
+                    url = self._files_url + "/".join(quote(part, safe="") for part in parts) + "/"
             elif (hit := self.latest(base_url)) is not None:
                 url = hit.base_url
             else:

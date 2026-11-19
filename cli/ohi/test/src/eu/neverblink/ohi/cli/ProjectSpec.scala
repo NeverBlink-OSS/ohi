@@ -978,6 +978,25 @@ class ProjectSpec extends AnyWordSpec, Matchers {
       }
     }
 
+    "record a version without its revisions as requested and lock that version" in {
+      withDirectory { directory =>
+        os.write(directory / "ohi.yaml", emptyDeclaration)
+        new Project(directory.toNIO, ProjectOperation.Add).add(
+          "test/example@1-no-revision",
+          None,
+          Some("owl-turtle"),
+          Map("test/example@1-no-revision" -> metadata, base -> metadata),
+          _ => bytes,
+        )
+        os.read(directory / "ohi.yaml") should include("ontology: test/example@1-no-revision\n")
+        selected(directory) shouldBe base
+        // The lock of version 1 satisfies it, so syncing looks nothing up
+        new Project(directory.toNIO, ProjectOperation.Sync)
+          .sync(noInspect, _ => bytes, mode = Project.LockMode.Locked)
+          .lockChanged shouldBe false
+      }
+    }
+
     "install a locked revision of a declared version without looking for a newer one" in {
       withDirectory { directory =>
         os.write(directory / "ohi.yaml", selectedDeclaration)
@@ -1022,7 +1041,7 @@ class ProjectSpec extends AnyWordSpec, Matchers {
       }
     }
 
-    "accept only revisions of the declared version, and not of a declared revision" in {
+    "accept only the releases the declared version asks for" in {
       def dependency(ontology: String) = eu.neverblink.ohi.model.generated.ProjectDependency(
         format = Format.OwlTurtle,
         ontology = ontology,
@@ -1038,6 +1057,12 @@ class ProjectSpec extends AnyWordSpec, Matchers {
       ProjectLock.satisfies(
         dependency("test/example@1"),
         dependency("test/example@1-revision-2").copy(format = Format.LinkmlYaml),
+      ) shouldBe false
+      ProjectLock.satisfies(dependency("test/example@1-no-revision"), dependency("test/example@1")) shouldBe
+        true
+      ProjectLock.satisfies(
+        dependency("test/example@1-no-revision"),
+        dependency("test/example@1-revision-2"),
       ) shouldBe false
     }
   }

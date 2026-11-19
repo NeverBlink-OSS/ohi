@@ -517,13 +517,17 @@ class CatalogTests(unittest.TestCase):
             "filter_by": ["namespace:=`example` && name:=`sensors` && original_version:=`1.0`"],
         })
 
-    def test_latest_with_revision_version_searches_its_original_version(self):
-        data = revision_body(self.base + "/rev/", "1.0-revision-2026-12-02", "1.0")
-        self.route(LATEST_REVISION_PATH, json.dumps(data).encode())
+    def test_latest_with_revision_version_is_exactly_that_revision(self):
+        # A newer revision, then the requested one
+        data = search_body([self.base + "/r2/", self.base + "/r1/"], per_page=10, total=2)
+        data["hits"][0]["document"]["version"] = "1.0-revision-2026-12-02"
+        data["hits"][1]["document"]["version"] = "1.0-revision-2026-12-01"
+        self.route(SEARCH_PATH, json.dumps(data).encode())
         hit = self.search_client().latest("example/sensors@1.0-revision-2026-12-01")
-        self.assertEqual(hit.version, "1.0-revision-2026-12-02")
+        self.assertEqual(hit.base_url, self.base + "/r1/")
+        self.assertEqual([urlsplit(path).path for path, _ in self.server.requests], [SEARCH_PATH])
         self.assertEqual(parse_qs(urlsplit(self.server.requests[0][0]).query)["filter_by"],
-                         ["namespace:=`example` && name:=`sensors` && original_version:=`1.0`"])
+                         ["namespace:=`example` && name:=`sensors` && version:=`1.0-revision-2026-12-01`"])
 
     def test_latest_with_version_is_the_version_itself_without_a_hit_or_the_latest_revision_collection(self):
         # A look-alike version, then the version itself, among all releases
@@ -536,12 +540,28 @@ class CatalogTests(unittest.TestCase):
                 self.server.requests = []
                 self.route(LATEST_REVISION_PATH, body, status)
                 self.route(SEARCH_PATH, json.dumps(releases).encode())
-                hit = self.search_client().latest("example/sensors@1.0-revision-2026-12-01")
+                hit = self.search_client().latest("example/sensors@1.0")
                 self.assertEqual((hit.base_url, hit.version), (self.base + "/1.0/", "1.0"))
                 search = self.server.requests[1][0]
                 self.assertEqual(urlsplit(search).path, SEARCH_PATH)
                 self.assertEqual(parse_qs(urlsplit(search).query)["filter_by"],
                                  ["namespace:=`example` && name:=`sensors` && version:=`1.0`"])
+
+    def test_latest_without_revisions_searches_the_version_itself_without_looking_for_them(self):
+        releases = search_body([self.base + "/1.0/"], per_page=10, total=1)
+        releases["hits"][0]["document"]["version"] = "1.0"
+        self.route(SEARCH_PATH, json.dumps(releases).encode())
+        hit = self.search_client().latest("example/sensors@1.0-no-revision")
+        self.assertEqual(hit.base_url, self.base + "/1.0/")
+        self.assertEqual([urlsplit(path).path for path, _ in self.server.requests], [SEARCH_PATH])
+        self.assertEqual(parse_qs(urlsplit(self.server.requests[0][0]).query)["filter_by"],
+                         ["namespace:=`example` && name:=`sensors` && version:=`1.0`"])
+
+    def test_inspect_without_revisions_gets_the_release_path_without_search(self):
+        path = "/files/packages/example/sensors/1.0/"
+        self.route(path, (EXAMPLES / "sensors-package.json").read_bytes())
+        self.search_client().inspect("example/sensors@1.0-no-revision")
+        self.assertEqual(self.server.requests, [(path, "identity")])
 
     def test_latest_with_version_is_none_without_that_version(self):
         self.route(LATEST_REVISION_PATH, b"", 404)

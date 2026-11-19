@@ -22,7 +22,7 @@ if (page.hits.length > 0) {
 }
 ```
 
-`inspect` and `latest` also take an ontology reference instead of a URL. `w3c/dcat` means the latest revision of the latest version, and `w3c/dcat@3` means the latest revision of version 3 (or version 3 itself when it has no revisions). `inspect` takes a revision version such as `w3c/dcat@3-revision-2026-12-01` exactly as written.
+`inspect` and `latest` also take an ontology reference such as `w3c/dcat@3` instead of a URL, see [ontology references](https://ohi.dev/docs/reference/cli/#ontology-references-and-formats).
 
 ```typescript
 const hit = await client.latest("w3c/dcat@3"); // search hit, or undefined

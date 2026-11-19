@@ -1,5 +1,6 @@
 package eu.neverblink.ohi.cli
 
+import eu.neverblink.ohi.catalog.VersionTag
 import eu.neverblink.ohi.model.generated.*
 import eu.neverblink.ohi.model.{LockException, LockFiles, LockJson}
 import eu.neverblink.linkml.runtime.stringify
@@ -81,7 +82,7 @@ private[cli] final class Project(
         val selected = publication.artifacts.find(_.url.original == url).getOrElse {
           invalidSelection(s"Publication '$input' does not advertise artifact '$url'.")
         }
-        val requirement = dependency(publication, selected, exact = true)
+        val requirement = dependency(publication, selected, Some(publication.version))
         val resolved = resolve(requirement.ontology, Some(stringify(selected.format)), metadata)
         if resolved._1.baseUrl.original != input || resolved._2.url.original != url then
           invalidSelection(
@@ -95,10 +96,11 @@ private[cli] final class Project(
           metadata,
           Some(previous.defaultFormat),
         )
-        // An exact revision stays exact, any other reference keeps up with its version's revisions
-        val exact = OntologyReference.parse(input).toOption
-          .flatMap(_._3).exists(eu.neverblink.ohi.catalog.Reference.isRevision)
-        (dependency(resolved._1, resolved._2, exact), resolved._1, resolved._2)
+        // A version that requests one release is kept as it is, see VersionTag. Any other
+        // reference gets the version first published, which keeps up with its revisions.
+        val requested = OntologyReference.parse(input).toOption.flatMap(_._3)
+          .filter(VersionTag.parse(_).exact.nonEmpty)
+        (dependency(resolved._1, resolved._2, requested), resolved._1, resolved._2)
     }
     added = Some(requirement)
     val changed = !previous.dependencies.contains(requirement)
@@ -238,17 +240,17 @@ private[cli] final class Project(
     LockDownload.prepare(complete.files, selected.directory, selected.managed)
   }
 
-  /** The requirement of a resolved artifact: its exact version, or with `exact` false, the version
-    * first published, which stands for its latest revision.
+  /** The requirement of a resolved artifact, with the `requested` version, or without one the
+    * version first published, which stands for its latest revision.
     */
   private def dependency(
       publication: Publication,
       artifact: Artifact,
-      exact: Boolean,
+      requested: Option[String],
   ): ProjectDependency = {
-    val version =
-      if exact then publication.version
-      else publication.revision.map(_.originalVersion).getOrElse(publication.version)
+    val version = requested.getOrElse(
+      publication.revision.map(_.originalVersion).getOrElse(publication.version),
+    )
     val reference = s"${publication.namespace}/${publication.name}@$version"
     OntologyReference.parse(reference) match {
       case Right((_, _, Some(_))) =>

@@ -31,7 +31,7 @@ dependencies:
 | `default_format` | Preferred format for `get` and `add` when you omit `--format`. |
 | `download_dir` | Subfolder of the project directory where ontologies are downloaded. |
 | `dependencies` | Ontologies added to the project. Use `[]` for an empty project. |
-| `dependencies[].ontology` | Complete `namespace/name@version` reference. A version stands for its latest revision when the lock is made, a full revision version for exactly that revision. |
+| `dependencies[].ontology` | Complete `namespace/name@version` [reference](/docs/reference/cli/#ontology-references-and-formats). |
 | `dependencies[].format` | The dependency's [file format](/docs/reference/cli/#ontology-references-and-formats). |
 
 All fields are required. You can include several versions or formats of an ontology, but each
