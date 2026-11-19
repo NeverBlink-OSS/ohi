@@ -17,6 +17,7 @@ import scala.jdk.CollectionConverters.*
 class ProjectCommandsSpec extends AnyWordSpec, Matchers {
   private val searchPath = "/search/collections/packages/documents/search"
   private val latestPath = "/search/collections/packages_latest/documents/search"
+  private val revisionPath = "/search/collections/packages_latest_revision/documents/search"
 
   private def json(text: String): ujson.Value = ujson.read(text)
 
@@ -41,10 +42,15 @@ class ProjectCommandsSpec extends AnyWordSpec, Matchers {
       "/",
       (exchange: HttpExchange) => {
         requests.add(s"${exchange.getRequestMethod} ${exchange.getRequestURI}")
+        // Search of every release has no hits unless a test routes it
+        val unrouted =
+          if exchange.getRequestURI.getPath == searchPath then
+            200 -> """{"found":0,"page":1,"request_params":{"per_page":10},"search_cutoff":false,"hits":[]}"""
+          else 404 -> "Unexpected request"
         val (status, body) =
           routes.getOrElse(
             exchange.getRequestURI.toString,
-            routes.getOrElse(exchange.getRequestURI.getPath, 404 -> "Unexpected request"),
+            routes.getOrElse(exchange.getRequestURI.getPath, unrouted),
           )
         val bytes = body.getBytes(UTF_8)
         try {
@@ -478,7 +484,9 @@ class ProjectCommandsSpec extends AnyWordSpec, Matchers {
           lock("files").arr.map(_("url").str).toSeq shouldBe Seq(
             base + "/files/packages/test/example/1/source.ttl",
           )
-          requests.asScala.toSeq shouldBe Seq(
+          requests.asScala.toSeq.map(_.takeWhile(_ != '?')) shouldBe Seq(
+            s"GET $revisionPath",
+            s"GET $searchPath",
             "GET /files/packages/test/example/1/",
             "GET /files/packages/test/example/1/source.ttl",
           )
@@ -512,6 +520,8 @@ class ProjectCommandsSpec extends AnyWordSpec, Matchers {
           os.read(project / "ohi.yaml") shouldBe original
           os.exists(project / ".ohi") shouldBe false
           requests.asScala.toSeq.map(_.takeWhile(_ != '?')) shouldBe Seq(
+            s"GET $revisionPath",
+            s"GET $searchPath",
             "GET /files/packages/test/example/1/",
           )
         }
@@ -971,9 +981,12 @@ class ProjectCommandsSpec extends AnyWordSpec, Matchers {
             "INVALID_SELECTION",
           )
           error("message").str should include("ohi get")
-          // The URL, then the reference test/example@1, which resolves to the same release path.
-          requests.asScala.toSeq shouldBe Seq(
+          // The URL, then the reference test/example@1, which has no latest revision and so
+          // resolves to the same release path.
+          requests.asScala.toSeq.map(_.takeWhile(_ != '?')) shouldBe Seq(
             "GET /files/packages/test/example/1/",
+            s"GET $revisionPath",
+            s"GET $searchPath",
             "GET /files/packages/test/example/1/",
           )
           os.read(project / "ohi.yaml") shouldBe emptyDeclaration

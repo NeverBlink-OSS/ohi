@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class CatalogClientTest {
     static final String SEARCH_PATH = "/search/collections/packages/documents/search";
     static final String LATEST_PATH = "/search/collections/packages_latest/documents/search";
+    static final String REVISION_PATH = "/search/collections/packages_latest_revision/documents/search";
 
     /** What the server answers on a path. With {@code stall}, it sends the body but not all of it. */
     record Route(int status, byte[] body, Map<String, String> headers, boolean stall) {
@@ -252,6 +254,8 @@ class CatalogClientTest {
     @Test
     void derivesTheLatestSearchAndReleaseUrlsFromAPrefixedSearchUrl() {
         route("/hub" + LATEST_PATH, bytes(searchBody(List.of(), 1, 10, 0)));
+        route("/hub" + REVISION_PATH, bytes(searchBody(List.of(), 1, 10, 0)));
+        route("/hub" + SEARCH_PATH, bytes(searchBody(List.of(), 1, 10, 0)));
         route("/hub/files/packages/w3c/dcat/2/", example("sensors-package.json"));
         CatalogConfig config = new CatalogConfig();
         config.setSearchUrl(base + "/hub" + SEARCH_PATH);
@@ -259,7 +263,8 @@ class CatalogClientTest {
         CatalogClient client = new CatalogClient(config);
         client.search(query("*"));
         client.inspect("w3c/dcat@2");
-        assertEquals(List.of("/hub" + LATEST_PATH, "/hub/files/packages/w3c/dcat/2/"),
+        assertEquals(List.of("/hub" + LATEST_PATH, "/hub" + REVISION_PATH, "/hub" + SEARCH_PATH,
+                "/hub/files/packages/w3c/dcat/2/"),
                 requests.stream().map(CatalogClientTest::path).collect(Collectors.toList()));
     }
 
@@ -427,11 +432,96 @@ class CatalogClientTest {
     }
 
     @Test
-    void inspectsAReleaseByItsEncodedPathWithoutSearching() {
+    void inspectsARevisionByItsEncodedPathWithoutSearching() {
+        String path = "/files/packages/team%3Aa/model%25x/v1.0%C3%A9-revision-2026-12-31/";
+        route(path, example("sensors-package.json"));
+        searchClient().inspect("team:a/model%x@v1.0é-revision-2026-12-31");
+        assertEquals(List.of(new Request(path, "identity")), requests);
+    }
+
+    @Test
+    void inspectsAVersionByItsEncodedPathWhenTheCatalogDoesNotKnowIt() {
         String path = "/files/packages/team%3Aa/model%25x/v1.0%C3%A9/";
+        route(REVISION_PATH, "", 404);
+        route(SEARCH_PATH, bytes(searchBody(List.of(), 1, 10, 0)));
         route(path, example("sensors-package.json"));
         searchClient().inspect("team:a/model%x@v1.0é");
-        assertEquals(List.of(new Request(path, "identity")), requests);
+        assertEquals(List.of(REVISION_PATH, SEARCH_PATH, path),
+                requests.stream().map(CatalogClientTest::path).collect(Collectors.toList()));
+    }
+
+    @Test
+    void inspectsAVersionByItsPathWithoutAHit() {
+        route(REVISION_PATH, bytes(searchBody(List.of(), 1, 10, 0)));
+        route(SEARCH_PATH, bytes(searchBody(List.of(), 1, 10, 0)));
+        route("/files/packages/example/sensors/1.2/", example("sensors-package.json"));
+        searchClient().inspect("example/sensors@1.2");
+        assertEquals(List.of(REVISION_PATH, SEARCH_PATH, "/files/packages/example/sensors/1.2/"),
+                requests.stream().map(CatalogClientTest::path).collect(Collectors.toList()));
+    }
+
+    /** A search body of hits of example/sensors, each with its original_version. */
+    static ObjectNode revisionBody(List<String> urls, List<String> originals) {
+        ObjectNode body = searchBody(urls, 1, 10, urls.size());
+        for (int i = 0; i < urls.size(); i++) {
+            if (originals.get(i) != null) {
+                ((ObjectNode) body.get("hits").get(i).get("document")).put("original_version", originals.get(i));
+            }
+        }
+        return body;
+    }
+
+    @Test
+    void inspectsTheLatestRevisionOfAVersionWithTheExactNamespaceNameAndOriginalVersion() {
+        ObjectNode body = revisionBody(
+                List.of(base + "/a/", base + "/b/", base + "/c/", base + "/d/"),
+                Arrays.asList("1.2", "1.2.0", null, "1.2"));
+        ((ObjectNode) body.get("hits").get(0).get("document")).put("name", "SENSORS");
+        route(REVISION_PATH, bytes(body));
+        route("/d/", example("sensors-package.json"));
+        searchClient().inspect("example/sensors@1.2");
+        assertEquals(REVISION_PATH, path(requests.get(0)));
+        assertEquals("namespace:=`example` && name:=`sensors` && original_version:=`1.2`",
+                parameters(requests.get(0)).get("filter_by"));
+        assertEquals("*", parameters(requests.get(0)).get("q"));
+        assertEquals(new Request("/d/", "identity"), requests.get(1));
+    }
+
+    @Test
+    void latestOfARevisionLooksUpItsOriginalVersion() {
+        route(REVISION_PATH, bytes(revisionBody(List.of("urn:a"), List.of("1.2"))));
+        assertEquals("urn:a", searchClient().latest("example/sensors@1.2-revision-1").orElseThrow().getBaseUrl());
+        assertEquals("namespace:=`example` && name:=`sensors` && original_version:=`1.2`",
+                parameters(requests.get(0)).get("filter_by"));
+    }
+
+    @Test
+    void latestOfAVersionIsTheVersionItselfWhenTheHubHasNoRevisions() {
+        route(REVISION_PATH, "", 404);
+        // A look-alike version, then the version itself
+        ObjectNode body = searchBody(List.of("urn:a", "urn:b"), 1, 10, 2);
+        ((ObjectNode) body.get("hits").get(0).get("document")).put("version", "1.2.0");
+        ((ObjectNode) body.get("hits").get(1).get("document")).put("version", "1.2");
+        route(SEARCH_PATH, bytes(body));
+        assertEquals("urn:b", searchClient().latest("example/sensors@1.2-revision-1").orElseThrow().getBaseUrl());
+        assertEquals(List.of(REVISION_PATH, SEARCH_PATH),
+                requests.stream().map(CatalogClientTest::path).collect(Collectors.toList()));
+        assertEquals("namespace:=`example` && name:=`sensors` && version:=`1.2`",
+                parameters(requests.get(1)).get("filter_by"));
+    }
+
+    @Test
+    void latestOfAVersionTheCatalogDoesNotHaveIsEmpty() {
+        route(REVISION_PATH, "", 404);
+        route(SEARCH_PATH, bytes(searchBody(List.of(), 1, 10, 0)));
+        assertTrue(searchClient().latest("example/sensors@1.2").isEmpty());
+    }
+
+    @Test
+    void latestOfAVersionKeepsOtherFailures() {
+        route(REVISION_PATH, "", 503);
+        assertFailure(() -> searchClient().latest("example/sensors@1.2"), CatalogErrorCode.HTTP_ERROR,
+                CatalogOperation.SEARCH, base + REVISION_PATH, 503);
     }
 
     @Test
@@ -459,8 +549,8 @@ class CatalogClientTest {
     void rejectsTargetsWithoutARequest() {
         assertFailure(() -> searchClient().inspect("w3c"), CatalogErrorCode.INVALID_INPUT,
                 CatalogOperation.INSPECT, "w3c", null);
-        assertFailure(() -> searchClient().latest("w3c/dcat@2"), CatalogErrorCode.INVALID_INPUT,
-                CatalogOperation.SEARCH, "w3c/dcat@2", null);
+        assertFailure(() -> searchClient().latest("w3c/dcat/2"), CatalogErrorCode.INVALID_INPUT,
+                CatalogOperation.SEARCH, "w3c/dcat/2", null);
         assertEquals(List.of(), requests);
     }
 

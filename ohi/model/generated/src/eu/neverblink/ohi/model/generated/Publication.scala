@@ -26,8 +26,12 @@ import eu.neverblink.linkml.runtime.*
   *   Short description of the ontology's domain and intended use.
   * @param elementCount
   *   Number of LinkML elements in the publication.
+  * @param hubVersion
+  *   Hub version that released this publication.
   * @param keywords
   *   Keywords describing the ontology's subject. An empty list means no keywords are provided.
+  * @param licenseFiles
+  *   Links to files with the licensing/copyright text.
   * @param licenses
   *   Reported license names or standard identifiers such as Apache-2.0. Empty means no information
   *   supplied. The list specifies neither AND nor OR combination semantics.
@@ -49,6 +53,8 @@ import eu.neverblink.linkml.runtime.*
   * @param preferredPrefix
   *   Optional abbreviation for namespace_iri, without whitespace or a colon. Requires
   *   namespace_iri. This constraint does not certify prefix syntax for every ontology language.
+  * @param provenance
+  *   Provenance information about this Publication, if it has any
   * @param publications
   *   Papers that introduce or describe the ontology.
   * @param publishedAt
@@ -60,12 +66,14 @@ import eu.neverblink.linkml.runtime.*
   *   publishing the ontology. Not inferred from catalog namespace.
   * @param publishers
   *   The people or organizations that publish the ontology upstream.
+  * @param revision
+  *   Revision information about this Publication, if it has any
   * @param schemaVersion
   *   Metadata contract revision, independent of the ontology's version.
   * @param title
   *   Display title of the ontology.
   * @param version
-  *   Complete publication version label, including amendments.
+  *   Complete publication version label, including the revision id if present.
   * @see
   *   From schema: https://ohi.neverblink.eu/contracts/package
   */
@@ -80,7 +88,11 @@ final case class Publication(
     description: String,
     @named("element_count")
     elementCount: Option[Int] = None,
+    @named("hub_version")
+    hubVersion: Option[String] = None,
     keywords: Seq[String],
+    @named("license_files")
+    licenseFiles: Seq[Uri] = Seq(),
     licenses: Seq[String],
     maintainers: Seq[Agent] = Seq(),
     name: String,
@@ -93,11 +105,13 @@ final case class Publication(
     originalSources: Seq[Uri],
     @named("preferred_prefix")
     preferredPrefix: Option[String] = None,
+    provenance: Option[Provenance] = None,
     publications: Seq[Citation] = Seq(),
     @named("published_at")
     publishedAt: LinkmlDateTime,
     publisher: String,
     publishers: Seq[Agent],
+    revision: Option[RevisionInfo] = None,
     @named("schema_version")
     schemaVersion: Int,
     title: String,

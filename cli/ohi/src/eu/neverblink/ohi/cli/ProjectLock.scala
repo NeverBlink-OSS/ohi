@@ -1,6 +1,7 @@
 package eu.neverblink.ohi.cli
 
 import eu.neverblink.linkml.runtime.stringify
+import eu.neverblink.ohi.catalog.Reference
 import eu.neverblink.ohi.model.generated.*
 import scala.collection.mutable
 
@@ -19,6 +20,47 @@ private[cli] object ProjectLock {
       )
     }
   }
+
+  /** Whether a locked requirement, of an exact release, satisfies a declared one: the same ontology
+    * and format, and the same version or a revision of it. A declared version that is not a
+    * revision, `ns/name@1.0`, stands for its latest revision, so the lock can hold any of its
+    * revisions, `ns/name@1.0-revision-2026-12-31`, and is never upgraded by checking it.
+    */
+  def satisfies(declared: ProjectDependency, locked: ProjectDependency): Boolean =
+    declared.format == locked.format && (declared.ontology == locked.ontology ||
+      ((Reference.parse(declared.ontology), Reference.parse(locked.ontology)) match {
+        case (
+              Some((namespace, name, Some(version))),
+              Some((lockedNamespace, lockedName, Some(exact))),
+            ) =>
+          namespace == lockedNamespace && name == lockedName && !Reference.isRevision(version) &&
+          Reference.originalVersion(exact) == version
+        case _ => false
+      }))
+
+  /** The selection of the lock that satisfies each declared requirement, each selection used for
+    * one requirement at most, an equal requirement before a revision of it. None for a requirement
+    * no unused selection satisfies.
+    */
+  def locked(
+      declared: Seq[ProjectDependency],
+      complete: Lock,
+  ): Seq[Option[ArtifactSelectionImpl]] = {
+    val unused = mutable.ArrayBuffer.from(requirements(complete).zip(complete.selections))
+    def take(matching: ProjectDependency => Boolean): Option[ArtifactSelectionImpl] =
+      Some(unused.indexWhere((requirement, _) => matching(requirement))).filter(_ >= 0)
+        .map(unused.remove(_)._2)
+    val exact = declared.map(requirement => take(_ == requirement))
+    declared.zip(exact).map { (requirement, selection) =>
+      selection.orElse(take(satisfies(requirement, _)))
+    }
+  }
+
+  /** Whether the lock's direct selections are exactly the declared requirements, in any order, each
+    * selection satisfying one requirement.
+    */
+  def matches(declared: Seq[ProjectDependency], complete: Lock): Boolean =
+    declared.size == complete.selections.size && locked(declared, complete).forall(_.nonEmpty)
 
   /** Builds a version-2 lock for selections and same-format dependencies using cached metadata.
     * Propagates inspection failures. Throws [[ProjectException]] for invalid selections or missing

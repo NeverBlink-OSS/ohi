@@ -3,6 +3,8 @@
 
 package eu.neverblink.ohi.model.generated
 
+import eu.neverblink.linkml.runtime.*
+
 /** One version-qualified ontology reference and the artifact format required by the project.
   *
   * @param ontology

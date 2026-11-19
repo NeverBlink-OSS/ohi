@@ -34,10 +34,13 @@ public final class CatalogClient {
     private static final String DEFAULT_SEARCH_URL = "https://api.ohi.dev" + SEARCH_PATH;
     private static final String DEFAULT_QUERY_BY = "title,name,description,namespace";
     private static final long DEFAULT_TIMEOUT_MS = 30000;
+    /** What separates a revision's original version from its id, as in 1.0-revision-2026-12-31. */
+    private static final String REVISION = "-revision-";
     private static final Pattern REFERENCE = Pattern.compile(
             "([^/@\\s`]+)/([^/@\\s`]+)(?:@([^/@\\s+`]+))?", Pattern.UNICODE_CHARACTER_CLASS);
     private final String searchUrl;
     private final String latestUrl;
+    private final String latestRevisionUrl;
     private final String filesUrl;
     private final String queryBy;
     private final long timeoutMs;
@@ -81,6 +84,7 @@ public final class CatalogClient {
         this.timeoutMs = timeout != null ? timeout : DEFAULT_TIMEOUT_MS;
         String base = searchUrl.substring(0, searchUrl.length() - SEARCH_PATH.length());
         this.latestUrl = base + "/search/collections/packages_latest/documents/search";
+        this.latestRevisionUrl = base + "/search/collections/packages_latest_revision/documents/search";
         this.filesUrl = base + "/files/packages/";
         this.http = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NEVER)
@@ -94,7 +98,11 @@ public final class CatalogClient {
      * @throws CatalogException if the request fails or the response is invalid
      */
     public SearchResult search(SearchRequest request) {
-        String endpoint = Boolean.TRUE.equals(request.getAllReleases()) ? searchUrl : latestUrl;
+        return search(Boolean.TRUE.equals(request.getAllReleases()) ? searchUrl : latestUrl, request);
+    }
+
+    /** Searches the collection whose search URL is {@code endpoint}. */
+    private SearchResult search(String endpoint, SearchRequest request) {
         long page = request.getPage() != null ? request.getPage() : 1;
         long perPage = request.getPerPage() != null ? request.getPerPage() : 10;
         StringBuilder query = new StringBuilder();
@@ -116,31 +124,70 @@ public final class CatalogClient {
     }
 
     /**
-     * The search hit of the latest version of the ontology {@code namespace/name}, if the catalog
-     * has it.
+     * The search hit of the newest release of an ontology, if the catalog has it. For
+     * {@code namespace/name}, that is the latest revision of the latest version. For
+     * {@code namespace/name@1.0}, it is the latest revision of version 1.0, or 1.0 itself when it
+     * has no revisions. A revision, {@code 1.0-revision-2026-12-31}, stands for its original
+     * version, 1.0. A hub before 0.2.0 has no revisions, so there it is 1.0 itself.
      *
-     * @throws CatalogException if the reference has a version, or the search fails
+     * @throws CatalogException if the reference is invalid, or the search fails
      */
     public Optional<SearchHit> latest(String reference) {
         Matcher parts = REFERENCE.matcher(reference);
-        if (!parts.matches() || parts.group(3) != null) {
+        if (!parts.matches()) {
             throw failure(CatalogErrorCode.INVALID_INPUT, CatalogOperation.SEARCH, reference,
-                    "Supply an ontology reference namespace/name without a version.");
+                    "Supply an ontology reference namespace/name[@version].");
         }
         String namespace = parts.group(1);
         String name = parts.group(2);
+        String version = parts.group(3);
         SearchRequest request = new SearchRequest();
         request.setQ("*");
-        request.setFilterBy("namespace:=`" + namespace + "` && name:=`" + name + "`");
+        String filter = "namespace:=`" + namespace + "` && name:=`" + name + "`";
         // The := filter ignores case and separators, so look-alikes such as w3c/DCAT can match
-        return search(request).getHits().stream()
-                .filter(hit -> hit.getNamespace().equals(namespace) && hit.getName().equals(name))
+        if (version == null) {
+            request.setFilterBy(filter);
+            return search(request).getHits().stream()
+                    .filter(hit -> hit.getNamespace().equals(namespace) && hit.getName().equals(name))
+                    .findFirst();
+        }
+        String original = originalVersion(version);
+        request.setFilterBy(filter + " && original_version:=`" + original + "`");
+        Optional<SearchHit> revision = Optional.empty();
+        try {
+            revision = search(latestRevisionUrl, request).getHits().stream()
+                    .filter(hit -> hit.getNamespace().equals(namespace) && hit.getName().equals(name)
+                            && original.equals(hit.getOriginalVersion()))
+                    .findFirst();
+        } catch (CatalogException e) {
+            // A hub before 0.2.0 has no packages_latest_revision collection
+            if (e.getError().getCode() != CatalogErrorCode.HTTP_ERROR
+                    || !Long.valueOf(404).equals(e.getError().getStatus())) {
+                throw e;
+            }
+        }
+        if (revision.isPresent()) {
+            return revision;
+        }
+        // The version itself, on a hub without revisions or before its revisions are indexed
+        request.setFilterBy(filter + " && version:=`" + original + "`");
+        return search(searchUrl, request).getHits().stream()
+                .filter(hit -> hit.getNamespace().equals(namespace) && hit.getName().equals(name)
+                        && original.equals(hit.getVersion()))
                 .findFirst();
     }
 
+    /** The version first published: the version itself, or the part before -revision- of a revision. */
+    private static String originalVersion(String version) {
+        int at = version.indexOf(REVISION);
+        return at < 0 ? version : version.substring(0, at);
+    }
+
     /**
-     * The publication at an absolute HTTP(S) URL, of the release {@code namespace/name@version},
-     * or of the latest version of {@code namespace/name}. It doesn't fetch the dependencies.
+     * The publication at an absolute HTTP(S) URL, or of a reference: {@code namespace/name@1.0}
+     * gives the latest revision of version 1.0, {@code namespace/name} the latest revision of the
+     * latest version, and a revision, {@code namespace/name@1.0-revision-2026-12-31}, exactly that
+     * release. It doesn't fetch the dependencies.
      *
      * @throws CatalogException if the target is invalid, the request fails or the metadata is
      *     invalid
@@ -150,8 +197,12 @@ public final class CatalogClient {
         Matcher parts = REFERENCE.matcher(target);
         if (parts.matches()) {
             if (parts.group(3) != null) {
-                url = filesUrl + Pages.uriComponent(parts.group(1)) + "/"
+                String exact = filesUrl + Pages.uriComponent(parts.group(1)) + "/"
                         + Pages.uriComponent(parts.group(2)) + "/" + Pages.uriComponent(parts.group(3)) + "/";
+                // The release path when the catalog doesn't know the version
+                url = parts.group(3).contains(REVISION)
+                        ? exact
+                        : latest(target).map(SearchHit::getBaseUrl).orElse(exact);
             } else {
                 url = latest(target).map(SearchHit::getBaseUrl).orElseThrow(() -> failure(
                         CatalogErrorCode.HTTP_ERROR, CatalogOperation.INSPECT, target, 404,

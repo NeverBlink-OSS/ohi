@@ -21,6 +21,7 @@ from .publication import _is_new, decode_publication
 _SEARCH_PATH = "/search/collections/packages/documents/search"
 _REFERENCE = re.compile(r"([^/@\s`]+)/([^/@\s`]+)(?:@([^/@\s+`]+))?")
 _FORMATS = {value.value for value in Format}
+_REVISION = "-revision-"
 
 
 class CatalogException(Exception):
@@ -110,6 +111,7 @@ class CatalogClient:
                             "https://api.ohi.dev/search/collections/packages/documents/search")
         base = self._search_url.removesuffix(_SEARCH_PATH)
         self._latest_url = base + "/search/collections/packages_latest/documents/search"
+        self._latest_revision_url = base + "/search/collections/packages_latest_revision/documents/search"
         self._files_url = base + "/files/packages/"
         self._query_by = data.get("query_by", "title,name,description,namespace")
         self._timeout = data.get("timeout_ms", 30000) / 1000
@@ -117,6 +119,9 @@ class CatalogClient:
 
     def search(self, request: SearchRequest) -> SearchResult:
         url = self._search_url if request.all_releases else self._latest_url
+        return self._search(url, request)
+
+    def _search(self, url, request: SearchRequest) -> SearchResult:
         try:
             params = SearchRequest.model_validate(request.model_dump(warnings=False)).model_dump()
         except ValueError as error:
@@ -132,29 +137,62 @@ class CatalogClient:
             raise _failure("INVALID_RESPONSE", "SEARCH", str(error), url, 200) from error
 
     def latest(self, reference: str) -> SearchHit | None:
-        """Return the search hit for the latest version of namespace/name, or None when the catalog
-        has no such ontology.
+        """Return the search hit of the newest release of namespace/name or namespace/name@version,
+        or None when the catalog has no such ontology or version.
+
+        namespace/name gives the latest revision of the latest version. namespace/name@1.0 gives
+        the latest revision of version 1.0, or 1.0 itself when it has no revisions. A revision
+        version such as 1.0-revision-2026-12-01 counts as 1.0 here. Hubs older than 0.2.0 have no
+        revisions, so there namespace/name@1.0 gives 1.0 itself.
         """
         match = _REFERENCE.fullmatch(reference)
-        if match is None or match[3] is not None:
+        if match is None:
             raise _failure("INVALID_INPUT", "SEARCH",
-                           "reference must be namespace/name without a version", reference)
-        namespace, name, _ = match.groups()
+                           "reference must be namespace/name or namespace/name@version", reference)
+        namespace, name, version = match.groups()
         filter_by = f"namespace:=`{namespace}` && name:=`{name}`"
-        result = self.search(SearchRequest(q="*", filter_by=filter_by))
-        # The := filter ignores case and separators, so look-alikes such as w3c/DCAT can match.
+        if version is None:
+            result = self.search(SearchRequest(q="*", filter_by=filter_by))
+            # The := filter ignores case and separators, so look-alikes such as w3c/DCAT can match.
+            return next((hit for hit in result.hits
+                         if (hit.namespace, hit.name) == (namespace, name)), None)
+        original = version.split(_REVISION, 1)[0]
+        try:
+            result = self._search(self._latest_revision_url, SearchRequest(
+                q="*", filter_by=f"{filter_by} && original_version:=`{original}`"))
+            hit = next((hit for hit in result.hits
+                        if (hit.namespace, hit.name, hit.original_version) == (namespace, name, original)),
+                       None)
+        except CatalogException as error:
+            # Hubs before 0.2.0 have no packages_latest_revision collection.
+            if error.error.code.value != "HTTP_ERROR" or error.error.status != 404:
+                raise
+            hit = None
+        if hit is not None:
+            return hit
+        # The version itself, on a hub without revisions or before its revisions are indexed
+        result = self._search(self._search_url, SearchRequest(
+            q="*", filter_by=f"{filter_by} && version:=`{original}`"))
         return next((hit for hit in result.hits
-                     if (hit.namespace, hit.name) == (namespace, name)), None)
+                     if (hit.namespace, hit.name, hit.version) == (namespace, name, original)), None)
 
     def inspect(self, base_url: str) -> Publication:
-        """Return the publication at an absolute HTTP(S) URL, of the release namespace/name@version,
-        or of the latest version of namespace/name.
+        """Return the publication at an absolute HTTP(S) URL or of a namespace/name reference.
+
+        namespace/name gives the latest revision of the latest version. namespace/name@1.0 gives
+        the latest revision of version 1.0, or 1.0 itself when it has no revisions. A revision
+        version such as 1.0-revision-2026-12-01 gives exactly that revision. On hubs older than
+        0.2.0, namespace/name@1.0 gives 1.0 itself.
         """
         url = base_url
         if (match := _REFERENCE.fullmatch(base_url)) is not None:
             if match[3] is not None:
-                path = "/".join(quote(part, safe="") for part in match.groups())
-                url = self._files_url + path + "/"
+                hit = None if _REVISION in match[3] else self.latest(base_url)
+                if hit is not None:
+                    url = hit.base_url
+                else:
+                    path = "/".join(quote(part, safe="") for part in match.groups())
+                    url = self._files_url + path + "/"
             elif (hit := self.latest(base_url)) is not None:
                 url = hit.base_url
             else:
