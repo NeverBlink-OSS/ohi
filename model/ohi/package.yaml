@@ -203,7 +203,7 @@ classes:
       added_base_iri:
         description: The base IRI, if it was patched in.
         range: uri
-      patched_json:
+      json_patch:
         description: The base url of the JSON-Patch file, if the ontology was patched this way.
         range: uri
         notes:

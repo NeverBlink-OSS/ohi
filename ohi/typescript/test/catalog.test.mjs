@@ -8,6 +8,17 @@ import { binary, page, publication, server } from "./server.mjs";
 
 const searchPath = "/search/collections/packages/documents/search";
 const latestPath = "/search/collections/packages_latest/documents/search";
+const latestRevisionPath = "/search/collections/packages_latest_revision/documents/search";
+
+// A search page whose hits are [base_url, namespace, name, original_version] tuples.
+function releases(entries) {
+  const wire = page(entries.map(([baseUrl]) => baseUrl), 1, 10, entries.length);
+  entries.forEach(([, namespace, name, original], index) => {
+    Object.assign(wire.hits[index].document, { namespace, name, version: `${original}-revision-2026-12-01`,
+      original_version: original, revision_id: "2026-12-01" });
+  });
+  return wire;
+}
 
 function failure(code, operation, url, status) {
   return (error) => {
@@ -201,7 +212,9 @@ test("a search_url under a path prefix keeps the prefix for the latest endpoint 
   await client.search({ q: "*" });
   await client.inspect("w3c/dcat@2");
   assert.deepEqual(fixture.requests.map((req) => new URL(req.url, fixture.url).pathname),
-    ["/hub/search/collections/packages_latest/documents/search", "/hub/files/packages/w3c/dcat/2/"]);
+    ["/hub/search/collections/packages_latest/documents/search",
+      "/hub/search/collections/packages_latest_revision/documents/search",
+      "/hub/search/collections/packages/documents/search", "/hub/files/packages/w3c/dcat/2/"]);
 });
 
 test("inspect fetches the exact supplied path and query without following metadata references", async (t) => {
@@ -213,10 +226,51 @@ test("inspect fetches the exact supplied path and query without following metada
   assert.deepEqual(fixture.requests.map((req) => req.url), ["/opaque?signature=a%2Bb"]);
 });
 
-test("inspect of a versioned reference sends one GET of the percent-encoded release URL", async (t) => {
-  const fixture = await server(t, (_, res) => res.end(publication));
+test("inspect of a versioned reference without a hit sends one GET of the percent-encoded release URL", async (t) => {
+  const fixture = await server(t, (req, res) =>
+    res.end(req.url.startsWith("/search/") ? JSON.stringify(page([], 1, 10, 0)) : publication));
   await catalog(fixture).inspect("team:a/model%x@v1.0é");
-  assert.deepEqual(fixture.requests.map((req) => req.url), ["/files/packages/team%3Aa/model%25x/v1.0%C3%A9/"]);
+  const [search, releasesSearch, ...gets] = fixture.requests.map((req) => new URL(req.url, fixture.url));
+  assert.equal(search.pathname, latestRevisionPath);
+  assert.equal(search.searchParams.get("filter_by"),
+    "namespace:=`team:a` && name:=`model%x` && original_version:=`v1.0é`");
+  assert.equal(releasesSearch.pathname, searchPath);
+  assert.equal(releasesSearch.searchParams.get("filter_by"),
+    "namespace:=`team:a` && name:=`model%x` && version:=`v1.0é`");
+  assert.deepEqual(gets.map((url) => url.pathname), ["/files/packages/team%3Aa/model%25x/v1.0%C3%A9/"]);
+});
+
+test("inspect of a versioned reference fetches the base_url of the latest revision of that version", async (t) => {
+  const fixture = await server(t, (req, res) => {
+    if (!req.url.startsWith(latestRevisionPath)) return res.end(publication);
+    res.end(JSON.stringify(releases([[`${fixture.url}/revision/`, "example", "sensors", "1.0"]])));
+  });
+  await catalog(fixture).inspect("example/sensors@1.0");
+  assert.deepEqual(fixture.requests.map((req) => new URL(req.url, fixture.url).pathname),
+    [latestRevisionPath, "/revision/"]);
+});
+
+test("inspect of a revision reference fetches that exact revision without searching", async (t) => {
+  const fixture = await server(t, (_, res) => res.end(publication));
+  await catalog(fixture).inspect("example/sensors@1.0-revision-2026-12-01");
+  assert.deepEqual(fixture.requests.map((req) => req.url),
+    ["/files/packages/example/sensors/1.0-revision-2026-12-01/"]);
+});
+
+test("inspect of a versioned reference on a hub without the latest-revision collection fetches the version itself", async (t) => {
+  const fixture = await server(t, (req, res) => {
+    if (req.url.startsWith(searchPath)) {
+      const wire = page([`${fixture.url}/1.0/`], 1, 10, 1);
+      wire.hits[0].document.version = "1.0";
+      return res.end(JSON.stringify(wire));
+    }
+    if (!req.url.startsWith(latestRevisionPath)) return res.end(publication);
+    res.writeHead(404);
+    res.end('{"message":"Not Found"}');
+  });
+  await catalog(fixture).inspect("example/sensors@1.0");
+  assert.deepEqual(fixture.requests.map((req) => new URL(req.url, fixture.url).pathname),
+    [latestRevisionPath, searchPath, "/1.0/"]);
 });
 
 test("inspect of an unversioned reference fetches the latest-version hit with the exact namespace and name, skipping look-alikes", async (t) => {
@@ -253,10 +307,66 @@ test("inspect rejects http:/host with a trailing tab, which the reference gramma
   assert.deepEqual(fixture.requests, []);
 });
 
-test("latest rejects a versioned reference without a request", async (t) => {
+test("latest rejects a target that is not a reference without a request", async (t) => {
   const fetched = t.mock.method(globalThis, "fetch", async () => new Response("{}"));
-  await assert.rejects(new CatalogClient().latest("w3c/dcat@2"), failure("INVALID_INPUT", "SEARCH", "w3c/dcat@2"));
+  await assert.rejects(new CatalogClient().latest("w3c"), failure("INVALID_INPUT", "SEARCH", "w3c"));
   assert.equal(fetched.mock.calls.length, 0);
+});
+
+test("latest of a versioned reference searches the latest-revision collection and skips look-alikes", async (t) => {
+  const fixture = await server(t, (_, res) => res.end(JSON.stringify(releases([
+    ["https://example.org/a/", "example", "SENSORS", "1.0"],
+    ["https://example.org/b/", "example", "sensors", "1-0"],
+    ["https://example.org/c/", "example", "sensors", "1.0"],
+  ]))));
+  const hit = await catalog(fixture).latest("example/sensors@1.0");
+  assert.equal(hit.base_url, "https://example.org/c/");
+  assert.equal(hit.revision_id, "2026-12-01");
+  assert.equal(fixture.requests.length, 1);
+  const sent = new URL(fixture.requests[0].url, fixture.url);
+  assert.equal(sent.pathname, latestRevisionPath);
+  assert.deepEqual(Object.fromEntries(sent.searchParams), { q: "*", query_by: "name", page: "1", per_page: "10",
+    filter_by: "namespace:=`example` && name:=`sensors` && original_version:=`1.0`" });
+});
+
+test("latest of a revision reference looks up the latest revision of its original version", async (t) => {
+  const fixture = await server(t, (_, res) =>
+    res.end(JSON.stringify(releases([["https://example.org/r/", "example", "sensors", "1.0"]]))));
+  const hit = await catalog(fixture).latest("example/sensors@1.0-revision-2026-01-01");
+  assert.equal(hit.base_url, "https://example.org/r/");
+  const sent = new URL(fixture.requests[0].url, fixture.url);
+  assert.equal(sent.pathname, latestRevisionPath);
+  assert.equal(sent.searchParams.get("filter_by"), "namespace:=`example` && name:=`sensors` && original_version:=`1.0`");
+});
+
+test("latest of a versioned reference without a hit of that original version returns undefined", async (t) => {
+  const fixture = await server(t, (_, res) => res.end(JSON.stringify(page([], 1, 10, 0))));
+  assert.equal(await catalog(fixture).latest("example/sensors@9"), undefined);
+});
+
+test("latest of a versioned reference gives the version itself when the hub has no latest-revision collection", async (t) => {
+  const fixture = await server(t, (req, res) => {
+    if (req.url.startsWith(latestRevisionPath)) {
+      res.writeHead(404);
+      return res.end('{"message":"Not Found"}');
+    }
+    // A look-alike version, then the version itself
+    const wire = page([`${fixture.url}/1.0.0/`, `${fixture.url}/1.0/`], 1, 10, 2);
+    wire.hits[0].document.version = "1.0.0";
+    wire.hits[1].document.version = "1.0";
+    res.end(JSON.stringify(wire));
+  });
+  const hit = await catalog(fixture).latest("example/sensors@1.0-revision-2026-12-01");
+  assert.equal(hit?.base_url, `${fixture.url}/1.0/`);
+  const [, search] = fixture.requests.map((req) => new URL(req.url, fixture.url));
+  assert.equal(search.pathname, searchPath);
+  assert.equal(search.searchParams.get("filter_by"), "namespace:=`example` && name:=`sensors` && version:=`1.0`");
+});
+
+test("latest of a versioned reference reports other HTTP errors", async (t) => {
+  const fixture = await server(t, (_, res) => { res.writeHead(503); res.end(); });
+  await assert.rejects(catalog(fixture).latest("example/sensors@1.0"),
+    failure("HTTP_ERROR", "SEARCH", `${fixture.url}${latestRevisionPath}`, 503));
 });
 
 test("get returns complete binary bytes and repeats an explicit request", async (t) => {

@@ -17,6 +17,7 @@ import scala.jdk.CollectionConverters.*
 class CatalogCommandsSpec extends AnyWordSpec, Matchers {
   private val searchPath = "/search/collections/packages/documents/search"
   private val latestPath = "/search/collections/packages_latest/documents/search"
+  private val revisionPath = "/search/collections/packages_latest_revision/documents/search"
 
   // Synthetic metadata exercises output fields and ordering without claiming real catalog data.
   private val hits = """[
@@ -168,7 +169,10 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
       request =>
         new URI(request).getPath match {
           case `latestPath` => 200 -> search(10).getBytes(UTF_8)
-          case `searchPath` => 200 -> search(250).getBytes(UTF_8)
+          // A listing of every release, or the version itself when the hub has no revisions
+          case `searchPath` =>
+            val perPage = if request.contains("per_page=250") then 250 else 10
+            200 -> search(perPage).getBytes(UTF_8)
           case `hub` => 200 -> metadata.getBytes(UTF_8)
           case _ => 404 -> Array.emptyByteArray
         }
@@ -212,7 +216,10 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           case `hub` => 200 -> inspectionPublication(base).toString.getBytes(UTF_8)
           case "/files/packages/example/z/3/" => 200 -> latest.toString.getBytes(UTF_8)
           case `latestPath` => 200 -> page(Seq(zHit(base, "3")), 1, 10).getBytes(UTF_8)
-          case `searchPath` => 200 -> page(releases, 5, 250).getBytes(UTF_8)
+          // A listing of every release, or the version itself when the hub has no revisions
+          case `searchPath` =>
+            val perPage = if request.contains("per_page=250") then 250 else 10
+            200 -> page(releases, 5, perPage).getBytes(UTF_8)
           case _ => 404 -> Array.emptyByteArray
         }
     }(check)
@@ -263,7 +270,8 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
       "request_params":{"per_page":10},"search_cutoff":false}"""
     request =>
       new URI(request).getPath match {
-        case `latestPath` => 200 -> search.getBytes(UTF_8)
+        // The latest version, or the version itself when the hub has no revisions
+        case `latestPath` | `searchPath` => 200 -> search.getBytes(UTF_8)
         case `hub` => 200 -> acquisitionPublication(base, format).getBytes(UTF_8)
         case path if path == hub + "original" => 200 -> binary
         case _ => 404 -> "Unexpected request".getBytes(UTF_8)
@@ -503,17 +511,17 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           "https://example.org/dependency/",
         ).foreach(out should include(_))
         requests.asScala.toSeq.map(value => new URI(value).getPath) shouldBe
-          Seq(hub, latestPath, searchPath)
+          Seq(revisionPath, searchPath, hub, latestPath, searchPath)
       }
     }
 
-    "resolve a versioned reference by one GET and preserve every publication field in JSON output" in {
+    "resolve a versioned reference through its latest revision and preserve every publication field in JSON output" in {
       withInspection { (base, requests) =>
         val (out, err, code) = inspectReference(base, "example/z@2.0", "--json")
         code shouldBe 0
         err shouldBe empty
         json(out) shouldBe inspectionPublication(base)
-        requests.asScala.toSeq shouldBe Seq(hub)
+        requests.asScala.toSeq.map(value => new URI(value).getPath) shouldBe Seq(revisionPath, searchPath, hub)
       }
     }
 
@@ -543,7 +551,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
             "Files\n",
         )
         val recorded = requests.asScala.toSeq
-        recorded.map(value => new URI(value).getPath) shouldBe Seq(hub, latestPath, searchPath)
+        recorded.map(value => new URI(value).getPath) shouldBe Seq(revisionPath, searchPath, hub, latestPath, searchPath)
         query(recorded.last) shouldBe Map(
           "q" -> "*",
           "query_by" -> "name",
@@ -715,7 +723,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           err should include(s"Files\n  $base/first.ttl\n  $base/second.ttl")
           err should include(s"ohi get $base/first.ttl --to '$destination'")
           err should not include "Error:"
-          requests.asScala.toSeq shouldBe Seq(hub)
+          requests.asScala.toSeq.map(value => new URI(value).getPath) shouldBe Seq(revisionPath, searchPath, hub)
           os.exists(destination) shouldBe false
           os.list(directory) shouldBe empty
         }
@@ -741,7 +749,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           err should startWith("Error: Could not update the project.")
           err should include("example/z@2.0 has more than one file in owl-turtle format.")
           err should include("standalone ohi get for an exact file URL")
-          requests.asScala.toSeq shouldBe Seq(hub)
+          requests.asScala.toSeq.map(value => new URI(value).getPath) shouldBe Seq(revisionPath, searchPath, hub)
           os.exists(destination) shouldBe false
           os.list(directory) shouldBe empty
         }
@@ -765,7 +773,8 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           ).toSeq shouldBe binary.toSeq
           os.read(cwd / ".ohi" / ".gitignore") shouldBe "*\n"
           os.list(cwd).map(_.last) shouldBe Seq(".ohi")
-          requests.asScala.toSeq shouldBe Seq(hub, hub + "original")
+          requests.asScala.toSeq.map(value => new URI(value).getPath) shouldBe
+            Seq(revisionPath, searchPath, hub, hub + "original")
         }
       }
     }
@@ -1199,6 +1208,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
             new URI(request).getPath match {
               case `hub` => 200 -> metadata.toString.getBytes(UTF_8)
               case path if path == hub + "original" => 200 -> binary
+              case `searchPath` => 200 -> page(Seq.empty, 0, 10).getBytes(UTF_8)
               case _ => 404 -> Array.emptyByteArray
             }
         } { (base, requests) =>
@@ -1215,7 +1225,8 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           json(out) shouldBe json(
             s"""{"url":"$base${hub}original","path":"$cwd/.ohi/example/z/2.0/z.owl.ttl"}""",
           )
-          requests.asScala.toSeq shouldBe Seq(hub, hub + "original")
+          requests.asScala.toSeq.map(value => new URI(value).getPath) shouldBe
+            Seq(revisionPath, searchPath, hub, hub + "original")
         }
       }
     }

@@ -35,7 +35,9 @@ import java.util.Objects;
     "dependencies",
     "description",
     "element_count",
+    "hub_version",
     "keywords",
+    "license_files",
     "licenses",
     "maintainers",
     "name",
@@ -44,10 +46,12 @@ import java.util.Objects;
     "native_element_count",
     "original_sources",
     "preferred_prefix",
+    "provenance",
     "publications",
     "published_at",
     "publisher",
     "publishers",
+    "revision",
     "schema_version",
     "title",
     "version",
@@ -74,8 +78,14 @@ public class Publication {
     @JsonProperty("element_count")
     private Long elementCount;
 
+    @JsonProperty("hub_version")
+    private String hubVersion;
+
     @JsonProperty("keywords")
     private List<String> keywords;
+
+    @JsonProperty("license_files")
+    private List<String> licenseFiles;
 
     @JsonProperty("licenses")
     private List<String> licenses;
@@ -101,6 +111,9 @@ public class Publication {
     @JsonProperty("preferred_prefix")
     private String preferredPrefix;
 
+    @JsonProperty("provenance")
+    private Provenance provenance;
+
     @JsonProperty("publications")
     private List<Citation> publications;
 
@@ -111,6 +124,9 @@ public class Publication {
 
     @JsonProperty("publishers")
     private List<Agent> publishers;
+
+    @JsonProperty("revision")
+    private RevisionInfo revision;
 
     @JsonProperty("schema_version")
     private Long schemaVersion;
@@ -192,6 +208,15 @@ public class Publication {
         this.elementCount = elementCount;
     }
 
+    /** Hub version that released this publication. */
+    public String getHubVersion() {
+        return hubVersion;
+    }
+
+    public void setHubVersion(String hubVersion) {
+        this.hubVersion = hubVersion;
+    }
+
     /** Keywords describing the ontology's subject. An empty list means no keywords are provided. */
     public List<String> getKeywords() {
         return keywords;
@@ -199,6 +224,15 @@ public class Publication {
 
     public void setKeywords(List<String> keywords) {
         this.keywords = keywords;
+    }
+
+    /** Links to files with the licensing/copyright text. */
+    public List<String> getLicenseFiles() {
+        return licenseFiles;
+    }
+
+    public void setLicenseFiles(List<String> licenseFiles) {
+        this.licenseFiles = licenseFiles;
     }
 
     /**
@@ -283,6 +317,15 @@ public class Publication {
         this.preferredPrefix = preferredPrefix;
     }
 
+    /** Provenance information about this Publication, if it has any */
+    public Provenance getProvenance() {
+        return provenance;
+    }
+
+    public void setProvenance(Provenance provenance) {
+        this.provenance = provenance;
+    }
+
     /** Papers that introduce or describe the ontology. */
     public List<Citation> getPublications() {
         return publications;
@@ -323,6 +366,15 @@ public class Publication {
         this.publishers = publishers;
     }
 
+    /** Revision information about this Publication, if it has any */
+    public RevisionInfo getRevision() {
+        return revision;
+    }
+
+    public void setRevision(RevisionInfo revision) {
+        this.revision = revision;
+    }
+
     /** Metadata contract revision, independent of the ontology's version. */
     public Long getSchemaVersion() {
         return schemaVersion;
@@ -341,7 +393,7 @@ public class Publication {
         this.title = title;
     }
 
-    /** Complete publication version label, including amendments. */
+    /** Complete publication version label, including the revision id if present. */
     public String getVersion() {
         return version;
     }
@@ -371,7 +423,9 @@ public class Publication {
             && Objects.equals(dependencies, other.dependencies)
             && Objects.equals(description, other.description)
             && Objects.equals(elementCount, other.elementCount)
+            && Objects.equals(hubVersion, other.hubVersion)
             && Objects.equals(keywords, other.keywords)
+            && Objects.equals(licenseFiles, other.licenseFiles)
             && Objects.equals(licenses, other.licenses)
             && Objects.equals(maintainers, other.maintainers)
             && Objects.equals(name, other.name)
@@ -380,10 +434,12 @@ public class Publication {
             && Objects.equals(nativeElementCount, other.nativeElementCount)
             && Objects.equals(originalSources, other.originalSources)
             && Objects.equals(preferredPrefix, other.preferredPrefix)
+            && Objects.equals(provenance, other.provenance)
             && Objects.equals(publications, other.publications)
             && Objects.equals(publishedAt, other.publishedAt)
             && Objects.equals(publisher, other.publisher)
             && Objects.equals(publishers, other.publishers)
+            && Objects.equals(revision, other.revision)
             && Objects.equals(schemaVersion, other.schemaVersion)
             && Objects.equals(title, other.title)
             && Objects.equals(version, other.version)
@@ -392,7 +448,7 @@ public class Publication {
 
     @Override
     public int hashCode() {
-        return Objects.hash(artifacts, authors, baseUrl, contributors, dependencies, description, elementCount, keywords, licenses, maintainers, name, namespace, namespaceIri, nativeElementCount, originalSources, preferredPrefix, publications, publishedAt, publisher, publishers, schemaVersion, title, version, extraProperties);
+        return Objects.hash(artifacts, authors, baseUrl, contributors, dependencies, description, elementCount, hubVersion, keywords, licenseFiles, licenses, maintainers, name, namespace, namespaceIri, nativeElementCount, originalSources, preferredPrefix, provenance, publications, publishedAt, publisher, publishers, revision, schemaVersion, title, version, extraProperties);
     }
 
     @Override
@@ -405,7 +461,9 @@ public class Publication {
             + ", dependencies=" + getDependencies()
             + ", description=" + getDescription()
             + ", elementCount=" + getElementCount()
+            + ", hubVersion=" + getHubVersion()
             + ", keywords=" + getKeywords()
+            + ", licenseFiles=" + getLicenseFiles()
             + ", licenses=" + getLicenses()
             + ", maintainers=" + getMaintainers()
             + ", name=" + getName()
@@ -414,10 +472,12 @@ public class Publication {
             + ", nativeElementCount=" + getNativeElementCount()
             + ", originalSources=" + getOriginalSources()
             + ", preferredPrefix=" + getPreferredPrefix()
+            + ", provenance=" + getProvenance()
             + ", publications=" + getPublications()
             + ", publishedAt=" + getPublishedAt()
             + ", publisher=" + getPublisher()
             + ", publishers=" + getPublishers()
+            + ", revision=" + getRevision()
             + ", schemaVersion=" + getSchemaVersion()
             + ", title=" + getTitle()
             + ", version=" + getVersion()
@@ -436,7 +496,9 @@ public class Publication {
             @JsonProperty(value = "dependencies", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Dependency> dependencies,
             @JsonProperty(value = "description", required = true) String description,
             @JsonProperty("element_count") Long elementCount,
+            @JsonProperty("hub_version") String hubVersion,
             @JsonProperty(value = "keywords", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> keywords,
+            @JsonProperty("license_files") @JsonSetter(contentNulls = Nulls.FAIL) List<String> licenseFiles,
             @JsonProperty(value = "licenses", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> licenses,
             @JsonProperty("maintainers") @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> maintainers,
             @JsonProperty(value = "name", required = true) String name,
@@ -445,10 +507,12 @@ public class Publication {
             @JsonProperty("native_element_count") Long nativeElementCount,
             @JsonProperty(value = "original_sources", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> originalSources,
             @JsonProperty("preferred_prefix") String preferredPrefix,
+            @JsonProperty("provenance") Provenance provenance,
             @JsonProperty("publications") @JsonSetter(contentNulls = Nulls.FAIL) List<Citation> publications,
             @JsonProperty(value = "published_at", required = true) Object publishedAt,
             @JsonProperty(value = "publisher", required = true) String publisher,
             @JsonProperty(value = "publishers", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> publishers,
+            @JsonProperty("revision") RevisionInfo revision,
             @JsonProperty(value = "schema_version", required = true) Long schemaVersion,
             @JsonProperty(value = "title", required = true) String title,
             @JsonProperty(value = "version", required = true) String version) {
@@ -460,7 +524,9 @@ public class Publication {
         json$item.setDependencies(dependencies);
         json$item.setDescription(description);
         json$item.setElementCount(elementCount);
+        json$item.setHubVersion(hubVersion);
         json$item.setKeywords(keywords);
+        json$item.setLicenseFiles(licenseFiles);
         json$item.setLicenses(licenses);
         json$item.setMaintainers(maintainers);
         json$item.setName(name);
@@ -469,10 +535,12 @@ public class Publication {
         json$item.setNativeElementCount(nativeElementCount);
         json$item.setOriginalSources(originalSources);
         json$item.setPreferredPrefix(preferredPrefix);
+        json$item.setProvenance(provenance);
         json$item.setPublications(publications);
         json$item.setPublishedAt(LinkMLJson.dateTime(publishedAt));
         json$item.setPublisher(publisher);
         json$item.setPublishers(publishers);
+        json$item.setRevision(revision);
         json$item.setSchemaVersion(schemaVersion);
         json$item.setTitle(title);
         json$item.setVersion(version);

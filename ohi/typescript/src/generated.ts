@@ -95,6 +95,34 @@ export interface FacetValueCount {
   [key: string]: unknown;
 }
 
+/** File that is part of this publication */
+export interface File {
+  /** Permanent absolute download URL of an immutable ontology file. */
+  url: string;
+}
+
+/** File that was generated from a remote source */
+export interface GeneratedFile {
+  /** The input file for this conversion */
+  source: string;
+  /** Permanent absolute download URL of an immutable ontology file. */
+  url: string;
+  /** Tool that was used for the conversion */
+  using: string;
+  [key: string]: unknown;
+}
+
+/** File that was fetched from the ohi-index repository directly */
+export interface IndexFile {
+  /** Commit sha of ohi-index the package was read at */
+  commit: string;
+  /** Path to the file in the repository. */
+  path: string;
+  /** Permanent absolute download URL of an immutable ontology file. */
+  url: string;
+  [key: string]: unknown;
+}
+
 /** Direct selections and their artifact files. */
 export interface Lock {
   /** Each (base_url, url) pair is unique. Every selection matches a file by that pair. */
@@ -125,6 +153,30 @@ export interface LockedFile {
   sha256?: string;
 }
 
+/** File which was created by patching another */
+export interface PatchedFile {
+  /** The base IRI, if it was patched in. */
+  added_base_iri?: string;
+  /** True if the line endings were converted from CRLF to LF. */
+  converted_line_endings?: boolean;
+  /** The input file for this patch */
+  from: string;
+  /** The base url of the JSON-Patch file, if the ontology was patched this way. */
+  json_patch?: string;
+  /** Permanent absolute download URL of an immutable ontology file. */
+  url: string;
+  [key: string]: unknown;
+}
+
+/** Provenance of the files */
+export interface Provenance {
+  generated?: GeneratedFile[];
+  index?: IndexFile[];
+  patched?: PatchedFile[];
+  remote?: RemoteFile[];
+  [key: string]: unknown;
+}
+
 /** One immutable release of one ontology, including its metadata, artifacts and dependencies. Package, publication and release refer to the same entity. */
 export interface Publication {
   /** Available artifacts of this ontology. Each artifact URL occurs once. Multiple artifacts may share a format. */
@@ -141,8 +193,12 @@ export interface Publication {
   description: string;
   /** Number of LinkML elements in the publication. */
   element_count?: number;
+  /** Hub version that released this publication. */
+  hub_version?: string;
   /** Keywords describing the ontology's subject. An empty list means no keywords are provided. */
   keywords: string[];
+  /** Links to files with the licensing/copyright text. */
+  license_files?: string[];
   /** Reported license names or standard identifiers such as Apache-2.0. Empty means no information supplied. The list specifies neither AND nor OR combination semantics. */
   licenses: string[];
   /** The third-party people or organizations that maintain the ontology in the ohi index. */
@@ -159,6 +215,8 @@ export interface Publication {
   original_sources: string[];
   /** Optional abbreviation for namespace_iri, without whitespace or a colon. Requires namespace_iri. This constraint does not certify prefix syntax for every ontology language. */
   preferred_prefix?: string;
+  /** Provenance information about this Publication, if it has any */
+  provenance?: Provenance;
   /** Papers that introduce or describe the ontology. */
   publications?: Citation[];
   /** First successful Hub publication time for this immutable release. Backend emits UTC date-time text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime of this publication. Not an upstream release date. */
@@ -167,12 +225,36 @@ export interface Publication {
   publisher: string;
   /** The people or organizations that publish the ontology upstream. */
   publishers: Agent[];
+  /** Revision information about this Publication, if it has any */
+  revision?: RevisionInfo;
   /** Metadata contract revision, independent of the ontology's version. */
   schema_version: number;
   /** Display title of the ontology. */
   title: string;
-  /** Complete publication version label, including amendments. */
+  /** Complete publication version label, including the revision id if present. */
   version: string;
+  [key: string]: unknown;
+}
+
+/** File that was fetched from a remote source */
+export interface RemoteFile {
+  /** The URI that was queried for the file */
+  from: string;
+  /** Permanent absolute download URL of an immutable ontology file. */
+  url: string;
+  [key: string]: unknown;
+}
+
+/** Information about the revision */
+export interface RevisionInfo {
+  /** An identifier of the revision, added as a suffix to the version */
+  id: string;
+  /** Original version of the ontology, prefix of the full version */
+  original_version: string;
+  /** Reason why this revision was created */
+  reason?: string;
+  /** base_uri of the revised ontology */
+  revises: string;
   [key: string]: unknown;
 }
 
@@ -190,6 +272,8 @@ export interface SearchHit {
   element_count?: number;
   /** Formats of the publication's available artifacts. Each value identifies both the ontology language and serialization syntax, as in artifact.format. */
   formats: Format[];
+  /** Hub version that released this publication. */
+  hub_version?: string;
   /** Keywords describing the ontology's subject. An empty list means no keywords are provided. */
   keywords: string[];
   /** Reported license names or standard identifiers such as Apache-2.0. Empty means no information supplied. The list specifies neither AND nor OR combination semantics. */
@@ -204,15 +288,19 @@ export interface SearchHit {
   native_element_count?: number;
   /** Upstream official sources of the ontology, such as its homepage or repository. */
   original_sources: string[];
+  /** The version first published. For a revision, the original_version of its revision, otherwise the version itself. Filtering on it finds a release and all its revisions. */
+  original_version?: string;
   /** Papers that introduce or describe the ontology. */
   publications?: Citation[];
   /** First successful Hub publication time for this immutable release. Backend emits UTC date-time text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime of this publication. Not an upstream release date. */
   published_at: string;
   /** The people or organizations that publish the ontology upstream. */
   publishers: Agent[];
+  /** The id of the revision, only for a revision. The latest revision of a version is its document in packages_latest_revision. */
+  revision_id?: string;
   /** Display title of the ontology. */
   title: string;
-  /** Complete publication version label, including amendments. */
+  /** Complete publication version label, including the revision id if present. */
   version: string;
   [key: string]: unknown;
 }

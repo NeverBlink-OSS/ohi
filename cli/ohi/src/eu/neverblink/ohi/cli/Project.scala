@@ -72,7 +72,7 @@ private[cli] final class Project(
       inspect: String => Publication,
       fetch: String => Array[Byte],
   ): ProjectResult = {
-    val previous = read(allowMissing = true)
+    val (previous, previousLock) = read(allowMissing = true)
     val missing = !exists(declarationPath)
     val metadata = new ProjectLock.Inspection(inspect)
     val (requirement, publication, selected) = artifact match {
@@ -81,7 +81,7 @@ private[cli] final class Project(
         val selected = publication.artifacts.find(_.url.original == url).getOrElse {
           invalidSelection(s"Publication '$input' does not advertise artifact '$url'.")
         }
-        val requirement = dependency(publication, selected)
+        val requirement = dependency(publication, selected, exact = true)
         val resolved = resolve(requirement.ontology, Some(stringify(selected.format)), metadata)
         if resolved._1.baseUrl.original != input || resolved._2.url.original != url then
           invalidSelection(
@@ -95,7 +95,10 @@ private[cli] final class Project(
           metadata,
           Some(previous.defaultFormat),
         )
-        (dependency(resolved._1, resolved._2), resolved._1, resolved._2)
+        // An exact revision stays exact, any other reference keeps up with its version's revisions
+        val exact = OntologyReference.parse(input).toOption
+          .flatMap(_._3).exists(eu.neverblink.ohi.catalog.Reference.isRevision)
+        (dependency(resolved._1, resolved._2, exact), resolved._1, resolved._2)
     }
     added = Some(requirement)
     val changed = !previous.dependencies.contains(requirement)
@@ -103,7 +106,7 @@ private[cli] final class Project(
       if changed then previous.copy(dependencies = previous.dependencies :+ requirement)
       else previous
     val pair = ArtifactSelectionImpl(publication.baseUrl, selected.url)
-    val complete = build(declaration, metadata, Some(requirement -> pair))
+    val complete = build(declaration, metadata, Some(requirement -> pair), previousLock)
     val plan = prepare(DownloadDestination.fromProject(directory, declaration), complete)
     if changed then {
       writeDeclaration(declarationPath, declaration)
@@ -117,20 +120,26 @@ private[cli] final class Project(
   }
 
   /** Resolves the recorded formats strictly and replaces the lock without editing the declaration
-    * or downloading files. Invalid existing records fail before catalog requests. `check` only
-    * checks that the lock matches the declaration, like `sync --locked`.
+    * or downloading files. Keeps the locked release of each dependency the lock still satisfies, so
+    * it never moves to a newer revision, unless `upgrade` resolves every dependency again. Invalid
+    * existing records fail before catalog requests. `check` only checks that the lock matches the
+    * declaration, like `sync --locked`.
     */
   def refresh(
       inspect: String => Publication,
       check: Boolean = false,
+      upgrade: Boolean = false,
   ): ProjectResult = {
-    val declaration = read(allowMissing = false)
+    val (declaration, existing) = read(allowMissing = false)
     if check then {
-      val existing = readRecords()._2
       existing.foreach(requireVersion2)
       if !existing.exists(matches(declaration, _)) then throw outdated(existing.isEmpty)
     } else {
-      val complete = build(declaration, new ProjectLock.Inspection(inspect))
+      val complete = build(
+        declaration,
+        new ProjectLock.Inspection(inspect),
+        locked = if upgrade then None else existing,
+      )
       writeLock(lockPath, complete)
       lockChanged = true
     }
@@ -167,7 +176,8 @@ private[cli] final class Project(
           s"Project '$directory' has neither ohi.yaml nor ohi.lock.json. Run ohi init or ohi add to start a project.",
         )
       }
-      build(requirements, new ProjectLock.Inspection(inspect))
+      // Keeps what the outdated lock still selects, resolving only new and changed requirements
+      build(requirements, new ProjectLock.Inspection(inspect), locked = existing)
     }
     val selected = declaration
       .map(DownloadDestination.fromProject(directory, _))
@@ -207,13 +217,11 @@ private[cli] final class Project(
         ),
       )
 
-  /** Whether the lock's direct requirements are the declared dependencies, in any order. */
+  /** Whether the lock's direct selections satisfy the declared dependencies, in any order, see
+    * [[ProjectLock.matches]].
+    */
   private def matches(declaration: Declaration, complete: Lock): Boolean =
-    ProjectLock.requirements(complete).sortBy(dependency =>
-      (dependency.ontology, stringify(dependency.format)),
-    ) == declaration.dependencies.sortBy(dependency =>
-      (dependency.ontology, stringify(dependency.format)),
-    )
+    ProjectLock.matches(declaration.dependencies, complete)
 
   private def outdated(missing: Boolean, option: Option[String] = None): ProjectException =
     new ProjectException(
@@ -230,8 +238,18 @@ private[cli] final class Project(
     LockDownload.prepare(complete.files, selected.directory, selected.managed)
   }
 
-  private def dependency(publication: Publication, artifact: Artifact): ProjectDependency = {
-    val reference = s"${publication.namespace}/${publication.name}@${publication.version}"
+  /** The requirement of a resolved artifact: its exact version, or with `exact` false, the version
+    * first published, which stands for its latest revision.
+    */
+  private def dependency(
+      publication: Publication,
+      artifact: Artifact,
+      exact: Boolean,
+  ): ProjectDependency = {
+    val version =
+      if exact then publication.version
+      else publication.revision.map(_.originalVersion).getOrElse(publication.version)
+    val reference = s"${publication.namespace}/${publication.name}@$version"
     OntologyReference.parse(reference) match {
       case Right((_, _, Some(_))) =>
         ProjectDependency(
@@ -288,7 +306,7 @@ private[cli] final class Project(
     case _ => retry
   }
 
-  private def read(allowMissing: Boolean): Declaration = {
+  private def read(allowMissing: Boolean): (Declaration, Option[Lock]) = {
     val (declaration, complete) = readRecords()
     if allowMissing && declaration.isEmpty && complete.nonEmpty then
       throw new ProjectException(
@@ -307,7 +325,7 @@ private[cli] final class Project(
         dependencies = Seq.empty,
         formatVersion = 1,
       ),
-    )
+    ) -> complete
   }
 
   private def readRecords(): (Option[Declaration], Option[Lock]) = {
@@ -319,13 +337,21 @@ private[cli] final class Project(
     declaration -> complete
   }
 
+  /** The lock of the declaration. A requested selection is used for its requirement, then the
+    * selection of `locked` that satisfies a requirement, so a lock never moves to a newer revision
+    * by itself. Only the rest are resolved.
+    */
   private def build(
       declaration: Declaration,
       metadata: ProjectLock.Inspection,
       requested: Option[(ProjectDependency, ArtifactSelectionImpl)] = None,
+      locked: Option[Lock] = None,
   ): Lock = {
-    val selections = declaration.dependencies.map { requirement =>
-      requested.filter(_._1 == requirement).map(_._2).getOrElse {
+    val kept = locked.fold(declaration.dependencies.map(_ => None))(
+      ProjectLock.locked(declaration.dependencies, _),
+    )
+    val selections = declaration.dependencies.zip(kept).map { (requirement, selection) =>
+      requested.filter(_._1 == requirement).map(_._2).orElse(selection).getOrElse {
         val (publication, artifact) = resolve(
           requirement.ontology,
           Some(stringify(requirement.format)),
