@@ -98,6 +98,7 @@ class PublicationsTest {
         assertEquals("sensors", publication.getName());
         assertEquals("Sensors", publication.getTitle());
         assertEquals(OffsetDateTime.of(2026, 10, 13, 12, 30, 0, 0, ZoneOffset.UTC), publication.getPublishedAt());
+        assertEquals("Example Project", publication.getPublisher());
         assertEquals("Example Project", publication.getPublishers().get(0).getName());
         assertEquals(List.of("Apache-2.0"), publication.getLicenses());
         assertEquals("https://example.org/sensors#", publication.getNamespaceIri());
@@ -128,7 +129,7 @@ class PublicationsTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"namespace", "keywords", "dependencies", "title", "published_at", "licenses",
-            "authors", "publishers", "original_sources"})
+            "authors", "publisher", "publishers", "original_sources"})
     void requiresPublicationFields(String field) {
         data.remove(field);
         reject();

@@ -163,6 +163,8 @@ export interface Publication {
   publications?: Citation[];
   /** First successful Hub publication time for this immutable release. Backend emits UTC date-time text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime of this publication. Not an upstream release date. */
   published_at: string;
+  /** Deprecated, use `publishers`. Name of the upstream person or organization responsible for publishing the ontology. Not inferred from catalog namespace. */
+  publisher: string;
   /** The people or organizations that publish the ontology upstream. */
   publishers: Agent[];
   /** Metadata contract revision, independent of the ontology's version. */

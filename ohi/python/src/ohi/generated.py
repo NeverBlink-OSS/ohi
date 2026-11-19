@@ -293,6 +293,8 @@ class Publication(LinkMLModel):
     """Papers that introduce or describe the ontology."""
     published_at: JsonDateTime
     """First successful Hub publication time for this immutable release. Backend emits UTC date-time text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime of this publication. Not an upstream release date."""
+    publisher: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
+    """Deprecated, use `publishers`. Name of the upstream person or organization responsible for publishing the ontology. Not inferred from catalog namespace."""
     publishers: list[Agent] = Field(min_length=1)
     """The people or organizations that publish the ontology upstream."""
     schema_version: Annotated[StrictInt, Field(ge=2, le=2)]
