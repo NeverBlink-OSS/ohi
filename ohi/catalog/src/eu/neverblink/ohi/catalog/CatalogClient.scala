@@ -73,11 +73,10 @@ final class CatalogClient(config: CatalogConfig = CatalogConfig()) {
     }
   }
 
-  /** Returns the search hit of the newest release of `namespace/name`, or None when the catalog has
-    * no such ontology. Without a version, that is the latest revision of the latest version. With a
-    * version, `namespace/name@1.0`, it is the latest revision of that version, or the version
-    * itself when it has no revisions. A revision, `1.0-revision-2026-12-31`, stands for its
-    * original version, `1.0`. A hub before 0.2.0 has no revisions, so there it is `1.0` itself.
+  /** Returns the search hit of the release a reference requests, or None when the catalog has none.
+    * `namespace/name` requests the latest version, `namespace/name@1.0` the latest revision of 1.0,
+    * `namespace/name@1.0-no-revision` the 1.0 version without its revisions, and
+    * `namespace/name@1.0-revision-2026-12-01` exactly that revision.
     */
   def latest(reference: String): Option[SearchHit] = {
     val (namespace, name, version) = input(CatalogOperation.Search, Some(reference)) {
@@ -87,44 +86,45 @@ final class CatalogClient(config: CatalogConfig = CatalogConfig()) {
     }
     // Filter matching ignores case and separators, so look-alikes such as w3c/DCAT can come back.
     def same(hit: SearchHit) = hit.namespace == namespace && hit.name == name
-    version match {
+    val filter = Reference.filter(namespace, name)
+    version.map(VersionTag.parse) match {
       case None =>
-        search(SearchRequest(q = "*", filterBy = Some(Reference.filter(namespace, name))))
-          .hits.find(same)
-      case Some(version) =>
-        val original = Reference.originalVersion(version)
-        val filter = Reference.filter(namespace, name)
-        val revisions =
-          try
-            Some(
-              searchAt(
-                latestRevisionUrl,
-                SearchRequest(q = "*", filterBy = Some(s"$filter && original_version:=`$original`")),
-              ),
-            )
-          catch {
-            // A hub before 0.2.0 has no packages_latest_revision collection
-            case failure: CatalogException
-                if failure.error.code == CatalogErrorCode.HttpError &&
-                  failure.error.status.contains(404) =>
-              None
-          }
-        revisions
-          .flatMap(_.hits.find(hit => same(hit) && hit.originalVersion.contains(original)))
-          .orElse {
-            // The version itself, on a hub without revisions or before its revisions are indexed
-            searchAt(
-              searchUrl,
-              SearchRequest(q = "*", filterBy = Some(s"$filter && version:=`$original`")),
-            )
-              .hits.find(hit => same(hit) && hit.version == original)
-          }
+        search(SearchRequest(q = "*", filterBy = Some(filter))).hits.find(same)
+      case Some(tag) =>
+        def release(version: String) = searchAt(
+          searchUrl,
+          SearchRequest(q = "*", filterBy = Some(s"$filter && version:=`$version`")),
+        ).hits.find(hit => same(hit) && hit.version == version)
+        tag.exact match {
+          case Some(exact) => release(exact)
+          // The version itself, also on a hub without revisions or before its revisions are indexed
+          case None => latestRevision(filter, tag.original, same).orElse(release(tag.original))
+        }
     }
   }
 
-  /** Fetches the publication at an absolute HTTP(S) URL, or of a reference: `namespace/name@1.0`
-    * gives the latest revision of version 1.0, `namespace/name` the latest revision of the latest
-    * version, and a revision, `namespace/name@1.0-revision-2026-12-31`, exactly that release.
+  /** The latest revision of a version from packages_latest_revision, or None when it has none
+    * there. A hub before 0.2.0 doesn't have that collection.
+    */
+  private def latestRevision(
+      filter: String,
+      original: String,
+      same: SearchHit => Boolean,
+  ): Option[SearchHit] =
+    try
+      searchAt(
+        latestRevisionUrl,
+        SearchRequest(q = "*", filterBy = Some(s"$filter && original_version:=`$original`")),
+      ).hits.find(hit => same(hit) && hit.originalVersion.contains(original))
+    catch {
+      case failure: CatalogException
+          if failure.error.code == CatalogErrorCode.HttpError &&
+            failure.error.status.contains(404) =>
+        None
+    }
+
+  /** Fetches the publication at an absolute HTTP(S) URL, or of the release a reference requests, as
+    * [[latest]] describes.
     */
   def inspect(baseUrl: String): Publication = {
     // References contain no whitespace, so form encoding is a valid path encoding here.
@@ -133,11 +133,13 @@ final class CatalogClient(config: CatalogConfig = CatalogConfig()) {
         .map(URLEncoder.encode(_, StandardCharsets.UTF_8))
         .mkString(s"$base/files/packages/", "/", "/")
     val url = Reference.parse(baseUrl) match {
-      case Some((namespace, name, Some(version))) if Reference.isRevision(version) =>
-        exact(namespace, name, version)
       case Some((namespace, name, Some(version))) =>
-        // The release path when the catalog doesn't know the version
-        latest(baseUrl).map(_.baseUrl.original).getOrElse(exact(namespace, name, version))
+        VersionTag.parse(version).exact match {
+          case Some(release) => exact(namespace, name, release)
+          // The release path when the catalog doesn't know the version
+          case None =>
+            latest(baseUrl).map(_.baseUrl.original).getOrElse(exact(namespace, name, version))
+        }
       case Some(_) =>
         latest(baseUrl).getOrElse(
           throw failure(

@@ -488,10 +488,14 @@ class CatalogClientTest {
     }
 
     @Test
-    void latestOfARevisionLooksUpItsOriginalVersion() {
-        route(REVISION_PATH, bytes(revisionBody(List.of("urn:a"), List.of("1.2"))));
-        assertEquals("urn:a", searchClient().latest("example/sensors@1.2-revision-1").orElseThrow().getBaseUrl());
-        assertEquals("namespace:=`example` && name:=`sensors` && original_version:=`1.2`",
+    void latestOfARevisionIsExactlyThatRevision() {
+        ObjectNode body = searchBody(List.of("urn:a", "urn:b"), 1, 10, 2);
+        ((ObjectNode) body.get("hits").get(0).get("document")).put("version", "1.2-revision-2");
+        ((ObjectNode) body.get("hits").get(1).get("document")).put("version", "1.2-revision-1");
+        route(SEARCH_PATH, bytes(body));
+        assertEquals("urn:b", searchClient().latest("example/sensors@1.2-revision-1").orElseThrow().getBaseUrl());
+        assertEquals(List.of(SEARCH_PATH), requests.stream().map(CatalogClientTest::path).collect(Collectors.toList()));
+        assertEquals("namespace:=`example` && name:=`sensors` && version:=`1.2-revision-1`",
                 parameters(requests.get(0)).get("filter_by"));
     }
 
@@ -503,11 +507,30 @@ class CatalogClientTest {
         ((ObjectNode) body.get("hits").get(0).get("document")).put("version", "1.2.0");
         ((ObjectNode) body.get("hits").get(1).get("document")).put("version", "1.2");
         route(SEARCH_PATH, bytes(body));
-        assertEquals("urn:b", searchClient().latest("example/sensors@1.2-revision-1").orElseThrow().getBaseUrl());
+        assertEquals("urn:b", searchClient().latest("example/sensors@1.2").orElseThrow().getBaseUrl());
         assertEquals(List.of(REVISION_PATH, SEARCH_PATH),
                 requests.stream().map(CatalogClientTest::path).collect(Collectors.toList()));
         assertEquals("namespace:=`example` && name:=`sensors` && version:=`1.2`",
                 parameters(requests.get(1)).get("filter_by"));
+    }
+
+    @Test
+    void latestOfAVersionWithoutItsRevisionsDoesNotLookForThem() {
+        ObjectNode body = searchBody(List.of("urn:a"), 1, 10, 1);
+        ((ObjectNode) body.get("hits").get(0).get("document")).put("version", "1.2");
+        route(SEARCH_PATH, bytes(body));
+        assertEquals("urn:a", searchClient().latest("example/sensors@1.2-no-revision").orElseThrow().getBaseUrl());
+        assertEquals(List.of(SEARCH_PATH), requests.stream().map(CatalogClientTest::path).collect(Collectors.toList()));
+        assertEquals("namespace:=`example` && name:=`sensors` && version:=`1.2`",
+                parameters(requests.get(0)).get("filter_by"));
+    }
+
+    @Test
+    void inspectsAVersionWithoutItsRevisionsByItsPathWithoutSearching() {
+        String path = "/files/packages/example/sensors/1.2/";
+        route(path, example("sensors-package.json"));
+        searchClient().inspect("example/sensors@1.2-no-revision");
+        assertEquals(List.of(new Request(path, "identity")), requests);
     }
 
     @Test

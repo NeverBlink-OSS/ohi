@@ -1,7 +1,7 @@
 package eu.neverblink.ohi.cli
 
 import eu.neverblink.linkml.runtime.stringify
-import eu.neverblink.ohi.catalog.Reference
+import eu.neverblink.ohi.catalog.{Reference, VersionTag}
 import eu.neverblink.ohi.model.generated.*
 import scala.collection.mutable
 
@@ -22,9 +22,9 @@ private[cli] object ProjectLock {
   }
 
   /** Whether a locked requirement, of an exact release, satisfies a declared one: the same ontology
-    * and format, and the same version or a revision of it. A declared version that is not a
-    * revision, `ns/name@1.0`, stands for its latest revision, so the lock can hold any of its
-    * revisions, `ns/name@1.0-revision-2026-12-31`, and is never upgraded by checking it.
+    * and format, and a release the declared version requests, see [[VersionTag]]. A version that
+    * requests its latest revision is satisfied by any of its revisions, so the lock is never
+    * upgraded by checking it.
     */
   def satisfies(declared: ProjectDependency, locked: ProjectDependency): Boolean =
     declared.format == locked.format && (declared.ontology == locked.ontology ||
@@ -33,8 +33,9 @@ private[cli] object ProjectLock {
               Some((namespace, name, Some(version))),
               Some((lockedNamespace, lockedName, Some(exact))),
             ) =>
-          namespace == lockedNamespace && name == lockedName && !Reference.isRevision(version) &&
-          Reference.originalVersion(exact) == version
+          val tag = VersionTag.parse(version)
+          namespace == lockedNamespace && name == lockedName &&
+          tag.exact.fold(VersionTag.parse(exact).original == tag.original)(_ == exact)
         case _ => false
       }))
 

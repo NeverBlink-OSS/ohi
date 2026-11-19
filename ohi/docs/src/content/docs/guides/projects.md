@@ -30,23 +30,20 @@ ohi records your choice in `ohi.yaml` and the exact files and checksums in `ohi.
 Run `ohi add` again to add more ontologies. Leave out `@3` to choose the latest version.
 ohi saves that version in `ohi.yaml`.
 
+Use `--format linkml-yaml` to choose LinkML YAML for an addition. The
+[CLI reference](/docs/reference/cli/#ontology-references-and-formats) lists the available formats
+and defaults.
+
 ## Revisions
 
-ohi.dev can fix a published version in a revision, such as `w3c/dcat@3-revision-2026-12-01`.
-`ohi add w3c/dcat@3` saves `w3c/dcat@3` in `ohi.yaml` and locks its latest revision in
-`ohi.lock.json`. The lock never moves to a newer revision by itself: `ohi sync`, `ohi lock` and
-adding other ontologies keep the locked revision. To take the latest revisions, run:
+`ohi.lock.json` keeps the [revision](/docs/reference/cli/#ontology-references-and-formats) it
+locked for each version. `ohi sync`, `ohi lock` and adding other ontologies never move it to a
+newer revision. To take the latest revisions, run:
 
 ```sh
 ohi lock --upgrade
 ohi sync
 ```
-
-To stay on one revision, add its full version, such as `w3c/dcat@3-revision-2026-12-01`.
-
-Use `--format linkml-yaml` to choose LinkML YAML for an addition. The
-[CLI reference](/docs/reference/cli/#ontology-references-and-formats) lists the available formats
-and defaults.
 
 ## Restore a project on another machine
 

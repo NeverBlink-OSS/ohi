@@ -136,18 +136,14 @@ for filtering, sorting and facets.
 When a search reports `search_cutoff: true`, its results or counts may be incomplete.
 
 `latest("w3c/dcat")` returns the search hit for the ontology's latest version, or no hit if the
-catalog has no such ontology. ohi.dev can fix a published version in a revision, such as
-`w3c/dcat@3-revision-2026-12-01`, so this is the latest revision of the latest version.
-`latest("w3c/dcat@3")` returns the latest revision of version 3, or version 3 itself if it has
-none.
+catalog has no such ontology. `latest` and `inspect` read references, with or without a version,
+as the [CLI](/docs/reference/cli/#ontology-references-and-formats) does.
 
 ## Inspect and get
 
 Pass a hit's `base_url` or a reference such as `w3c/dcat@3` to `inspect`, choose an artifact in
 the format you need, then pass its `url` to `get`. Without a version, such as `w3c/dcat`, `inspect`
-returns the latest version. A version, such as `w3c/dcat@3`, gives its latest revision, and a
-full revision version, such as `w3c/dcat@3-revision-2026-12-01`, gives exactly that release. `get`
-returns the file's bytes for your application to save or load.
+returns the latest version. `get` returns the file's bytes for your application to save or load.
 Dependency files must be selected and retrieved separately.
 
 A known publication or artifact URL can be passed directly to `inspect` or `get`, without
