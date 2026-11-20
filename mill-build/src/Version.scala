@@ -4,7 +4,7 @@ package millbuild
   */
 object Version {
   val scala = "3.9.0"
-  val scalaJS = "1.22.0"
+  val scalaJS = "1.23.0"
   val scalaNative = "0.5.12"
   val rdf4j = "6.1.0"
   val markdown = "0.4.9"
