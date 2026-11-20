@@ -197,6 +197,10 @@ final case class LockOptions(
     project: String = ".",
     @HelpMessage("Only check that ohi.lock.json matches the dependencies in ohi.yaml")
     check: Boolean = false,
+    @HelpMessage(
+      "Resolve every dependency again, to the latest revision of its version\nDefault: keep the locked revisions",
+    )
+    upgrade: Boolean = false,
     @HelpMessage("Write JSON output")
     json: Boolean = false,
 ) extends ProjectOptions
@@ -211,8 +215,10 @@ private[cli] class LockCommand extends ProjectCommand[LockOptions] {
       inputs: Seq[String],
       project: Project,
   ): ProjectResult = {
+    if options.check && options.upgrade then
+      correction("--check and --upgrade cannot be used together.")
     val catalog = client()
-    project.refresh(catalog.inspect, options.check)
+    project.refresh(catalog.inspect, options.check, options.upgrade)
   }
 
   protected def client(): CatalogClient = new CatalogClient()

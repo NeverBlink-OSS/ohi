@@ -9,6 +9,7 @@ import type {
   SearchResult,
 } from "./generated.js";
 import { decodePublication, formats as knownFormats, isNew } from "./publication.js";
+import { parseVersionTag } from "./version-tag.js";
 
 const searchPath = "/search/collections/packages/documents/search";
 const referencePattern = /^([^/@\p{White_Space}`]+)\/([^/@\p{White_Space}`]+)(?:@([^/@\p{White_Space}+`]+))?$/u;
@@ -82,6 +83,7 @@ export class CatalogClient {
   private readonly timeoutMs: number;
   private readonly base: string;
   private readonly latestUrl: string;
+  private readonly latestRevisionUrl: string;
 
   constructor(config: CatalogConfig = {}) {
     const url = config.search_url;
@@ -108,10 +110,15 @@ export class CatalogClient {
     this.timeoutMs = config.timeout_ms ?? 30000;
     this.base = this.config.search_url!.slice(0, -searchPath.length);
     this.latestUrl = `${this.base}/search/collections/packages_latest/documents/search`;
+    this.latestRevisionUrl = `${this.base}/search/collections/packages_latest_revision/documents/search`;
   }
 
   async search(request: SearchRequest): Promise<SearchResult> {
-    const endpoint = request.all_releases ? this.config.search_url! : this.latestUrl;
+    return this.searchAt(request.all_releases ? this.config.search_url! : this.latestUrl, request);
+  }
+
+  /** Run a search against one collection's search URL. */
+  private async searchAt(endpoint: string, request: SearchRequest): Promise<SearchResult> {
     const page = request.page ?? 1;
     const perPage = request.per_page ?? 10;
     const url = new URL(endpoint);
@@ -132,24 +139,55 @@ export class CatalogClient {
     }
   }
 
-  /** Return the search hit for the latest version of `namespace/name`, or undefined when the catalog has no such
-   * ontology.
+  /** Return the search hit of the release a reference requests, or undefined when the catalog has none.
+   *
+   * `namespace/name` requests the latest version, `namespace/name@1.0` the latest revision of 1.0,
+   * `namespace/name@1.0-no-revision` the 1.0 version without its revisions, and `namespace/name@1.0-revision-2026-12-01`
+   * exactly that revision.
    */
   async latest(reference: string): Promise<SearchHit | undefined> {
     const parts = referencePattern.exec(reference);
-    if (parts === null || parts[3] !== undefined) {
+    if (parts === null) {
       throw new CatalogException({ code: "INVALID_INPUT", operation: "SEARCH", url: reference,
-        message: "Supply an ontology reference namespace/name without a version." });
+        message: "Supply an ontology reference namespace/name[@version]." });
     }
-    const [, namespace, name] = parts;
+    const [, namespace, name, version] = parts;
     const filter = `namespace:=\`${namespace}\` && name:=\`${name}\``;
-    const result = await this.search({ q: "*", filter_by: filter });
     // The := filter ignores case and separators, so look-alikes such as w3c/DCAT can match.
-    return result.hits.find((hit) => hit.namespace === namespace && hit.name === name);
+    const same = (hit: SearchHit) => hit.namespace === namespace && hit.name === name;
+    if (version === undefined) {
+      return (await this.search({ q: "*", filter_by: filter })).hits.find(same);
+    }
+    const { original, exact } = parseVersionTag(version);
+    if (exact === undefined) {
+      const hit = await this.latestRevision(filter, original, same);
+      if (hit !== undefined) return hit;
+    }
+    // The release itself; for a version, also on a hub without revisions or before its revisions are indexed
+    const release = exact ?? original;
+    const releases = await this.searchAt(this.config.search_url!,
+      { q: "*", filter_by: `${filter} && version:=\`${release}\`` });
+    return releases.hits.find((hit) => same(hit) && hit.version === release);
   }
 
-  /** Fetch the publication at an absolute HTTP(S) URL, of the release `namespace/name@version`, or of the latest
-   * version of `namespace/name`.
+  /** The latest revision of a version from packages_latest_revision, or undefined when it has none there. A hub
+   * before 0.2.0 doesn't have that collection.
+   */
+  private async latestRevision(filter: string, original: string, same: (hit: SearchHit) => boolean):
+      Promise<SearchHit | undefined> {
+    try {
+      const result = await this.searchAt(this.latestRevisionUrl,
+        { q: "*", filter_by: `${filter} && original_version:=\`${original}\`` });
+      return result.hits.find((hit) => same(hit) && hit.original_version === original);
+    } catch (error) {
+      if (error instanceof CatalogException && error.error.code === "HTTP_ERROR" && error.error.status === 404) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  /** Fetch the publication at an absolute HTTP(S) URL, or of the release a reference requests, as `latest` describes.
    */
   async inspect(baseUrl: string): Promise<Publication> {
     let url = baseUrl;
@@ -157,7 +195,10 @@ export class CatalogClient {
     if (parts !== null) {
       const [, namespace, name, version] = parts;
       if (version !== undefined) {
-        url = `${this.base}/files/packages/${[namespace, name, version].map(encodeURIComponent).join("/")}/`;
+        const { exact } = parseVersionTag(version);
+        const release = `${this.base}/files/packages/${[namespace, name, exact ?? version].map(encodeURIComponent).join("/")}/`;
+        // The release path when the catalog doesn't know the version
+        url = exact !== undefined ? release : (await this.latest(baseUrl))?.base_url ?? release;
       } else {
         const hit = await this.latest(baseUrl);
         if (hit === undefined) {

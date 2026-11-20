@@ -221,6 +221,39 @@ class FacetValueCount(LinkMLModel):
     """Facet value or range label."""
 
 
+class File(LinkMLModel):
+    """File that is part of this publication"""
+
+    url: str
+    """Permanent absolute download URL of an immutable ontology file."""
+
+
+class GeneratedFile(File):
+    """File that was generated from a remote source"""
+
+    model_config = ConfigDict(extra="allow")
+
+    source: str
+    """The input file for this conversion"""
+    url: str
+    """Permanent absolute download URL of an immutable ontology file."""
+    using: str
+    """Tool that was used for the conversion"""
+
+
+class IndexFile(File):
+    """File that was fetched from the ohi-index repository directly"""
+
+    model_config = ConfigDict(extra="allow")
+
+    commit: str
+    """Commit sha of ohi-index the package was read at"""
+    path: str
+    """Path to the file in the repository."""
+    url: str
+    """Permanent absolute download URL of an immutable ontology file."""
+
+
 class Lock(LinkMLModel):
     """Direct selections and their artifact files."""
 
@@ -252,6 +285,34 @@ class LockedFile(ArtifactSelection):
     """SHA-256 of the file bytes before HTTP content encoding."""
 
 
+class PatchedFile(File):
+    """File which was created by patching another"""
+
+    model_config = ConfigDict(extra="allow")
+
+    added_base_iri: str | None = None
+    """The base IRI, if it was patched in."""
+    converted_line_endings: StrictBool | None = None
+    """True if the line endings were converted from CRLF to LF."""
+    from_: str = Field(alias="from")
+    """The input file for this patch"""
+    json_patch: str | None = None
+    """The base url of the JSON-Patch file, if the ontology was patched this way."""
+    url: str
+    """Permanent absolute download URL of an immutable ontology file."""
+
+
+class Provenance(LinkMLModel):
+    """Provenance of the files"""
+
+    model_config = ConfigDict(extra="allow")
+
+    generated: list[GeneratedFile] | None = None
+    index: list[IndexFile] | None = None
+    patched: list[PatchedFile] | None = None
+    remote: list[RemoteFile] | None = None
+
+
 class Publication(LinkMLModel):
     """One immutable release of one ontology, including its metadata, artifacts and dependencies. Package, publication and release refer to the same entity."""
 
@@ -271,8 +332,12 @@ class Publication(LinkMLModel):
     """Short description of the ontology's domain and intended use."""
     element_count: Annotated[StrictInt, Field(ge=0)] | None = None
     """Number of LinkML elements in the publication."""
+    hub_version: str | None = None
+    """Hub version that released this publication."""
     keywords: list[str]
     """Keywords describing the ontology's subject. An empty list means no keywords are provided."""
+    license_files: list[str] | None = None
+    """Links to files with the licensing/copyright text."""
     licenses: list[Annotated[str, Field(pattern=r"^[\s\S]*\S")]]
     """Reported license names or standard identifiers such as Apache-2.0. Empty means no information supplied. The list specifies neither AND nor OR combination semantics."""
     maintainers: list[Agent] | None = None
@@ -289,6 +354,8 @@ class Publication(LinkMLModel):
     """Upstream official sources of the ontology, such as its homepage or repository."""
     preferred_prefix: Annotated[str, Field(pattern=r"^[^\s:]+(?![\s\S])")] | None = None
     """Optional abbreviation for namespace_iri, without whitespace or a colon. Requires namespace_iri. This constraint does not certify prefix syntax for every ontology language."""
+    provenance: Provenance | None = None
+    """Provenance information about this Publication, if it has any"""
     publications: list[Citation] | None = None
     """Papers that introduce or describe the ontology."""
     published_at: JsonDateTime
@@ -297,12 +364,40 @@ class Publication(LinkMLModel):
     """Deprecated, use `publishers`. Name of the upstream person or organization responsible for publishing the ontology. Not inferred from catalog namespace."""
     publishers: list[Agent] = Field(min_length=1)
     """The people or organizations that publish the ontology upstream."""
+    revision: RevisionInfo | None = None
+    """Revision information about this Publication, if it has any"""
     schema_version: Annotated[StrictInt, Field(ge=2, le=2)]
     """Metadata contract revision, independent of the ontology's version."""
     title: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
     """Display title of the ontology."""
     version: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
-    """Complete publication version label, including amendments."""
+    """Complete publication version label, including the revision id if present."""
+
+
+class RemoteFile(File):
+    """File that was fetched from a remote source"""
+
+    model_config = ConfigDict(extra="allow")
+
+    from_: str = Field(alias="from")
+    """The URI that was queried for the file"""
+    url: str
+    """Permanent absolute download URL of an immutable ontology file."""
+
+
+class RevisionInfo(LinkMLModel):
+    """Information about the revision"""
+
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    """An identifier of the revision, added as a suffix to the version"""
+    original_version: str
+    """Original version of the ontology, prefix of the full version"""
+    reason: str | None = None
+    """Reason why this revision was created"""
+    revises: str
+    """base_uri of the revised ontology"""
 
 
 class SearchHit(LinkMLModel):
@@ -322,6 +417,8 @@ class SearchHit(LinkMLModel):
     """Number of LinkML elements in the publication."""
     formats: list[Format] = Field(min_length=1)
     """Formats of the publication's available artifacts. Each value identifies both the ontology language and serialization syntax, as in artifact.format."""
+    hub_version: str | None = None
+    """Hub version that released this publication."""
     keywords: list[str]
     """Keywords describing the ontology's subject. An empty list means no keywords are provided."""
     licenses: list[Annotated[str, Field(pattern=r"^[\s\S]*\S")]]
@@ -336,16 +433,20 @@ class SearchHit(LinkMLModel):
     """Number of elements in the publication's native format, as published upstream, such as the classes and properties of an OWL ontology."""
     original_sources: list[str] = Field(min_length=1)
     """Upstream official sources of the ontology, such as its homepage or repository."""
+    original_version: str | None = None
+    """The version first published. For a revision, the original_version of its revision, otherwise the version itself. Filtering on it finds a release and all its revisions."""
     publications: list[Citation] | None = None
     """Papers that introduce or describe the ontology."""
     published_at: JsonDateTime
     """First successful Hub publication time for this immutable release. Backend emits UTC date-time text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime of this publication. Not an upstream release date."""
     publishers: list[Agent] = Field(min_length=1)
     """The people or organizations that publish the ontology upstream."""
+    revision_id: str | None = None
+    """The id of the revision, only for a revision. The latest revision of a version is its document in packages_latest_revision."""
     title: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
     """Display title of the ontology."""
     version: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
-    """Complete publication version label, including amendments."""
+    """Complete publication version label, including the revision id if present."""
 
 
 class SearchRequest(LinkMLModel):

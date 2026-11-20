@@ -8,7 +8,7 @@ prefixes:
   linkml: https://w3id.org/linkml/
 default_prefix: ohi
 imports:
-- publication-fields
+  - publication-fields
 classes:
   Publication:
     description: One immutable release of one ontology, including its metadata, artifacts and dependencies.
@@ -25,6 +25,7 @@ classes:
     - description
     - licenses
     - published_at
+    - hub_version
     - keywords
     - element_count
     - native_element_count
@@ -76,14 +77,28 @@ classes:
         multivalued: true
         inlined: true
         inlined_as_list: true
+      revision:
+        description: Revision information about this Publication, if it has any
+        range: RevisionInfo
+        inlined: true
+      license_files:
+        description: Links to files with the licensing/copyright text.
+        range: uri
+        multivalued: true
+        notes:
+          - Immutable api.ohi.dev link
+      provenance:
+        description: Provenance information about this Publication, if it has any
+        range: Provenance
+        inlined: true
   Artifact:
     description: Ontology content in a declared format, with explicitly identified entry files.
     extra_slots:
       allowed: true
     slots:
-    - format
-    - url
-    - sha256
+      - format
+      - url
+      - sha256
     attributes:
       origin:
         description: Origin of the artifact content.
@@ -111,7 +126,136 @@ classes:
     extra_slots:
       allowed: true
     slots:
-    - base_url
+      - base_url
+  Provenance:
+    description: Provenance of the files
+    extra_slots:
+      allowed: true
+    attributes:
+      remote:
+        range: RemoteFile
+        inlined: true
+        inlined_as_list: true
+        multivalued: true
+      index:
+        range: IndexFile
+        inlined: true
+        inlined_as_list: true
+        multivalued: true
+      patched:
+        range: PatchedFile
+        inlined: true
+        inlined_as_list: true
+        multivalued: true
+      generated:
+        range: GeneratedFile
+        inlined: true
+        inlined_as_list: true
+        multivalued: true
+
+  File:
+    description: File that is part of this publication
+    abstract: true
+    slots:
+      - url
+
+  RemoteFile:
+    description: File that was fetched from a remote source
+    extra_slots:
+      allowed: true
+    is_a: File
+    attributes:
+      from:
+        description: The URI that was queried for the file
+        range: uri
+        required: true
+
+  IndexFile:
+    description: File that was fetched from the ohi-index repository directly
+    extra_slots:
+      allowed: true
+    is_a: File
+    attributes:
+      commit:
+        description: Commit sha of ohi-index the package was read at
+        range: string
+        required: true
+      path:
+        description: Path to the file in the repository.
+        range: string
+        required: true
+
+  PatchedFile:
+    description: File which was created by patching another
+    extra_slots:
+      allowed: true
+    is_a: File
+    attributes:
+      from:
+        description: The input file for this patch
+        range: uri
+        notes:
+          - Immutable api.ohi.dev link
+        required: true
+      converted_line_endings:
+        description: True if the line endings were converted from CRLF to LF.
+        range: boolean
+      added_base_iri:
+        description: The base IRI, if it was patched in.
+        range: uri
+      json_patch:
+        description: The base url of the JSON-Patch file, if the ontology was patched this way.
+        range: uri
+        notes:
+          - Immutable api.ohi.dev link
+
+  GeneratedFile:
+    description: File that was generated from a remote source
+    extra_slots:
+      allowed: true
+    is_a: File
+    attributes:
+      source:
+        description: The input file for this conversion
+        range: uri
+        notes:
+          - Immutable api.ohi.dev link
+        required: true
+      using:
+        description: Tool that was used for the conversion
+        range: string
+        required: true
+
+  RevisionInfo:
+    description: Information about the revision
+    comments:
+      - >-
+        Revisions use version tags of the form "{original_version}-revision-{id}", 
+        for example: v1.2.3-revision-2026-12-31
+    notes:
+      - This will include more information in the future
+    extra_slots:
+      allowed: true
+    attributes:
+      id:
+        description: An identifier of the revision, added as a suffix to the version
+        notes:
+          - This should be an ISO-format date, for example 2026-12-31
+        range: string
+        required: true
+      original_version:
+        description: Original version of the ontology, prefix of the full version
+        range: string
+        required: true
+      revises:
+        description: base_uri of the revised ontology
+        notes:
+          - This should form a chain back to the first version (without revisions)
+        range: uri
+        required: true
+      reason:
+        description: Reason why this revision was created
+        range: string
 enums:
   ArtifactOrigin:
     description: Origin of published artifact content.

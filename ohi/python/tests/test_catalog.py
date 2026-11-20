@@ -18,6 +18,7 @@ from test_publication import EXAMPLES, dumped
 
 SEARCH_PATH = "/search/collections/packages/documents/search"
 LATEST_PATH = "/search/collections/packages_latest/documents/search"
+LATEST_REVISION_PATH = "/search/collections/packages_latest_revision/documents/search"
 
 
 def search_body(urls=(), page=1, per_page=2, total=3, cutoff=False):
@@ -32,6 +33,15 @@ def search_body(urls=(), page=1, per_page=2, total=3, cutoff=False):
         "found": total, "page": page, "request_params": {"per_page": per_page},
         "search_cutoff": cutoff,
     }
+
+
+def revision_body(url, version, original_version):
+    data = search_body([url], per_page=10, total=1)
+    document = data["hits"][0]["document"]
+    document.update(version=version, original_version=original_version)
+    if version != original_version:
+        document["revision_id"] = version.split("-revision-", 1)[1]
+    return data
 
 
 class SearchCodecTests(unittest.TestCase):
@@ -365,12 +375,16 @@ class CatalogTests(unittest.TestCase):
 
     def test_prefixed_search_url_derives_latest_search_and_release_urls(self):
         self.route("/hub" + LATEST_PATH, json.dumps(search_body(per_page=10)).encode())
+        self.route("/hub" + LATEST_REVISION_PATH, json.dumps(search_body(per_page=10, total=0)).encode())
+        self.route("/hub" + SEARCH_PATH, json.dumps(search_body(per_page=10, total=0)).encode())
         self.route("/hub/files/packages/w3c/dcat/2/", (EXAMPLES / "sensors-package.json").read_bytes())
         client = self.client(CatalogConfig(search_url=self.base + "/hub" + SEARCH_PATH, query_by="name"))
         client.search(SearchRequest(q="*"))
         client.inspect("w3c/dcat@2")
         self.assertEqual([urlsplit(path).path for path, _ in self.server.requests],
                          ["/hub/search/collections/packages_latest/documents/search",
+                          "/hub/search/collections/packages_latest_revision/documents/search",
+                          "/hub/search/collections/packages/documents/search",
                           "/hub/files/packages/w3c/dcat/2/"])
 
     def test_accepts_page_size_limits(self):
@@ -417,11 +431,35 @@ class CatalogTests(unittest.TestCase):
         self.assertEqual([d.base_url for d in result.dependencies], ["https://example.org/packages/units/2.0.0/"])
         self.assertEqual(self.server.requests, [("/opaque?token=a%2Bb", "identity")])
 
-    def test_inspect_with_version_gets_the_encoded_release_path_without_search(self):
-        path = "/files/packages/team%3Aa/model%25x/v1.0%C3%A9/"
+    def test_inspect_with_revision_version_gets_the_encoded_release_path_without_search(self):
+        path = "/files/packages/team%3Aa/model%25x/v1.0%C3%A9-revision-2026-12-01/"
         self.route(path, (EXAMPLES / "sensors-package.json").read_bytes())
-        self.search_client().inspect("team:a/model%x@v1.0é")
+        self.search_client().inspect("team:a/model%x@v1.0é-revision-2026-12-01")
         self.assertEqual(self.server.requests, [(path, "identity")])
+
+    def test_inspect_with_version_gets_the_latest_revision_hit(self):
+        data = revision_body(self.base + "/rev/", "1.0-revision-2026-12-01", "1.0")
+        self.route(LATEST_REVISION_PATH, json.dumps(data).encode())
+        self.route("/rev/", (EXAMPLES / "sensors-package.json").read_bytes())
+        self.search_client().inspect("example/sensors@1.0")
+        (search, _), release = self.server.requests
+        self.assertEqual(urlsplit(search).path, LATEST_REVISION_PATH)
+        self.assertEqual(parse_qs(urlsplit(search).query)["filter_by"],
+                         ["namespace:=`example` && name:=`sensors` && original_version:=`1.0`"])
+        self.assertEqual(release, ("/rev/", "identity"))
+
+    def test_inspect_with_version_and_no_hit_gets_the_encoded_release_path(self):
+        path = "/files/packages/team%3Aa/model%25x/v1.0%C3%A9/"
+        for status, body in ((200, json.dumps(search_body(per_page=10, total=0)).encode()), (404, b"")):
+            with self.subTest(status=status):
+                self.server.requests = []
+                self.route(LATEST_REVISION_PATH, body, status)
+                self.route(SEARCH_PATH, json.dumps(search_body(per_page=10, total=0)).encode())
+                self.route(path, (EXAMPLES / "sensors-package.json").read_bytes())
+                self.search_client().inspect("team:a/model%x@v1.0é")
+                self.assertEqual([urlsplit(p).path for p, _ in self.server.requests],
+                                 [LATEST_REVISION_PATH, SEARCH_PATH, path])
+                self.assertEqual(self.server.requests[2], (path, "identity"))
 
     def test_inspect_without_version_gets_the_latest_version_hit_with_the_exact_namespace_and_name(self):
         data = search_body([self.base + "/a/", self.base + "/b/"], per_page=10, total=2)
@@ -447,10 +485,87 @@ class CatalogTests(unittest.TestCase):
         self.assert_failure(lambda: self.search_client().inspect("w3c"), "INVALID_INPUT", "INSPECT", "w3c")
         self.assertEqual(self.server.requests, [])
 
-    def test_latest_rejects_a_version_without_a_request(self):
-        self.assert_failure(lambda: self.search_client().latest("w3c/dcat@2"),
-                            "INVALID_INPUT", "SEARCH", "w3c/dcat@2")
-        self.assertEqual(self.server.requests, [])
+    def test_latest_rejects_an_invalid_reference_without_a_request(self):
+        for reference in ("w3c", "w3c/dcat@", "w3c/dcat/2"):
+            with self.subTest(reference=reference):
+                self.assert_failure(lambda: self.search_client().latest(reference),
+                                    "INVALID_INPUT", "SEARCH", reference)
+                self.assertEqual(self.server.requests, [])
+
+    def test_latest_with_version_gets_the_exact_hit_from_the_latest_revision_collection(self):
+        # Look-alikes the loose := filter can match: other case, other separator, no original_version
+        data = search_body(per_page=10, total=4)
+        for url, changes in (("/b/", {"name": "SENSORS"}), ("/c/", {"original_version": "1-0"}),
+                             ("/d/", {"original_version": None}), ("/e/", {})):
+            hit = revision_body(self.base + url, "1.0-revision-2026-12-01", "1.0")["hits"][0]
+            hit["document"].update(changes)
+            data["hits"].append(hit)
+        self.route(LATEST_REVISION_PATH, json.dumps(data).encode())
+        hit = self.search_client().latest("example/sensors@1.0")
+        self.assertEqual((hit.base_url, hit.version, hit.original_version, hit.revision_id),
+                         (self.base + "/e/", "1.0-revision-2026-12-01", "1.0", "2026-12-01"))
+        (search, _), = self.server.requests
+        self.assertEqual(urlsplit(search).path, LATEST_REVISION_PATH)
+        self.assertEqual(parse_qs(urlsplit(search).query), {
+            "q": ["*"], "query_by": ["name,description"], "page": ["1"], "per_page": ["10"],
+            "filter_by": ["namespace:=`example` && name:=`sensors` && original_version:=`1.0`"],
+        })
+
+    def test_latest_with_revision_version_is_exactly_that_revision(self):
+        # A newer revision, then the requested one
+        data = search_body([self.base + "/r2/", self.base + "/r1/"], per_page=10, total=2)
+        data["hits"][0]["document"]["version"] = "1.0-revision-2026-12-02"
+        data["hits"][1]["document"]["version"] = "1.0-revision-2026-12-01"
+        self.route(SEARCH_PATH, json.dumps(data).encode())
+        hit = self.search_client().latest("example/sensors@1.0-revision-2026-12-01")
+        self.assertEqual(hit.base_url, self.base + "/r1/")
+        self.assertEqual([urlsplit(path).path for path, _ in self.server.requests], [SEARCH_PATH])
+        self.assertEqual(parse_qs(urlsplit(self.server.requests[0][0]).query)["filter_by"],
+                         ["namespace:=`example` && name:=`sensors` && version:=`1.0-revision-2026-12-01`"])
+
+    def test_latest_with_version_is_the_version_itself_without_a_hit_or_the_latest_revision_collection(self):
+        # A look-alike version, then the version itself, among all releases
+        releases = search_body([self.base + "/1.0.0/", self.base + "/1.0/"], per_page=10, total=2)
+        releases["hits"][0]["document"]["version"] = "1.0.0"
+        releases["hits"][1]["document"]["version"] = "1.0"
+        for status, body in ((200, json.dumps(search_body(per_page=10, total=0)).encode()),
+                             (404, b'{"message": "Not Found"}')):
+            with self.subTest(status=status):
+                self.server.requests = []
+                self.route(LATEST_REVISION_PATH, body, status)
+                self.route(SEARCH_PATH, json.dumps(releases).encode())
+                hit = self.search_client().latest("example/sensors@1.0")
+                self.assertEqual((hit.base_url, hit.version), (self.base + "/1.0/", "1.0"))
+                search = self.server.requests[1][0]
+                self.assertEqual(urlsplit(search).path, SEARCH_PATH)
+                self.assertEqual(parse_qs(urlsplit(search).query)["filter_by"],
+                                 ["namespace:=`example` && name:=`sensors` && version:=`1.0`"])
+
+    def test_latest_without_revisions_searches_the_version_itself_without_looking_for_them(self):
+        releases = search_body([self.base + "/1.0/"], per_page=10, total=1)
+        releases["hits"][0]["document"]["version"] = "1.0"
+        self.route(SEARCH_PATH, json.dumps(releases).encode())
+        hit = self.search_client().latest("example/sensors@1.0-no-revision")
+        self.assertEqual(hit.base_url, self.base + "/1.0/")
+        self.assertEqual([urlsplit(path).path for path, _ in self.server.requests], [SEARCH_PATH])
+        self.assertEqual(parse_qs(urlsplit(self.server.requests[0][0]).query)["filter_by"],
+                         ["namespace:=`example` && name:=`sensors` && version:=`1.0`"])
+
+    def test_inspect_without_revisions_gets_the_release_path_without_search(self):
+        path = "/files/packages/example/sensors/1.0/"
+        self.route(path, (EXAMPLES / "sensors-package.json").read_bytes())
+        self.search_client().inspect("example/sensors@1.0-no-revision")
+        self.assertEqual(self.server.requests, [(path, "identity")])
+
+    def test_latest_with_version_is_none_without_that_version(self):
+        self.route(LATEST_REVISION_PATH, b"", 404)
+        self.route(SEARCH_PATH, json.dumps(search_body(per_page=10, total=0)).encode())
+        self.assertIsNone(self.search_client().latest("example/sensors@1.0"))
+
+    def test_latest_with_version_keeps_other_http_failures(self):
+        self.route(LATEST_REVISION_PATH, b"", 503)
+        self.assert_failure(lambda: self.search_client().latest("example/sensors@1.0"),
+                            "HTTP_ERROR", "SEARCH", self.base + LATEST_REVISION_PATH, 503)
 
     def test_get_returns_original_binary_bytes_without_sdk_caching(self):
         url = self.route("/file", b"\x00\xff\x80\n")

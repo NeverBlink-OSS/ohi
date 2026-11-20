@@ -35,7 +35,7 @@ slots:
     required: true
     pattern: ^[\s\S]*\S
   version:
-    description: Complete publication version label, including amendments.
+    description: Complete publication version label, including the revision id if present.
     range: string
     required: true
     pattern: ^[\s\S]*\S
@@ -68,6 +68,11 @@ slots:
       of this publication. Not an upstream release date.
     range: datetime
     required: true
+  hub_version:
+    description: Hub version that released this publication.
+    comments:
+      - Hub versions before 0.2.0 may lack this field.
+    range: string
   element_count:
     description: Number of LinkML elements in the publication.
     comments:

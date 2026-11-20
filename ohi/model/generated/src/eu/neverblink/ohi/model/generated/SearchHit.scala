@@ -21,6 +21,8 @@ import eu.neverblink.linkml.runtime.*
   * @param formats
   *   Formats of the publication's available artifacts. Each value identifies both the ontology
   *   language and serialization syntax, as in artifact.format.
+  * @param hubVersion
+  *   Hub version that released this publication.
   * @param keywords
   *   Keywords describing the ontology's subject. An empty list means no keywords are provided.
   * @param licenses
@@ -38,6 +40,9 @@ import eu.neverblink.linkml.runtime.*
   *   classes and properties of an OWL ontology.
   * @param originalSources
   *   Upstream official sources of the ontology, such as its homepage or repository.
+  * @param originalVersion
+  *   The version first published. For a revision, the original_version of its revision, otherwise
+  *   the version itself. Filtering on it finds a release and all its revisions.
   * @param publications
   *   Papers that introduce or describe the ontology.
   * @param publishedAt
@@ -46,10 +51,13 @@ import eu.neverblink.linkml.runtime.*
   *   publication. Not an upstream release date.
   * @param publishers
   *   The people or organizations that publish the ontology upstream.
+  * @param revisionId
+  *   The id of the revision, only for a revision. The latest revision of a version is its document
+  *   in packages_latest_revision.
   * @param title
   *   Display title of the ontology.
   * @param version
-  *   Complete publication version label, including amendments.
+  *   Complete publication version label, including the revision id if present.
   * @see
   *   From schema: https://ohi.neverblink.eu/contracts/search
   */
@@ -63,6 +71,8 @@ final case class SearchHit(
     @named("element_count")
     elementCount: Option[Int] = None,
     formats: Seq[Format],
+    @named("hub_version")
+    hubVersion: Option[String] = None,
     keywords: Seq[String],
     licenses: Seq[String],
     maintainers: Seq[Agent] = Seq(),
@@ -72,10 +82,14 @@ final case class SearchHit(
     nativeElementCount: Option[Int] = None,
     @named("original_sources")
     originalSources: Seq[Uri],
+    @named("original_version")
+    originalVersion: Option[String] = None,
     publications: Seq[Citation] = Seq(),
     @named("published_at")
     publishedAt: LinkmlDateTime,
     publishers: Seq[Agent],
+    @named("revision_id")
+    revisionId: Option[String] = None,
     title: String,
     version: String,
 ) {
