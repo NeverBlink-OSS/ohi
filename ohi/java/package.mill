@@ -13,7 +13,7 @@ object `package` extends JavaModule, GitVersionPublishModule {
 
   def javacOptions = Seq("--release", "17", "-Xlint:all", "-Werror", "-encoding", "UTF-8")
 
-  def mvnDeps = Seq(mvn"com.fasterxml.jackson.core:jackson-databind:2.21.0")
+  def mvnDeps = Seq(mvn"com.fasterxml.jackson.core:jackson-databind:2.21.8")
 
   /** Since JDK 23, javadoc puts about 4 MB of web fonts into every javadoc jar. An input, as it
     * depends on the JDK that Mill runs on, which is not part of the cache key.
