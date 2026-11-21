@@ -131,7 +131,7 @@ final case class SearchOptions(
     @HelpMessage("Page number, starting at 1. Default: 1")
     @ValueDescription("<number>")
     page: Option[Int] = None,
-    @HelpMessage("Matches per page, from 1 to 250. Default: 10")
+    @HelpMessage("Matches per page, from 1 to 250. Default: 5")
     @ValueDescription("<number>")
     perPage: Option[Int] = None,
     @HelpMessage("Filter matches, for example namespace:=w3c")
@@ -193,7 +193,7 @@ object Search extends CatalogCommand[SearchOptions] {
         SearchRequest(
           q = input,
           page = options.page,
-          perPage = options.perPage,
+          perPage = Some(options.perPage.getOrElse(5)),
           filterBy = options.filterBy,
           sortBy = options.sortBy,
           facetBy = options.facetBy,

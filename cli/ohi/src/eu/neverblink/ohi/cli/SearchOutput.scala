@@ -1,6 +1,5 @@
 package eu.neverblink.ohi.cli
 
-import eu.neverblink.linkml.runtime.stringify
 import eu.neverblink.ohi.model.generated.SearchResult
 
 import scala.collection.mutable.ArrayBuffer
@@ -60,13 +59,16 @@ private[cli] object SearchOutput {
         field("Version", version, "2")
       }
       field("Description", hit.description, "0")
-      field("Formats", hit.formats.map(stringify(_)).mkString(", "), "32")
       CliFormatting.elements(hit.nativeElementCount, hit.elementCount).foreach(
         field("Elements", _, "0"),
       )
       if hit.licenses.nonEmpty then field("License", hit.licenses.mkString(", "), "2")
       if hit.keywords.nonEmpty then field("Tags", hit.keywords.mkString(", "), "2")
-      output += styled("  URL: ", "2", colored) + styled(clean(hit.baseUrl.original), "36", colored)
+      output += styled("  URL: ", "2", colored) + styled(
+        clean(CliFormatting.releaseLink(hit.baseUrl.original)),
+        "36",
+        colored,
+      )
     }
 
     result.facetCounts.foreach { facet =>

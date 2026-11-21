@@ -68,7 +68,7 @@ private[cli] object CatalogOutput {
       CliFormatting.elements(result.nativeElementCount, result.elementCount).foreach(
         field("Elements", _),
       )
-      field("Release URL", result.baseUrl.original, code = "36")
+      field("URL", CliFormatting.releaseLink(result.baseUrl.original), code = "36")
 
       versions.foreach { case Versions(latest, releases) =>
         section("Versions")
@@ -125,7 +125,11 @@ private[cli] object CatalogOutput {
       section("Dependencies")
       if result.dependencies.isEmpty then output += "  None"
       result.dependencies.foreach(dependency =>
-        output += "  " + styled(clean(dependency.baseUrl.original), "36", colored),
+        output += "  " + styled(
+          clean(CliFormatting.releaseLink(dependency.baseUrl.original)),
+          "36",
+          colored,
+        ),
       )
 
       section("Release details")

@@ -37,7 +37,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
     {"field_name":"formats","counts":[{"value":"rdfs-turtle","count":1}]}
   ]"""
 
-  private def searchResponse(page: Int = 1, perPage: Int = 10): String =
+  private def searchResponse(page: Int = 1, perPage: Int = 5): String =
     s"""{"hits":$hits,"found":7,"page":$page,"request_params":{"per_page":$perPage},
        |"search_cutoff":true,"facet_counts":$facets}""".stripMargin
 
@@ -354,7 +354,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           "q" -> "*",
           "query_by" -> "title",
           "page" -> "1",
-          "per_page" -> "10",
+          "per_page" -> "5",
         )
         val compact = out.filterNot(_.isWhitespace)
         Seq(
@@ -365,14 +365,12 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           "Z sensors",
           "Sensor measurements",
           "https://example.org/z?revision=2",
-          "rdfs-turtle, owl-turtle",
           "Elements: 95 native, 120 in LinkML",
           "Ontology: example/a",
           "Version: 1.0",
           "A devices",
           "Device descriptions",
           "https://example.org/a/",
-          "linkml-yaml",
           "License: MIT",
           "Facet: namespace",
           "z: 2",
@@ -383,6 +381,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
         out.linesIterator.count(_.startsWith("  License:")) shouldBe 1
         out.linesIterator.count(_.startsWith("  Elements:")) shouldBe 1
         out should not include "Tags:"
+        out should not include "Formats:"
         out should not include "Published:"
         out should not include "Not supplied"
         compact.indexOf("example/z") should be < compact.indexOf("example/a")
@@ -393,7 +392,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
 
     "send --all-releases to search_url and count the hits as releases" in {
       withServer(
-        s"""{"hits":$hits,"found":2,"page":1,"request_params":{"per_page":10},"search_cutoff":false}""",
+        s"""{"hits":$hits,"found":2,"page":1,"request_params":{"per_page":5},"search_cutoff":false}""",
       ) { (url, requests) =>
         val out = successful(
           Search,
@@ -412,7 +411,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
 
     "report an empty page as successful human output with effective paging" in {
       withServer(
-        """{"hits":[],"found":7,"page":2,"request_params":{"per_page":10},"search_cutoff":false}""",
+        """{"hits":[],"found":7,"page":2,"request_params":{"per_page":5},"search_cutoff":false}""",
       ) { (url, requests) =>
         val out = successful(
           Search,
@@ -433,7 +432,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
 
     "retain the required empty hit array in JSON instead of omitting it" in {
       withServer(
-        """{"hits":[],"found":0,"page":1,"request_params":{"per_page":10},"search_cutoff":false}""",
+        """{"hits":[],"found":0,"page":1,"request_params":{"per_page":5},"search_cutoff":false}""",
       ) { (url, _) =>
         val out =
           successful(
@@ -447,7 +446,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
             "--json",
           )
         json(out) shouldBe json(
-          """{"hits":[],"total":0,"page":1,"per_page":10,"search_cutoff":false}""",
+          """{"hits":[],"total":0,"page":1,"per_page":5,"search_cutoff":false}""",
         )
       }
     }
@@ -535,7 +534,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
         val (out, err, code) = inspectReference(base, "example/z@2.0")
         withClue(err) { code shouldBe 0 }
         out should include(
-          s"  Release URL: $base$hub\n\n" +
+          s"  URL: $base$hub\n\n" +
             "Versions\n" +
             "  - example/z@3 (latest)\n" +
             "  - example/z@10\n" +
@@ -560,7 +559,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
         val (out, err, code) = inspectReference(base, "example/z")
         withClue(err) { code shouldBe 0 }
         out should include(
-          s"  Release URL: $base/files/packages/example/z/3/\n\n" +
+          s"  URL: $base/files/packages/example/z/3/\n\n" +
             "Versions\n" +
             "  - example/z@3 (latest)\n" +
             "  - example/z@10\n" +
@@ -1159,9 +1158,10 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
 
     "search without the fields, formats and hits added later" in {
       withServer(example("future-search.json")) { (url, _) =>
-        val args = Seq("search", "*", "--search-url", url + searchPath, "--query-by", "title")
+        val args = Seq("search", "*", "--search-url", url + searchPath, "--query-by", "title") ++
+          Seq("--per-page", "10")
         val out = successful(Search, (args :+ "--color=never")*)
-        out should include("Formats: owl-turtle, linkml-yaml")
+        out should include("sensors")
         out should not include "Devices"
         out should include("owl-jsonld: 2")
         val result = json(successful(Search, (args :+ "--json")*))

@@ -96,10 +96,10 @@ private[cli] object HelpOutput {
         section(
           "Input",
           "  References use ohi.dev. Without @version, selects the latest version.\n" +
-            "  A release URL is the metadata URL shown by search. No format is needed.",
+            "  A release URL is the base URL of a release on a hub. No format is needed.",
           colored,
         )
-      case "inspect" => "A release URL is the metadata URL shown by search."
+      case "inspect" => "A release URL is the base URL of a release on a hub."
       case "get" | "add" if full =>
         "Without @version, selects the latest version.\n" +
           "Without --format, tries default_format from ohi.yaml, then linkml-yaml.\n" +

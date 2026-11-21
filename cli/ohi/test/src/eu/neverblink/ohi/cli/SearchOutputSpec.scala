@@ -42,20 +42,17 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
                 |OMG Commons Collections
                 |  Ontology: commons/collections | Version: 20221101
                 |  Description: Collections, bags, lists and their members.
-                |  Formats: linkml-yaml, ossie-yaml, owl-rdfxml, owl-turtle, rdfs-turtle
                 |  License: MIT
                 |  Tags: collections
-                |  URL: https://api.ohi.dev/files/packages/commons/collections/20221101/""".stripMargin,
+                |  URL: https://ohi.dev/o/commons/collections@20221101""".stripMargin,
         60 -> """1 matching ontology
                 |
                 |OMG Commons Collections
                 |  Ontology: commons/collections | Version: 20221101
                 |  Description: Collections, bags, lists and their members.
-                |  Formats: linkml-yaml, ossie-yaml, owl-rdfxml, owl-turtle,
-                |    rdfs-turtle
                 |  License: MIT
                 |  Tags: collections
-                |  URL: https://api.ohi.dev/files/packages/commons/collections/20221101/""".stripMargin,
+                |  URL: https://ohi.dev/o/commons/collections@20221101""".stripMargin,
         40 -> """1 matching ontology
                 |
                 |OMG Commons Collections
@@ -63,23 +60,21 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
                 |  Version: 20221101
                 |  Description: Collections, bags, lists
                 |    and their members.
-                |  Formats: linkml-yaml, ossie-yaml,
-                |    owl-rdfxml, owl-turtle, rdfs-turtle
                 |  License: MIT
                 |  Tags: collections
-                |  URL: https://api.ohi.dev/files/packages/commons/collections/20221101/""".stripMargin,
+                |  URL: https://ohi.dev/o/commons/collections@20221101""".stripMargin,
       )
     do
       s"match the selected Collections layout at $columns columns" in {
         SearchOutput.render(result, columns, colored = false) shouldBe expected
       }
 
-    "show both element counts after the formats, the native count first" in {
+    "show both element counts after the description, the native count first" in {
       val input = result.copy(hits =
         Seq(collections.copy(elementCount = Some(120), nativeElementCount = Some(95))),
       )
       SearchOutput.render(input, 80, colored = false) should include(
-        "  Formats: linkml-yaml, ossie-yaml, owl-rdfxml, owl-turtle, rdfs-turtle\n" +
+        "  Description: Collections, bags, lists and their members.\n" +
           "  Elements: 95 native, 120 in LinkML\n",
       )
       SearchOutput.render(input, 80, colored = true) should include(
@@ -107,6 +102,12 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
       lines.filter(_.startsWith("  Elements:")) shouldBe Seq("  Elements: 120")
     }
 
+    "link releases on other hubs by their base URL" in {
+      val url = "https://hub.example/files/packages/commons/collections/20221101/"
+      val input = result.copy(hits = Seq(collections.copy(baseUrl = Uri(url))))
+      SearchOutput.render(input, 80, colored = false) should endWith(s"  URL: $url")
+    }
+
     "move a word intact to the continuation when only the label fits" in {
       val input = result.copy(hits = Seq(collections.copy(description = "abcdefghij")))
       SearchOutput.render(input, 20, colored = false) should include(
@@ -119,7 +120,7 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
         result.copy(hits = Seq(collections.copy(description = "abcdefghijklmnopqrst😀uv")))
       val out = SearchOutput.render(input, 20, colored = false)
       out should include("  Description: abcde\n    fghijklmnopqrst😀\n    uv\n")
-      out should include("  URL: https://api.ohi.dev/files/packages/commons/collections/20221101/")
+      out should include("  URL: https://ohi.dev/o/commons/collections@20221101")
       out.linesIterator.filterNot(_.startsWith("  URL:")).foreach(line =>
         line.codePointCount(0, line.length) should be <= 20,
       )
@@ -133,11 +134,10 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
       out should include("\u001b[2m  Ontology: \u001b[0m\u001b[36mcommons/collections\u001b[0m")
       out should include("\u001b[2m | Version: 20221101\u001b[0m")
       out should include("\u001b[0mCollections, bags, lists and their members.\u001b[0m")
-      out should include("\u001b[32mrdfs-turtle\u001b[0m")
       out should include("\u001b[2mMIT\u001b[0m")
       out should include("\u001b[2mcollections\u001b[0m")
       out should include(
-        "\u001b[36mhttps://api.ohi.dev/files/packages/commons/collections/20221101/\u001b[0m",
+        "\u001b[36mhttps://ohi.dev/o/commons/collections@20221101\u001b[0m",
       )
       out.linesIterator.filter(_.nonEmpty).foreach(_ should endWith("\u001b[0m"))
     }
