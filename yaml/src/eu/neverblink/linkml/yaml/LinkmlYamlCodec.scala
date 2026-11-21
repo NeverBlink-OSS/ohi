@@ -27,6 +27,7 @@ object LinkmlYamlCodec {
       s"Expected $msg at ${pos.start.line}:${pos.start.column} but got:\n${pos.errorMsg}"
     },
     node.pos,
+    Some(msg),
   )
 
   implicit val anythingCodec: LinkmlYamlCodec[LinkmlAny] = new LinkmlYamlCodec[LinkmlAny] {
@@ -1275,7 +1276,12 @@ private class LinkmlYamlCodecImpl(extraSlotsAllowed: Boolean)(using Quotes) exte
   * @param position
   *   Where in the source the offending node was, when the node carried that information. Callers
   *   use it to report the failure structurally instead of scraping it out of [[msg]].
+  * @param expected
+  *   What the node should have been, without the offending source that [[msg]] quotes.
   */
-class DecodeError(msg: String, val position: Option[Range] = None)
-    extends RuntimeException(msg),
+class DecodeError(
+    msg: String,
+    val position: Option[Range] = None,
+    val expected: Option[String] = None,
+) extends RuntimeException(msg),
       NoStackTrace
