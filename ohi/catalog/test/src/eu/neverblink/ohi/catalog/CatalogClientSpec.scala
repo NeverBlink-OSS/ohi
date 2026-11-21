@@ -115,6 +115,10 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
       parts(0) -> URLDecoder.decode(parts(1), UTF_8)
     }.toMap
 
+  // Long enough that the response headers always arrive in time, even on a slow CI runner, so the
+  // stalled-body tests see the HTTP status. The test server waits for 5 seconds.
+  private val stallTimeoutMs = 1000
+
   private def withSocketResponse(response: String, endBody: Boolean = false)(
       check: String => Unit,
   ): Unit = {
@@ -534,7 +538,7 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
         "HTTP/1.1 200 OK\r\nContent-Length: 100\r\nCache-Control: no-store\r\n\r\nabc",
       ) { url =>
         error(CatalogErrorCode.Timeout, CatalogOperation.Get, Some(url), Some(200))(
-          new CatalogClient(CatalogConfig(timeoutMs = Some(150))).get(url),
+          new CatalogClient(CatalogConfig(timeoutMs = Some(stallTimeoutMs))).get(url),
         )
       }
     }
@@ -563,7 +567,7 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
         "HTTP/1.1 503 Unavailable\r\nContent-Length: 100\r\nCache-Control: no-store\r\n\r\n{",
       ) { url =>
         error(CatalogErrorCode.HttpError, CatalogOperation.Get, Some(url), Some(503))(
-          new CatalogClient(CatalogConfig(timeoutMs = Some(150))).get(url),
+          new CatalogClient(CatalogConfig(timeoutMs = Some(stallTimeoutMs))).get(url),
         ).responseJson shouldBe None
       }
     }

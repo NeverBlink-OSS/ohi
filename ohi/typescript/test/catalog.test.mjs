@@ -355,8 +355,12 @@ test("redirect refusal never requests its target", async (t) => {
   assert.deepEqual(fixture.requests.map((req) => req.url), ["/redirect"]);
 });
 
+// Long enough that the response headers always arrive in time, even on a slow CI runner, so the
+// stalled-body tests see the HTTP status.
+const stallTimeoutMs = 1000;
+
 for (const [status, code] of [[200, "TIMEOUT"], [503, "HTTP_ERROR"]]) {
-  test(`stalled HTTP ${status} body yields ${code} and closes the transfer`, { timeout: 3000 }, async (t) => {
+  test(`stalled HTTP ${status} body yields ${code} and closes the transfer`, { timeout: 10000 }, async (t) => {
     let closed;
     const closure = new Promise((resolve) => { closed = resolve; });
     const fixture = await server(t, (_, res) => {
@@ -364,7 +368,7 @@ for (const [status, code] of [[200, "TIMEOUT"], [503, "HTTP_ERROR"]]) {
       res.writeHead(status, { "Content-Length": "100" });
       res.write("{");
     });
-    await assert.rejects(new CatalogClient({ timeout_ms: 100 }).get(fixture.url), (error) => {
+    await assert.rejects(new CatalogClient({ timeout_ms: stallTimeoutMs }).get(fixture.url), (error) => {
       failure(code, "GET", fixture.url, status)(error);
       assert.equal("response_json" in error.error, false);
       return true;
