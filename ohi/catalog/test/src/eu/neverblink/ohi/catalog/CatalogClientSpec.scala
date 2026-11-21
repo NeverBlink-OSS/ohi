@@ -445,6 +445,23 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
       }
     }
 
+    "report a malformed search success without quoting it" in {
+      val body = ujson.read(searchResponse(10, Seq(hit("https://example.org/a/", "a", "a", "1"))))
+      body("found") = "many"
+      val text = ujson.write(body)
+      withServer(exchange => reply(exchange, 200, text.getBytes(UTF_8))) { (url, _) =>
+        error(
+          CatalogErrorCode.InvalidResponse,
+          CatalogOperation.Search,
+          Some(url + latestPath),
+          Some(200),
+        )(
+          configured(url + searchPath).search(SearchRequest(q = "*")),
+        ).message shouldBe
+          s"expected 32-bit signed integer number value at line 1, column ${text.indexOf("\"many\"") + 1}"
+      }
+    }
+
     "delegate invalid publication metadata to the existing decoder" in {
       withServer(exchange => reply(exchange, 200, "{}".getBytes(UTF_8))) { (url, _) =>
         error(CatalogErrorCode.InvalidResponse, CatalogOperation.Inspect, Some(url), Some(200))(

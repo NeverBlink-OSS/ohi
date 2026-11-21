@@ -317,5 +317,29 @@ class PublicationJsonSpec extends AnyWordSpec, Matchers {
     "reject malformed JSON and retain its parser cause" in {
       intercept[IllegalArgumentException](PublicationJson.decode("{")).getCause should not be null
     }
+
+    // A service returns JSON on one line, so quoting the source line would quote all of it.
+    "name a missing field without quoting the publication" in {
+      val value = example()
+      value.obj.remove("title")
+      intercept[IllegalArgumentException](decode(value)).getMessage shouldBe
+        "expected required field 'title' of 'eu.neverblink.ohi.model.generated.Publication'"
+    }
+
+    "point at a wrong value without quoting the publication" in {
+      val value = example()
+      value("schema_version") = "two"
+      val text = ujson.write(value)
+      intercept[IllegalArgumentException](PublicationJson.decode(text)).getMessage shouldBe
+        s"expected 32-bit signed integer number value at line 1, column ${text.indexOf("\"two\"") + 1}"
+    }
+
+    "point at malformed JSON without quoting it" in {
+      val text = ujson.write(example())
+      intercept[IllegalArgumentException](
+        PublicationJson.decode(text.dropRight(1)),
+      ).getMessage shouldBe
+        s"expected FlowMappingEnd but got StreamEnd at line 1, column ${text.length}"
+    }
   }
 }
