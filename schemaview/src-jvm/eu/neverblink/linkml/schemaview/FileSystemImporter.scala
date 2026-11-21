@@ -12,7 +12,10 @@ import scala.util.control.NonFatal
 object FileSystemImporter extends StringImporter {
   private val isWindows = File.separatorChar == '\\'
 
-  def read(path: String): String = new String(Files.readAllBytes(Paths.get(filePath(path))), UTF_8)
+  def read(path: String): String = {
+    Importer.refuseUrl(path)
+    new String(Files.readAllBytes(Paths.get(filePath(path))), UTF_8)
+  }
 
   /** Identify the file by its device and inode, so symbolic and hard links to one file share a key.
     * Where the file system has no such key (Windows), use the real path, which still follows

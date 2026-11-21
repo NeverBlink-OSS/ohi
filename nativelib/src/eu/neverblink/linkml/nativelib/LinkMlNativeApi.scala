@@ -30,6 +30,7 @@ import eu.neverblink.linkml.schemaview.buildinfo.CurrentBuild
 import eu.neverblink.linkml.yaml.LinkmlYamlCodec
 import eu.neverblink.linkml.schemaview.{
   FileSystemImporter,
+  ImportFailure,
   ImportMapImporter,
   Importer,
   SchemaCodec,
@@ -38,6 +39,7 @@ import eu.neverblink.linkml.schemaview.{
   SchemaView,
   StringImporter,
 }
+import eu.neverblink.linkml.metamodel.SchemaDefinition
 import eu.neverblink.linkml.validation.{Codec, SchemaIssue, SchemaValidationReport}
 import org.virtuslab.yaml.{Node, StringNode}
 
@@ -119,13 +121,18 @@ object LinkMlNativeApi {
       throw BadRequest(
         s"the imports have ${importNames.length} names but ${importBodies.length} bodies",
       )
-    val files = SchemaTexts(importNames.zip(importBodies).toMap)
+    val texts = SchemaTexts(importNames.zip(importBodies).toMap)
     val options = Options.load(optionsJson)
+    val importer = if options.readFiles then TextsThenFiles(texts) else texts
     if path ne null then
-      withImportMap(files, Some(path), options)(SchemaView.loadSchemaViewFromUri(path, _))
+      if options.baseDir.nonEmpty then
+        throw BadRequest("base_dir is only for a schema given as text, not for one given by path")
+      withImportMap(importer, Some(path), options)(SchemaView.loadSchemaViewFromUri(path, _))
     else {
       if schema eq null then throw BadRequest("loading needs either a path or the schema text")
-      withImportMap(files, None, options)(SchemaView.loadSchemaViewFromString(schema, _))
+      withImportMap(importer, None, options)(
+        SchemaView.loadSchemaViewFromString(schema, _, options.baseDir),
+      )
     }
   }
 
@@ -410,8 +417,19 @@ object LinkMlNativeApi {
   private final case class SchemaTexts(entries: Map[String, String]) extends StringImporter {
     private val lookup = Importer.normalizedMap(entries)
 
+    def contains(path: String): Boolean = lookup.contains(path)
+
     override def read(path: String): String =
       lookup.getOrElse(path, throw BadRequest(s"could not read from the imports: $path"))
+  }
+
+  /** The caller-supplied schema texts, then the file system for every other schema. */
+  private final class TextsThenFiles(texts: SchemaTexts) extends Importer {
+    override def readSchema(path: String): Either[ImportFailure, SchemaDefinition] =
+      if texts.contains(path) then texts.readSchema(path) else FileSystemImporter.readSchema(path)
+
+    override def schemaKey(path: String): String =
+      if texts.contains(path) then path else FileSystemImporter.schemaKey(path)
   }
 
 }

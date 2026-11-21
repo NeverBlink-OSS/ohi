@@ -41,14 +41,16 @@ A schema is parsed once and reused across generators, the same way the [JavaScri
 
 ### Loading
 
-| Function | Use it when                                                                                                                                           |
-|---|-------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `load_file(path)` | The schema and its imports are on disk. Behaves like the CLI.                                                                                         |
-| `load_string(schema, imports=None)` | You have the schema as text. `imports` maps filename to YAML text.                                                                                    |
+| Function | Use it when |
+|---|---|
+| `load_file(path, imports=None)` | The schema and its imports are on disk. Behaves like the CLI. `imports` maps a location to YAML text, for schemas to read from memory instead of from disk. |
+| `load_string(schema, imports=None, base_dir=None)` | You have the schema as text. `imports` maps filename to YAML text. With `base_dir`, the schema's relative imports are joined to it, and the schemas that are not in `imports` are read from disk. |
 | `load_path(path, imports)` | Same, but the root is read *through* the map by its own path, so imports that reference the root back resolve to it instead of loading a second copy. |
-| `load_ossie(document)`, `load_owl(document)` | You have an existing ontology. See [Converting to LinkML](#converting-to-linkml).                                                                     |
+| `load_ossie(document)`, `load_owl(document)` | You have an existing ontology. See [Converting to LinkML](#converting-to-linkml). |
 
-Keys of the `imports` map are import paths as seen from the root schema. The `.yaml` and `.yml`
+Keys of the `imports` map are import paths as seen from the root schema. With `load_file` and with
+`base_dir`, they are locations instead, as in an import map: a relative one is relative to the
+current directory. The `.yaml` and `.yml`
 extensions are optional and interchangeable, and each imported schema is loaded only once, even
 when it is reached through different relative paths or, with `load_file`, through symbolic or hard
 links.
@@ -203,12 +205,14 @@ char *shacl = linkml_shacl(handle, NULL, &err);               /* defaults */
 char *open  = linkml_shacl(handle, "{\"open\":true}", &err);  /* one option */
 ```
 
-The options of `linkml_load_file` and `linkml_load_string` take `inferMessages` and `importMap` (see [Import maps](/docs/import-maps/)):
+The options of `linkml_load_file` and `linkml_load_string` take `infer_messages` and `import_map` (see [Import maps](/docs/import-maps/)):
 
 ```c
 long long h = linkml_load_file("model.yaml",
-    "{\"importMap\":{\"https://example.org/units/\":\"deps/units/\"}}", &report, &err);
+    "{\"import_map\":{\"https://example.org/units/\":\"deps/units/\"}}", &report, &err);
 ```
+
+The options of `linkml_load_string` also take `read_files`, to read the schemas that are not in the given strings from disk, and `base_dir`, the directory to resolve the relative imports against.
 
 **Failure is NULL plus a message.** A generator returns NULL and writes the reason to `*err`. Loading returns handle 0 and writes a validation report to `*report`. A schema that can't be written, or an ontology that can't be imported, writes a validation report to `*err` instead of a message, with one `SchemaConversionError` issue. All returned strings must be freed by the caller with `linkml_free`.
 

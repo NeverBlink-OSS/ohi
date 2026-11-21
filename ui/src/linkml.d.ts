@@ -102,7 +102,7 @@ export interface LinkMLApi extends Loaders<ImporterFunctions> {
    * @param mainSchema Main LinkML model in YAML format. It may import other models using LinkML `imports`, but all imports must be made available in the [[imports]].
    * @param imports JS dictionary (object) containing a mapping from filename to LinkML models (in YAML format)
    * @param inferMessages Whether to fill in each issue's human-readable `message` and `details`.
-   * @param importMap Optional JS dictionary from an import to the location to load it from, which is a key of the [[imports]], such as `{"https://example.org/units/": "deps/units/"}`. Keys are full URIs or paths, not CURIEs. A key that ends with `/` or `#` matches every import that starts with it. CURIE imports are expanded with the prefixes of the schema that contains them before they are matched.
+   * @param importMap Optional JS dictionary from an import to the location to load it from, which is a key of the [[imports]], such as `{"https://example.org/units/": "deps/units/"}`. Keys are full URIs, paths or CURIEs. CURIE imports and CURIE keys are expanded with the prefixes of the schema that contains the import before they are matched. A key that ends with `/`, `#` or, for a CURIE, `:` matches every import that starts with it.
    * @returns The validation report, and a handle with the generators unless the schema had fatal problems.
    */
   loadFromString(mainSchema: string, imports: Record<string, string>, inferMessages?: boolean, importMap?: Record<string, string>): LoadResult;
@@ -112,7 +112,7 @@ export interface LinkMLApi extends Loaders<ImporterFunctions> {
    * @param path Path of the main LinkML model within the [[imports]] (e.g. `"model.yaml"`).
    * @param imports JS dictionary (object) containing a mapping from path to LinkML models (in YAML format), including the main schema itself under [[path]].
    * @param inferMessages Whether to fill in each issue's human-readable `message` and `details`.
-   * @param importMap Optional JS dictionary from an import to the location to load it from, which is a key of the [[imports]], such as `{"https://example.org/units/": "deps/units/"}`. Keys are full URIs or paths, not CURIEs. A key that ends with `/` or `#` matches every import that starts with it. CURIE imports are expanded with the prefixes of the schema that contains them before they are matched.
+   * @param importMap Optional JS dictionary from an import to the location to load it from, which is a key of the [[imports]], such as `{"https://example.org/units/": "deps/units/"}`. Keys are full URIs, paths or CURIEs. CURIE imports and CURIE keys are expanded with the prefixes of the schema that contains the import before they are matched. A key that ends with `/`, `#` or, for a CURIE, `:` matches every import that starts with it.
    * @returns The validation report, and a handle with the generators unless the schema had fatal problems.
    */
   loadFromPath(path: string, imports: Record<string, string>, inferMessages?: boolean, importMap?: Record<string, string>): LoadResult;

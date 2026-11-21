@@ -215,10 +215,10 @@ object LinkMlJsApi {
     *   Whether to fill in each issue's human-readable `message` and `details`.
     * @param importMap
     *   Optional JS dictionary from an import to the location to load it from, which is a key of the
-    *   [[imports]], such as `{"https://example.org/units/": "deps/units/"}`. Keys are full URIs or
-    *   paths, not CURIEs. A key that ends with `/` or `#` matches every import that starts with it.
-    *   CURIE imports are expanded with the prefixes of the schema that contains them before they
-    *   are matched.
+    *   [[imports]], such as `{"https://example.org/units/": "deps/units/"}`. Keys are full URIs,
+    *   paths or CURIEs. CURIE imports and CURIE keys are expanded with the prefixes of the schema
+    *   that contains the import before they are matched. A key that ends with `/`, `#` or, for a
+    *   CURIE, `:` matches every import that starts with it.
     * @return
     *   The validation report, and a handle with the generators unless the schema had fatal
     *   problems.
@@ -256,10 +256,10 @@ object LinkMlJsApi {
     *   Whether to fill in each issue's human-readable `message` and `details`.
     * @param importMap
     *   Optional JS dictionary from an import to the location to load it from, which is a key of the
-    *   [[imports]], such as `{"https://example.org/units/": "deps/units/"}`. Keys are full URIs or
-    *   paths, not CURIEs. A key that ends with `/` or `#` matches every import that starts with it.
-    *   CURIE imports are expanded with the prefixes of the schema that contains them before they
-    *   are matched.
+    *   [[imports]], such as `{"https://example.org/units/": "deps/units/"}`. Keys are full URIs,
+    *   paths or CURIEs. CURIE imports and CURIE keys are expanded with the prefixes of the schema
+    *   that contains the import before they are matched. A key that ends with `/`, `#` or, for a
+    *   CURIE, `:` matches every import that starts with it.
     * @return
     *   The validation report, and a handle with the generators unless the schema had fatal
     *   problems.

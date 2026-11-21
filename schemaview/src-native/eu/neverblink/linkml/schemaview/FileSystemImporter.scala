@@ -13,6 +13,7 @@ import scala.util.control.NonFatal
   */
 object FileSystemImporter extends StringImporter {
   def read(path: String): String = {
+    Importer.refuseUrl(path)
     val file = if (LinktimeInfo.isWindows) Importer.windowsFilePath(path) else path
     new String(Files.readAllBytes(Paths.get(file)), UTF_8)
   }

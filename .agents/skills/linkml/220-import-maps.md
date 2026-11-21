@@ -50,10 +50,12 @@ Each entry maps an import to a location.
 
 - **Exact entries.** `"https://example.org/units/core": "deps/units.yaml"` matches only that import.
 - **Prefix entries.** A key that ends with `/` or `#` matches every import that starts with it, and that start is replaced. `"https://example.org/units/": "deps/units/"` loads `https://example.org/units/core` from `deps/units/core.yaml`.
+- **CURIE entries.** A key that is a CURIE, such as `units:core`, is expanded with the prefixes of the schema that contains the import, like a CURIE import. So `"units:core": "deps/units.yaml"` matches both `units:core` and `https://example.org/units/core` when `units` stands for `https://example.org/units/`. A schema that doesn't declare the prefix gets nothing from the entry. CURIE entries don't apply to the schema you load, as no schema contains it.
+- **CURIE prefix entries.** A CURIE key that ends with `:` is a prefix entry, and its location is a directory, as in LinkML-Python. `"linkml:": "local-metamodel"` loads `linkml:types` from `local-metamodel/types.yaml`.
 
-An exact entry has precedence over a prefix entry. When several prefix entries match, the longest one is used.
+An exact entry has precedence over a prefix entry. When several prefix entries match, the one that replaces the longest start is used.
 
-Keys and locations are full URIs or paths, not CURIEs. A key such as `linkml:types` or `units:core` is rejected: a key does not belong to any schema, so it is not known which URI its prefix stands for. Write the full URI instead, such as `https://w3id.org/linkml/types`. CURIE imports in schemas are still matched, as their lookup key is a full URI.
+Locations are full URIs or paths, not CURIEs. A location does not belong to any schema, so it is not known which URI its prefix would stand for.
 
 Two entries that are the same import, such as `https://w3id.org/linkml/types` and `https://w3id.org/linkml/types.yaml`, must have the same location.
 
@@ -65,6 +67,8 @@ A location is used as it is. A relative location is not joined to the directory 
 
 - With the CLI, `load_file()` in Python, and `linkml_load_file()` in C, it is relative to the current directory.
 - With the in-memory loaders (`load_string()` and `load_path()` in Python, `loadFromString()` and `loadFromPath()` in JavaScript), it is a key of the map of schema texts.
+
+Schemas are never downloaded. With the CLI and `load_file()`, an import that leads to a URL, such as `https://example.org/units/core`, is an import error that says to map it to a local file. The built-in `https://w3id.org/linkml/` schemas are bundled, so they always load.
 
 The relative imports of a schema loaded from a location are joined to that location. If `https://example.org/units/core` is loaded from `deps/units/core.yaml`, and that schema imports `./quantities`, it is loaded from `deps/units/quantities.yaml`.
 
@@ -135,10 +139,10 @@ To use a JSON file, read it and pass `JSON.parse` of its text.
 
 ### C
 
-The options of `linkml_load_file()` and `linkml_load_string()` take an `importMap` object:
+The options of `linkml_load_file()` and `linkml_load_string()` take an `import_map` object:
 
 ```json
-{"importMap": {"https://example.org/units/": "deps/units/"}}
+{"import_map": {"https://example.org/units/": "deps/units/"}}
 ```
 
 ### Scala
@@ -155,4 +159,4 @@ val view: Either[Seq[SchemaFatal], SchemaView] =
 `ImportMapImporter` passes all other calls to the importer it wraps, so it works with any importer.
 Wrapped importers can be stacked; the outer map has precedence.
 
-To find the same files as the loader, for example to track dependencies, use `ImportMap.lookupKey` for each import and `ImportMap.resolve` for its lookup key.
+To find the same files as the loader, for example to track dependencies, use `ImportMap.lookupKey` for each import, and `ImportMap.resolve` with its lookup key and the schema that contains it.

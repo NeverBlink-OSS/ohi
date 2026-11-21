@@ -586,6 +586,7 @@ class ValidateSpec extends AnyWordSpec, Matchers {
         code shouldBe 1
         out should include("SchemaImportError")
         out should include("https://example.org/units/core.yaml")
+        out should include("not downloaded")
       }
     }
 
@@ -616,20 +617,41 @@ class ValidateSpec extends AnyWordSpec, Matchers {
       }
     }
 
-    "reject a CURIE key" in {
-      withSchemaDir("model.yaml" -> model, "map.json" -> json("linkml:types" -> "types.yaml")) {
-        dir =>
-          val (_, err, code) = Validate.runTestCommandWithExitCode(
-            List(
-              "validate",
-              "--import-map",
-              dir.resolve("map.json").toString,
-              dir.resolve("model.yaml").toString,
-            ),
-          )
-          code shouldBe 1
-          err should include("Invalid --import-map")
-          err should include("'linkml:types' is a CURIE")
+    "load a CURIE import from the location of a CURIE key" in {
+      withSchemaDir("model.yaml" -> model, "units.yaml" -> units, "map.json" -> "") { dir =>
+        Files.writeString(
+          dir.resolve("map.json"),
+          json("units:core" -> dir.resolve("units.yaml").toString),
+        )
+        val (out, _, code) = Validate.runTestCommandWithExitCode(
+          List(
+            "validate",
+            "--format",
+            "plain",
+            "--import-map",
+            dir.resolve("map.json").toString,
+            dir.resolve("model.yaml").toString,
+          ),
+        )
+        code shouldBe 0
+        out should not include "SchemaImportError"
+      }
+    }
+
+    "reject a CURIE location" in {
+      val map = json("https://w3id.org/linkml/types" -> "linkml:types")
+      withSchemaDir("model.yaml" -> model, "map.json" -> map) { dir =>
+        val (_, err, code) = Validate.runTestCommandWithExitCode(
+          List(
+            "validate",
+            "--import-map",
+            dir.resolve("map.json").toString,
+            dir.resolve("model.yaml").toString,
+          ),
+        )
+        code shouldBe 1
+        err should include("Invalid --import-map")
+        err should include("'linkml:types' is a CURIE")
       }
     }
   }

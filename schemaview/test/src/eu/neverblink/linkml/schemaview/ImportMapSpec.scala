@@ -135,17 +135,23 @@ class ImportMapSpec extends AnyWordSpec, Matchers, Inside {
       ).isRight shouldBe true
     }
 
-    "reject a CURIE key, whatever its prefix" in {
-      val issue = rejected("linkml:types" -> "local/types.yaml")
-      issue.importUri shouldBe "linkml:types"
-      issue.reason should include("full URI")
-      rejected("base:core" -> "deps/core.yaml").importUri shouldBe "base:core"
-      rejected("linkml:" -> "local-metamodel/").importUri shouldBe "linkml:"
+    "accept CURIEs as keys" in {
+      ImportMap(
+        Map(
+          "linkml:types" -> "local/types.yaml",
+          "base:core.yaml" -> "deps/core.yaml",
+          "linkml:" -> "local-metamodel",
+        ),
+      ).isRight shouldBe true
     }
 
     "reject a CURIE target" in {
-      rejected("https://example.org/core" -> "base:core").importUri shouldBe "base:core"
+      val issue = rejected("https://example.org/core" -> "base:core")
+      issue.importUri shouldBe "base:core"
+      issue.reason should include("full URI")
       rejected("https://example.org/types" -> "linkml:types").importUri shouldBe "linkml:types"
+      rejected("units:core" -> "base:core").importUri shouldBe "base:core"
+      rejected("units:" -> "base:").importUri shouldBe "base:"
     }
 
     "reject two keys with the same lookup key and different targets" in {
@@ -162,6 +168,7 @@ class ImportMapSpec extends AnyWordSpec, Matchers, Inside {
         "https://example.org/core.yml" -> "b.yaml",
       )
       rejected("https://example.org/core" -> "a.yaml", "https://example.org/core.yaml" -> "b.yaml")
+      rejected("units:core" -> "a.yaml", "units:core.yaml" -> "b.yaml")
     }
 
     "accept two keys with the same lookup key and the same target" in {
@@ -214,8 +221,9 @@ class ImportMapSpec extends AnyWordSpec, Matchers, Inside {
     }
 
     "check the entries as ImportMap.apply does" in {
-      inside(ImportMap.fromJson("""{"linkml:types": "types.yaml"}""")) { case Left(issue) =>
-        issue.reason should include("CURIE")
+      inside(ImportMap.fromJson("""{"https://w3id.org/linkml/types": "linkml:types"}""")) {
+        case Left(issue) =>
+          issue.reason should include("CURIE")
       }
     }
   }
@@ -289,6 +297,55 @@ class ImportMapSpec extends AnyWordSpec, Matchers, Inside {
         issue.reason should include("https://example.org/v2/v2/core.yaml")
       }
     }
+
+    "match a CURIE key expanded with the prefixes of the importing schema" in {
+      val map = importMap("units:core" -> "deps/core.yaml")
+      val units = Some(schema(prefixes = Map("units" -> "https://example.org/units/")))
+      map.resolve("https://example.org/units/core.yaml", units) shouldBe Right("deps/core.yaml")
+      map.resolve("https://example.org/units/core.yml", units) shouldBe Right("deps/core.yaml")
+      val other = Some(schema(prefixes = Map("units" -> "https://example.org/other/")))
+      map.resolve("https://example.org/units/core.yaml", other) shouldBe
+        Right("https://example.org/units/core.yaml")
+      map.resolve("https://example.org/units/core.yaml", Some(schema())) shouldBe
+        Right("https://example.org/units/core.yaml")
+      map.resolve("https://example.org/units/core.yaml") shouldBe
+        Right("https://example.org/units/core.yaml")
+    }
+
+    "join the rest of the lookup key to the directory of a CURIE prefix key" in {
+      val key = "https://w3id.org/linkml/types.yaml"
+      val s = Some(schema())
+      importMap("linkml:" -> "local").resolve(key, s) shouldBe Right("local/types.yaml")
+      importMap("linkml:" -> "local/").resolve(key, s) shouldBe Right("local/types.yaml")
+      importMap("linkml:" -> "C:\\local").resolve(key, s) shouldBe
+        Right("C:\\local\\types.yaml")
+      importMap("base:" -> "local").resolve(key, s) shouldBe Right(key)
+    }
+
+    "let an exact key have precedence over a prefix key, whether they are CURIEs or not" in {
+      val map = importMap(
+        "units:core" -> "exact-curie.yaml",
+        "https://example.org/units/other" -> "exact-uri.yaml",
+        "units:" -> "prefix-curie",
+        "https://example.org/" -> "prefix-uri/",
+      )
+      val s = Some(schema(prefixes = Map("units" -> "https://example.org/units/")))
+      map.resolve("https://example.org/units/core.yaml", s) shouldBe Right("exact-curie.yaml")
+      map.resolve("https://example.org/units/other.yaml", s) shouldBe Right("exact-uri.yaml")
+      map.resolve("https://example.org/units/more.yaml", s) shouldBe
+        Right("prefix-curie/more.yaml")
+      map.resolve("https://example.org/sensors/core.yaml", s) shouldBe
+        Right("prefix-uri/sensors/core.yaml")
+    }
+
+    "follow chained mappings through CURIE keys" in {
+      val map = importMap(
+        "units:core" -> "https://example.org/v2/core",
+        "https://example.org/v2/" -> "deps/",
+      )
+      val s = Some(schema(prefixes = Map("units" -> "https://example.org/units/")))
+      map.resolve("https://example.org/units/core.yaml", s) shouldBe Right("deps/core.yaml")
+    }
   }
 
   "loading with an import map" should {
@@ -316,6 +373,43 @@ class ImportMapSpec extends AnyWordSpec, Matchers, Inside {
         ),
       )
       loadedNames("model.yaml", importer) shouldBe Seq("model", "units")
+    }
+
+    "load an import from the location of a CURIE key, whether it is written as a CURIE or not" in {
+      val importer = ImportMapImporter(
+        importMap("units:core" -> "deps/units.yaml"),
+        MapImporter(
+          "model.yaml" -> schemaText(
+            "model",
+            prefixes = Map("units" -> "https://example.org/units/"),
+            imports = Seq("units:core", "https://example.org/units/core"),
+          ),
+          "deps/units.yaml" -> schemaText("units"),
+        ),
+      )
+      loadedNames("model.yaml", importer) shouldBe Seq("model", "units")
+    }
+
+    "load linkml: imports from the directory of a linkml: key" in {
+      val localTypes =
+        """id: https://w3id.org/linkml/types
+          |name: types
+          |types:
+          |  string:
+          |    uri: xsd:string
+          |    base: str
+          |""".stripMargin
+      val importer = ImportMapImporter(
+        importMap("linkml:" -> "local"),
+        MapImporter(
+          "model.yaml" -> schemaText("model", imports = Seq("linkml:types")),
+          "local/types.yaml" -> localTypes,
+        ),
+      )
+      inside(SchemaView.loadSchemas("model.yaml", importer)) { case Right(schemas) =>
+        schemas.map(_.name) shouldBe Seq("model", "types")
+        schemas(1).types.keySet shouldBe Set("string")
+      }
     }
 
     "load a schema once when it is imported as a CURIE and as a URI" in {
@@ -458,6 +552,27 @@ class ImportMapSpec extends AnyWordSpec, Matchers, Inside {
           importMap("https://example.org/units" -> "https://example.org/outer-units"),
           inner,
         )
+      loadedNames("model.yaml", outer) shouldBe Seq("model", "outer_units")
+    }
+
+    "let the outer map of stacked maps have precedence over CURIE keys of the inner one" in {
+      val inner = ImportMapImporter(
+        importMap("units:core" -> "inner/units.yaml"),
+        MapImporter(
+          "model.yaml" -> schemaText(
+            "model",
+            prefixes = Map("units" -> "https://example.org/units/"),
+            imports = Seq("units:core"),
+          ),
+          "inner/units.yaml" -> schemaText("inner_units"),
+          "outer/units.yaml" -> schemaText("outer_units"),
+        ),
+      )
+      loadedNames("model.yaml", inner) shouldBe Seq("model", "inner_units")
+      val outer = ImportMapImporter(
+        importMap("https://example.org/units/core" -> "outer/units.yaml"),
+        inner,
+      )
       loadedNames("model.yaml", outer) shouldBe Seq("model", "outer_units")
     }
 
