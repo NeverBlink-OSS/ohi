@@ -475,14 +475,20 @@ object SchemaView {
     *   system. Note that the importer will be used with an empty base URI, so it should be able to
     *   handle absolute URIs in imports, or you should provide a custom importer that can handle
     *   them.
+    * @param baseUri
+    *   The directory to resolve the relative imports of the schema against, or an empty string for
+    *   none.
     *
     * @return
     */
   def loadSchemaViewFromString(
       yaml: String,
       importer: Importer = FileSystemImporter,
+      baseUri: String = "",
   ): Either[Seq[SchemaFatal], SchemaView] =
-    guarded(importer.parseSchema(yaml).left.map(Seq(_)).flatMap(loadSchemaView(_, importer)))
+    guarded(
+      importer.parseSchema(yaml).left.map(Seq(_)).flatMap(loadSchemaView(_, importer, baseUri)),
+    )
 
   /** Loads a schema view from a schema that is already parsed, such as one an importer made,
     * loading its imports.
@@ -540,7 +546,7 @@ object SchemaView {
       uri: String,
       importer: Importer = FileSystemImporter,
   ): Either[ImportFailure, Seq[SchemaDefinition]] =
-    importer.mapImport(ImportMap.rootLookupKey(uri)) match {
+    importer.mapImport(ImportMap.rootLookupKey(uri), None) match {
       case Right(location) => loadSchemasInternal(location, true, importer, new LoadState)
       case err => err.asInstanceOf[Either[ImportFailure, Seq[SchemaDefinition]]]
     }
@@ -688,7 +694,7 @@ object SchemaView {
       (acc, uoc) =>
         acc.flatMap { loadedSoFar =>
           ImportMap.lookupKeyIn(uoc.original, schema, directory)
-            .flatMap(importer.mapImport) match {
+            .flatMap(importer.mapImport(_, new Some(schema))) match {
             case Right(location) =>
               loadSchemasInternal(location, true, importer, state).map(loadedSoFar ++ _)
             case err => err.asInstanceOf[Either[ImportFailure, Seq[SchemaDefinition]]]

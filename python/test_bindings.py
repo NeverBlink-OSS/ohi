@@ -68,6 +68,34 @@ PERSON = schema(
     """,
 )
 
+# Imports `shapes:core`, which is not on disk, nor among the built-in schemas.
+SHAPES_ROOT = schema(
+    "root",
+    """
+    prefixes:
+      shapes: https://example.org/shapes/
+    imports:
+      - linkml:types
+      - shapes:core
+    classes:
+      Drawing:
+        attributes:
+          shape:
+            range: Square
+    """,
+)
+
+SHAPES = schema(
+    "shapes",
+    """
+    classes:
+      Square:
+        attributes:
+          side:
+            range: string
+    """,
+)
+
 # `range: NoSuchThing` names nothing, which is fatal: the schema cannot be loaded at all.
 BROKEN = schema(
     "broken",
@@ -517,10 +545,44 @@ class LoadTest(unittest.TestCase):
                 with ohi_linkml.load_path("root.yaml", imports, import_map=given) as loaded:
                     self.assertIn("Square", loaded.json_schema())
 
-    def test_import_map_with_a_curie_key_is_reported(self):
+    def test_import_map_with_curie_keys(self):
+        imports = {"root.yaml": SHAPES_ROOT, "deps/core.yaml": SHAPES}
+        for key in ("shapes:core", "shapes:"):
+            with self.subTest(key=key):
+                import_map = {key: "deps/core.yaml" if key == "shapes:core" else "deps"}
+                with ohi_linkml.load_path("root.yaml", imports, import_map=import_map) as loaded:
+                    self.assertIn("Square", loaded.json_schema())
+
+    def test_import_map_with_a_curie_location_is_reported(self):
         with self.assertRaises(SchemaLoadError) as caught:
-            ohi_linkml.load_string(PERSON, {}, import_map={"linkml:types": "types.yaml"})
+            ohi_linkml.load_string(
+                PERSON, {}, import_map={"https://w3id.org/linkml/types": "linkml:types"}
+            )
         self.assertIn("is a CURIE", json.dumps(caught.exception.report))
+
+    def test_load_file_reads_the_given_imports_instead_of_the_disk(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "root.yaml"
+            root.write_text(SHAPES_ROOT.replace("shapes:core", "core"), encoding="utf-8")
+            with self.assertRaises(SchemaLoadError):
+                ohi_linkml.load_file(root)
+            imports = {str(Path(tmp) / "core.yaml"): SHAPES}
+            with ohi_linkml.load_file(root, imports=imports) as loaded:
+                self.assertIn("Square", loaded.json_schema())
+
+    def test_load_string_reads_imports_from_base_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "core.yaml").write_text(SHAPES, encoding="utf-8")
+            root = SHAPES_ROOT.replace("shapes:core", "core")
+            with self.assertRaises(SchemaLoadError):
+                ohi_linkml.load_string(root)
+            with ohi_linkml.load_string(root, base_dir=tmp) as loaded:
+                self.assertIn("Square", loaded.json_schema())
+
+    def test_an_import_from_a_url_is_refused(self):
+        with self.assertRaises(SchemaLoadError) as caught:
+            ohi_linkml.load_string(SHAPES_ROOT, base_dir=".")
+        self.assertIn("not downloaded", json.dumps(caught.exception.report))
 
     def test_import_map_file_that_is_not_an_object_is_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:

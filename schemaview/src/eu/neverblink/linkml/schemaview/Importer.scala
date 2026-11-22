@@ -6,6 +6,7 @@ import eu.neverblink.linkml.validation.*
 import eu.neverblink.linkml.yaml.DecodeError
 import org.virtuslab.yaml.{ConstructError, ParseError, Range, ScannerError, YamlError, parseYaml}
 
+import scala.annotation.unused
 import scala.util.control.NonFatal
 
 /** Failure of reading or parsing a schema, as a structured issue from the validation model. */
@@ -54,11 +55,16 @@ trait Importer {
     *
     * @param lookupKey
     *   The lookup key of the import.
+    * @param importing
+    *   The schema that contains the import, or `None` for the root schema.
     * @return
     *   The location to load, or the issue describing why there is none. The default is the lookup
     *   key itself.
     */
-  def mapImport(lookupKey: String): Either[SchemaImportError, String] = new Right(lookupKey)
+  def mapImport(
+      lookupKey: String,
+      @unused importing: Option[SchemaDefinition],
+  ): Either[SchemaImportError, String] = new Right(lookupKey)
 
   /** Decode a SchemaDefinition directly from a string.
     *
@@ -227,6 +233,15 @@ object Importer {
       importUri = uri,
       reason = reason,
     )
+
+  /** Throw for a URL, which a file importer can't read, with a message that says what to do
+    * instead. Schemas are never downloaded.
+    */
+  def refuseUrl(path: String): Unit =
+    if (path.contains("://"))
+      throw new IllegalArgumentException(
+        "Schemas are not downloaded from URLs. Load this one from a local file with an import map",
+      )
 
   /** Read a schema text that may throw, turning any failure into a [[SchemaImportError]]. */
   def readText(

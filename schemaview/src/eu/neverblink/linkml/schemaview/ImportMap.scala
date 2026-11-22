@@ -10,32 +10,45 @@ import scala.annotation.tailrec
 /** Rules that tell the loader where to find a schema that is imported by URI or path. The schemas
   * keep their imports unchanged: the map only gives the location to load each import from.
   *
-  * Map keys are full URIs or file paths, not CURIEs. Imports are compared with them by their lookup
-  * keys (see [[ImportMap.lookupKey]]), which expand a CURIE import with the prefixes of its schema.
-  * So `units:core`, `https://example.org/units/core` and `https://example.org/units/core.yaml` find
-  * the same entry when `units` stands for `https://example.org/units/`.
+  * Imports are compared with the keys by their lookup keys (see [[ImportMap.lookupKey]]), which
+  * expand a CURIE import with the prefixes of its schema. A CURIE key is expanded with the same
+  * prefixes. So `units:core`, `https://example.org/units/core` and
+  * `https://example.org/units/core.yaml`, as imports or as keys, find the same entry when `units`
+  * stands for `https://example.org/units/`.
   *
   * A key that ends with `/` or `#` is a prefix key: it replaces the matching start of a lookup key.
-  * Any other key is an exact key. An exact key has precedence over a prefix key, and a longer
-  * prefix key has precedence over a shorter one.
+  * So is a CURIE key that ends with `:`, such as `units:`, whose location is a directory, as in
+  * LinkML-Python. Any other key is an exact key. An exact key has precedence over a prefix key, and
+  * a longer prefix key has precedence over a shorter one.
   */
 final class ImportMap private (
     exact: Map[String, String],
     prefixes: Seq[(String, String)],
+    curies: Map[String, String],
+    curiePrefixes: Map[String, String],
 ) {
 
   /** Return the location to load for a lookup key, applying the map again to each result until it
     * no longer changes. A key that no entry matches is returned unchanged.
     *
+    * @param importing
+    *   The schema that contains the import, whose prefixes expand the CURIE keys. Without it, CURIE
+    *   keys match nothing.
     * @return
     *   The location, or a [[SchemaImportError]] that lists the chain when it leads back to a key
     *   already seen or has more steps than the map has entries.
     */
-  def resolve(lookupKey: String): Either[SchemaImportError, String] = {
-    val maxSteps = exact.size + prefixes.size
+  def resolve(
+      lookupKey: String,
+      importing: Option[SchemaDefinition] = None,
+  ): Either[SchemaImportError, String] = {
+    val curiePrefixMap =
+      if (curies.isEmpty && curiePrefixes.isEmpty) null
+      else importing.fold(null: PrefixMap)(SchemaCodec.prefixMap)
+    val maxSteps = exact.size + prefixes.size + curies.size + curiePrefixes.size
     @tailrec
     def loop(current: String, chain: List[String]): Either[SchemaImportError, String] = {
-      val next = step(current)
+      val next = step(current, curiePrefixMap)
       if (next eq null) new Right(current)
       else {
         val nextKey = ImportMap.withoutExtension(next)
@@ -58,54 +71,103 @@ final class ImportMap private (
     loop(lookupKey, lookupKey :: Nil)
   }
 
-  /** Apply the map once, or return `null` when no entry matches. */
-  private def step(key: String): String = {
-    val target = exact.getOrElse(ImportMap.withoutExtension(key), null)
+  /** Apply the map once, or return `null` when no entry matches.
+    *
+    * @param curiePrefixMap
+    *   The prefixes to expand the CURIE keys with, or `null` to skip them.
+    */
+  private def step(key: String, curiePrefixMap: PrefixMap): String = {
+    val bareKey = ImportMap.withoutExtension(key)
+    val target =
+      if (curiePrefixMap eq null) null else exactCurieTarget(bareKey, curiePrefixMap)
     if (target ne null) target
     else {
-      // Prefix keys are sorted from the longest to the shortest.
-      val it = prefixes.iterator
-      while (it.hasNext) {
-        val entry = it.next()
-        val prefix = entry._1
-        if (key.startsWith(prefix)) {
-          return ImportMap.normalize(entry._2.concat(key.substring(prefix.length)))
+      val uriTarget = exact.getOrElse(bareKey, null)
+      if (uriTarget ne null) uriTarget
+      else {
+        var start: String = null
+        var startTarget: String = null
+        // Prefix keys are sorted from the longest to the shortest.
+        val it = prefixes.iterator
+        while ((start eq null) && it.hasNext) {
+          val entry = it.next()
+          if (key.startsWith(entry._1)) {
+            start = entry._1
+            startTarget = entry._2
+          }
         }
+        if (curiePrefixMap ne null) {
+          curiePrefixes.foreachEntry { (prefix, directory) =>
+            val ns = curiePrefixMap.namespaceOrNull(prefix)
+            if (
+              (ns ne null) && key.startsWith(ns) && ((start eq null) || ns.length > start.length)
+            ) {
+              start = ns
+              startTarget = directory
+            }
+          }
+        }
+        if (start eq null) null
+        else ImportMap.normalize(startTarget.concat(key.substring(start.length)))
       }
-      null
     }
+  }
+
+  /** The target of the exact CURIE key that expands to `bareKey`, or `null` if there is none. */
+  private def exactCurieTarget(bareKey: String, curiePrefixMap: PrefixMap): String = {
+    val it = curies.iterator
+    while (it.hasNext) {
+      val entry = it.next()
+      val expanded = curiePrefixMap.expandOrNull(entry._1)
+      if (
+        (expanded ne null) && ImportMap.withoutExtension(ImportMap.normalize(expanded)) == bareKey
+      )
+        return entry._2
+    }
+    null
   }
 }
 
 object ImportMap {
 
   /** A map without entries, which returns every lookup key unchanged. */
-  val empty: ImportMap = new ImportMap(Map.empty, Nil)
+  val empty: ImportMap = new ImportMap(Map.empty, Nil, Map.empty, Map.empty)
 
   /** Build a map from its entries. Each key is an import and each value is the location to load it
-    * from. Keys and values are full URIs or file paths.
+    * from. Keys are full URIs, file paths or CURIEs. Values are full URIs or file paths.
     *
     * @return
-    *   The map, or a [[SchemaImportError]] for a key or value that is a CURIE, or for two keys that
-    *   have the same lookup key and different targets.
+    *   The map, or a [[SchemaImportError]] for a value that is a CURIE, or for two keys that are
+    *   the same import and have different targets.
     */
   def apply(entries: Map[String, String]): Either[SchemaImportError, ImportMap] = {
     // Lookup key (without the extension for exact keys) -> (key as written, target)
     val exact = new java.util.HashMap[String, (String, String)]
     val prefixes = new java.util.HashMap[String, (String, String)]
+    // CURIE key (without the extension, and without the colon for prefix keys) -> (key, target)
+    val curies = new java.util.HashMap[String, (String, String)]
+    val curiePrefixes = new java.util.HashMap[String, (String, String)]
     val it = entries.iterator
     while (it.hasNext) {
       val entry = it.next()
       val key = entry._1
       val value = entry._2
-      val isPrefix = isPrefixKey(key)
-      val added = for {
-        k <- standaloneKey(key, isPrefix, "key")
-        t <- standaloneKey(value, isPrefix, "location")
-        _ <-
-          if (isPrefix) add(prefixes, k, key, t)
-          else add(exact, withoutExtension(k), key, t)
-      } yield ()
+      val colon = curieColon(key)
+      val added =
+        if (colon >= 0 && colon == key.length - 1) {
+          location(value, true).flatMap { t =>
+            add(curiePrefixes, key.substring(0, colon), key, asDirectory(t))
+          }
+        } else if (colon >= 0) {
+          location(value, false).flatMap(t => add(curies, withoutExtension(key), key, t))
+        } else {
+          val isPrefix = isPrefixKey(key)
+          val k = withoutDotSlash(key)
+          location(value, isPrefix).flatMap { t =>
+            if (isPrefix) add(prefixes, normalizePrefix(k), key, t)
+            else add(exact, withoutExtension(normalize(k)), key, t)
+          }
+        }
       added match {
         case Left(err) => return new Left(err)
         case _ =>
@@ -115,7 +177,18 @@ object ImportMap {
     exact.forEach((k, v) => exactTargets.addOne((k, v._2)))
     val prefixTargets = Seq.newBuilder[(String, String)]
     prefixes.forEach((k, v) => prefixTargets.addOne((k, v._2)))
-    new Right(new ImportMap(exactTargets.result(), prefixTargets.result().sortBy(-_._1.length)))
+    val curieTargets = Map.newBuilder[String, String]
+    curies.forEach((k, v) => curieTargets.addOne((k, v._2)))
+    val curiePrefixTargets = Map.newBuilder[String, String]
+    curiePrefixes.forEach((k, v) => curiePrefixTargets.addOne((k, v._2)))
+    new Right(
+      new ImportMap(
+        exactTargets.result(),
+        prefixTargets.result().sortBy(-_._1.length),
+        curieTargets.result(),
+        curiePrefixTargets.result(),
+      ),
+    )
   }
 
   /** Build a map from a JSON object in which each key is an import and each value is the location
@@ -251,23 +324,21 @@ object ImportMap {
     */
   def rootLookupKey(uri: String): String = normalize(withoutDotSlash(uri))
 
-  /** The lookup key of a map key or map target. A prefix key and its target are only normalized
-    * with [[Importer.normalizePath]], keeping their last character, as the rest of a lookup key is
-    * joined to them.
+  /** Normalize a map target. The target of a prefix key is only normalized with
+    * [[Importer.normalizePath]], keeping its last character, as the rest of a lookup key is joined
+    * to it.
     *
-    * @param role
-    *   What `s` is in the map, `key` or `location`, to name it in the error for a CURIE.
+    * @return
+    *   The target, or a [[SchemaImportError]] for a CURIE, which belongs to no schema, so it is not
+    *   known which URI its prefix stands for. A CURIE key is expanded with the prefixes of the
+    *   importing schema instead.
     */
-  private def standaloneKey(
-      s: String,
-      isPrefix: Boolean,
-      role: String,
-  ): Either[SchemaImportError, String] =
+  private def location(s: String, isPrefix: Boolean): Either[SchemaImportError, String] =
     if (curieColon(s) >= 0) {
       new Left(
         Importer.importError(
           s,
-          s"The import map $role '$s' is a CURIE. Write it as a full URI, such as " +
+          s"The import map location '$s' is a CURIE. Write it as a full URI, such as " +
             "'https://w3id.org/linkml/types' instead of 'linkml:types'",
         ),
       )
@@ -275,6 +346,11 @@ object ImportMap {
       val path = withoutDotSlash(s)
       new Right(if (isPrefix) normalizePrefix(path) else normalize(path))
     }
+
+  /** The target of a CURIE prefix key, which is a directory, with a trailing separator, as
+    * LinkML-Python joins the rest of the import to it.
+    */
+  private def asDirectory(s: String): String = if (s.endsWith("#")) s else directory(s)
 
   /** Expand a CURIE, or return any other import as it is, without a leading `./`. */
   private def expand(
@@ -371,8 +447,11 @@ object ImportMap {
   * outer map has precedence.
   */
 final class ImportMapImporter(map: ImportMap, underlying: Importer) extends Importer {
-  override def mapImport(lookupKey: String): Either[SchemaImportError, String] =
-    map.resolve(lookupKey).flatMap(underlying.mapImport)
+  override def mapImport(
+      lookupKey: String,
+      importing: Option[SchemaDefinition],
+  ): Either[SchemaImportError, String] =
+    map.resolve(lookupKey, importing).flatMap(underlying.mapImport(_, importing))
 
   override def readSchema(path: String): Either[ImportFailure, SchemaDefinition] =
     underlying.readSchema(path)

@@ -143,8 +143,15 @@ private object Options {
   * @param importMap
   *   Where to load imports from: each key is an import and each value is the location to load it
   *   from (see `ImportMap` in `schemaview`).
+  * @param readFiles
+  *   Whether loading from strings reads the schemas that are not among the given texts from the
+  *   file system.
+  * @param baseDir
+  *   The directory to join the relative imports of a root schema given as text to.
   */
 private final case class LoadOptions(
     inferMessages: Boolean = true,
     importMap: Map[String, String] = Map.empty,
+    readFiles: Boolean = false,
+    baseDir: String = "",
 )

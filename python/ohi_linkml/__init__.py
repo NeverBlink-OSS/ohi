@@ -229,17 +229,25 @@ def _import_map_entries(import_map: ImportMap | None) -> dict[str, Any]:
     return dict(import_map)
 
 
-def _load_options(infer_messages: bool, import_map: ImportMap | None) -> dict[str, Any]:
+def _load_options(
+    infer_messages: bool,
+    import_map: ImportMap | None,
+    base_dir: str | os.PathLike[str] | None = None,
+) -> dict[str, Any]:
     options: dict[str, Any] = {"infer_messages": infer_messages}
     entries = _import_map_entries(import_map)
     if entries:
         options["import_map"] = entries
+    if base_dir is not None:
+        options["read_files"] = True
+        options["base_dir"] = os.fspath(base_dir)
     return options
 
 
 def load_file(
     path: str | Path,
     *,
+    imports: Mapping[str, str] | None = None,
     infer_messages: bool = True,
     import_map: ImportMap | None = None,
 ) -> Schema:
@@ -249,26 +257,31 @@ def load_file(
     importing schema's directory, and ``linkml:`` ones against the metamodel built into the library.
 
     :param path: path to the schema file.
+    :param imports: location to YAML text, for schemas to read from memory instead of from disk.
+        Locations are written as in an import map: a relative one is relative to the current
+        directory.
     :param infer_messages: fill in each issue's human-readable ``message`` and ``details``.
     :param import_map: import to the location to load it from, as a mapping such as
         ``{"https://example.org/units/": "deps/units/"}``, or the path of a JSON file with such an
-        object. Keys are full URIs or paths, not CURIEs. A key that ends with ``/`` or ``#``
-        matches every import that starts with it. CURIE imports are expanded with the prefixes of
-        the schema that contains them before they are matched. A relative location is relative to
-        the current directory.
+        object. Keys are full URIs, paths or CURIEs. CURIE imports and CURIE keys are expanded
+        with the prefixes of the schema that contains the import before they are matched. A key
+        that ends with ``/``, ``#`` or, for a CURIE, ``:`` matches every import that starts with
+        it. A relative location is relative to the current directory.
     :raises SchemaLoadError: if fatal problems stopped the schema from loading.
     """
     current = runtime()
-    return _schema(
-        current,
-        *current.load_file(str(path), _load_options(infer_messages, import_map)),
-    )
+    options = _load_options(infer_messages, import_map)
+    if not imports:
+        return _schema(current, *current.load_file(str(path), options))
+    options["read_files"] = True
+    return _schema(current, *current.load_string(str(path), None, imports, options))
 
 
 def load_string(
     schema: str,
     imports: Mapping[str, str] | None = None,
     *,
+    base_dir: str | os.PathLike[str] | None = None,
     infer_messages: bool = True,
     import_map: ImportMap | None = None,
 ) -> Schema:
@@ -282,20 +295,23 @@ def load_string(
 
     :param schema: the schema, as YAML.
     :param imports: filename to YAML text, covering everything the schema imports.
+    :param base_dir: the directory to read the schema's relative imports from. When it is given,
+        the schemas that are not in ``imports`` are read from disk, and the keys of ``imports`` are
+        locations as in :func:`load_file`.
     :param infer_messages: fill in each issue's human-readable ``message`` and ``details``.
     :param import_map: import to the location to load it from, as a mapping such as
         ``{"https://example.org/units/": "deps/units/"}``, or the path of a JSON file with such an
-        object. Keys are full URIs or paths, not CURIEs. A key that ends with ``/`` or ``#``
-        matches every import that starts with it. CURIE imports are expanded with the prefixes of
-        the schema that contains them before they are matched. A relative location is relative to
-        the current directory.
+        object. Keys are full URIs, paths or CURIEs. CURIE imports and CURIE keys are expanded
+        with the prefixes of the schema that contains the import before they are matched. A key
+        that ends with ``/``, ``#`` or, for a CURIE, ``:`` matches every import that starts with
+        it. A relative location is relative to the current directory.
     :raises SchemaLoadError: if fatal problems stopped the schema from loading.
     """
     current = runtime()
     return _schema(
         current,
         *current.load_string(
-            None, schema, imports, _load_options(infer_messages, import_map)
+            None, schema, imports, _load_options(infer_messages, import_map, base_dir)
         ),
     )
 
@@ -322,10 +338,10 @@ def load_path(
     :param infer_messages: fill in each issue's human-readable ``message`` and ``details``.
     :param import_map: import to the location to load it from, as a mapping such as
         ``{"https://example.org/units/": "deps/units/"}``, or the path of a JSON file with such an
-        object. Keys are full URIs or paths, not CURIEs. A key that ends with ``/`` or ``#``
-        matches every import that starts with it. CURIE imports are expanded with the prefixes of
-        the schema that contains them before they are matched. A relative location is relative to
-        the current directory.
+        object. Keys are full URIs, paths or CURIEs. CURIE imports and CURIE keys are expanded
+        with the prefixes of the schema that contains the import before they are matched. A key
+        that ends with ``/``, ``#`` or, for a CURIE, ``:`` matches every import that starts with
+        it. A relative location is relative to the current directory.
         The locations are keys of ``imports``.
     :raises SchemaLoadError: if fatal problems stopped the schema from loading.
     """

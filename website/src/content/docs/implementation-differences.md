@@ -92,7 +92,8 @@ Both support import maps, which load an import from another location (see [Impor
 
 | Case | LinkML-Python 1.12.1 | ohi LinkML |
 |------|----------------------|--------------|
-| A key that is a CURIE, such as `units:core` | Matches the import `units:core`, but not the import `https://example.org/units/core` | Rejected. Write the full URI, which matches both imports |
+| A key that is a CURIE, such as `units:core` | Matches the import `units:core`, but not the import `https://example.org/units/core` | Expanded with the prefixes of the importing schema, so it matches both imports |
+| A location that is a URL | Downloaded | Import error: schemas are never downloaded |
 | A relative location | Joined to the directory of the importing schema | Used as it is: relative to the current directory, or a key of the in-memory map |
 
 ## Eager validation of references

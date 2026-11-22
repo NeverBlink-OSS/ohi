@@ -111,6 +111,15 @@ class ImporterSpec extends AnyWordSpec, Matchers, Inside {
       }
     }
 
+    "refuse to download a schema from a URL" in {
+      inside(SchemaView.loadSchemas("https://example.org/units/core")) {
+        case Left(issue: SchemaImportError) =>
+          issue.importUri shouldBe "https://example.org/units/core.yaml"
+          issue.reason should include("not downloaded")
+          issue.reason should include("import map")
+      }
+    }
+
     "return a SchemaParseError when the text is readable but unparseable" in {
       val importer = MapImporter("broken.yaml" -> "classes: [a, b")
       inside(importer.readSchema("broken.yaml")) { case Left(issue) =>

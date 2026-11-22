@@ -26,9 +26,9 @@ object BaseCommand {
   /** The help text of the `--import-map` option. */
   final val importMapHelp =
     "A JSON file that maps imports to the locations to load them from, such as " +
-      "{\"https://example.org/units/\": \"deps/units/\"}. Keys are full URIs or paths, not " +
-      "CURIEs. A key that ends with / or # matches every import that starts with it. A relative " +
-      "location is relative to the current directory."
+      "{\"https://example.org/units/\": \"deps/units/\"}. Keys are full URIs, paths or CURIEs. " +
+      "A key that ends with /, # or, for a CURIE, : matches every import that starts with it. A " +
+      "relative location is relative to the current directory."
 }
 
 /** Base for all CLI commands. Output goes through overridable streams so tests can capture

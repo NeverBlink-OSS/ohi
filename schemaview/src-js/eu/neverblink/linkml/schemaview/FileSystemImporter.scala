@@ -4,8 +4,10 @@ package eu.neverblink.linkml.schemaview
   * default importer used by SchemaView.
   */
 object FileSystemImporter extends StringImporter {
-  def read(path: String): String =
+  def read(path: String): String = {
+    Importer.refuseUrl(path)
     PlatformSpecificUtils.fs.readFileSync(filePath(path), "utf-8").asInstanceOf[String]
+  }
 
   /** The path of the file to read, with `\` separators on Windows. */
   private def filePath(path: String): String =
