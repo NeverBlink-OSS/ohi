@@ -14,6 +14,16 @@ trait CommonScalaNativeModule extends ScalaNativeModule, JvmDocsOnly, mill.api.D
     None
   }
 
+  /** The MSVC headers refuse clangs older than they expect (STL1000), and the Windows runners ship
+    * a newer MSVC than clang. Only the Scala Native runtime's `eh.cpp` includes them.
+    */
+  override def nativeCompileOptions = Task {
+    val stlMismatch =
+      if scala.util.Properties.isWin then Seq("-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH")
+      else Seq.empty
+    super.nativeCompileOptions() ++ stlMismatch
+  }
+
   override def moduleDirectChildren: Seq[mill.api.Module] =
     super.moduleDirectChildren.filterNot(_.moduleSegments.last.value == "scoverage")
 }
