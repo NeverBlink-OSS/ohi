@@ -82,7 +82,7 @@ private[cli] final class Project(
         val selected = publication.artifacts.find(_.url.original == url).getOrElse {
           invalidSelection(s"Publication '$input' does not advertise artifact '$url'.")
         }
-        val requirement = dependency(publication, selected, Some(publication.version))
+        val requirement = dependency(publication, selected, Some(exactVersion(publication)))
         val resolved = resolve(requirement.ontology, Some(stringify(selected.format)), metadata)
         if resolved._1.baseUrl.original != input || resolved._2.url.original != url then
           invalidSelection(
@@ -239,6 +239,11 @@ private[cli] final class Project(
     destination = Some(selected)
     LockDownload.prepare(complete.files, selected.directory, selected.managed)
   }
+
+  /** The version that requests exactly this release, see [[VersionTag]]. */
+  private def exactVersion(publication: Publication): String =
+    if VersionTag.parse(publication.version).exact.nonEmpty then publication.version
+    else publication.version + VersionTag.NoRevisionSuffix
 
   /** The requirement of a resolved artifact, with the `requested` version, or without one the
     * version first published, which stands for its latest revision.

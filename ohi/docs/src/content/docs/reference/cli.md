@@ -161,7 +161,9 @@ ohi add w3c/prov-o@2013 --format owl-turtle
 Downloads use the project's `download_dir`. If needed, `add` creates `ohi.yaml` with
 `default_format: linkml-yaml` and `download_dir: .ohi`.
 
-For the URL form, use the release and file URLs shown by `ohi inspect <reference>`.
+For the URL form, use the release and file URLs shown by `ohi inspect <reference>`. `ohi.yaml`
+then gets exactly that release: a revision such as `2013-revision-2026-12-01`, or a version such as
+`2013-no-revision`.
 
 See [Manage ontology projects](/docs/guides/projects/) for the complete workflow.
 

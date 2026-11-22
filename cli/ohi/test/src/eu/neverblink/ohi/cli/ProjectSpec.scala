@@ -69,6 +69,7 @@ class ProjectSpec extends AnyWordSpec, Matchers {
   private val graph = Map(
     base -> direct,
     "test/example@1" -> direct,
+    "test/example@1-no-revision" -> direct,
     dependencyBase -> ProjectTestData.publication(
       dependencyBase,
       Seq(dependencyUrl -> Format.OwlTurtle),
@@ -175,7 +176,7 @@ class ProjectSpec extends AnyWordSpec, Matchers {
         data("code").str shouldBe "STORAGE_ERROR"
         data("message").str should include(retry)
         data("files").arr shouldBe empty
-        requests.toSeq shouldBe Seq(base, "test/example@1")
+        requests.toSeq shouldBe Seq(base, "test/example@1-no-revision")
         os.read(directory / "ohi.yaml") shouldBe emptyDeclaration
         os.read(directory / "ohi.lock.json") shouldBe oldLock
         os.exists(directory / ".ohi") shouldBe false
@@ -222,7 +223,7 @@ class ProjectSpec extends AnyWordSpec, Matchers {
             value => { resumedRequests += value; metadata },
             value => { resumedRequests += value; bytes },
           )
-        resumedRequests.toSeq shouldBe Seq(base, "test/example@1", url)
+        resumedRequests.toSeq shouldBe Seq(base, "test/example@1-no-revision", url)
         resumed.declarationChanged shouldBe false
         os.read(directory / "ohi.yaml") shouldBe savedDeclaration
         ujson.read(os.read(directory / "ohi.lock.json"))("selections") shouldBe
@@ -275,7 +276,7 @@ class ProjectSpec extends AnyWordSpec, Matchers {
             value => { resumedRequests += value; metadata },
             value => { resumedRequests += value; bytes },
           )
-        resumedRequests.toSeq shouldBe Seq(base, "test/example@1", url)
+        resumedRequests.toSeq shouldBe Seq(base, "test/example@1-no-revision", url)
         resumed.declarationChanged shouldBe false
         os.read(directory / "ohi.yaml") shouldBe savedDeclaration
         ujson.read(os.read(directory / "ohi.lock.json"))("selections") shouldBe
@@ -358,7 +359,7 @@ class ProjectSpec extends AnyWordSpec, Matchers {
             value => { requests += value; metadata },
             value => { requests += value; bytes },
           )
-        requests.toSeq shouldBe Seq(base, "test/example@1", url)
+        requests.toSeq shouldBe Seq(base, "test/example@1-no-revision", url)
         resumed.declarationChanged shouldBe false
         resumed.files.map(_.status.toString) shouldBe Seq("Downloaded")
         os.read(directory / "ohi.yaml") shouldBe savedDeclaration
@@ -977,6 +978,41 @@ class ProjectSpec extends AnyWordSpec, Matchers {
         )
         os.read(directory / "ohi.yaml") should include("ontology: test/example@1-revision-2\n")
         selected(directory) shouldBe revisionBase
+      }
+    }
+
+    "record the URL and file of a revision as that exact revision" in {
+      withDirectory { directory =>
+        os.write(directory / "ohi.yaml", emptyDeclaration)
+        new Project(directory.toNIO, ProjectOperation.Add).add(
+          revisionBase,
+          Some(revisionUrl),
+          None,
+          Map(revisionBase -> revision, "test/example@1-revision-2" -> revision),
+          _ => bytes,
+        )
+        os.read(directory / "ohi.yaml") should include("ontology: test/example@1-revision-2\n")
+        selected(directory) shouldBe revisionBase
+      }
+    }
+
+    "record the URL and file of a version that has revisions as that version alone" in {
+      withDirectory { directory =>
+        os.write(directory / "ohi.yaml", emptyDeclaration)
+        // test/example@1 would resolve to the revision, which is not the file asked for
+        new Project(directory.toNIO, ProjectOperation.Add).add(
+          base,
+          Some(url),
+          None,
+          Map(
+            base -> metadata,
+            "test/example@1" -> revision,
+            "test/example@1-no-revision" -> metadata,
+          ),
+          _ => bytes,
+        )
+        os.read(directory / "ohi.yaml") should include("ontology: test/example@1-no-revision\n")
+        selected(directory) shouldBe base
       }
     }
 

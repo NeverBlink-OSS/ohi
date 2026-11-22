@@ -981,12 +981,9 @@ class ProjectCommandsSpec extends AnyWordSpec, Matchers {
             "INVALID_SELECTION",
           )
           error("message").str should include("ohi get")
-          // The URL, then the reference test/example@1, which has no latest revision and so
-          // resolves to the same release path.
+          // The URL, then the reference test/example@1-no-revision of exactly that release
           requests.asScala.toSeq.map(_.takeWhile(_ != '?')) shouldBe Seq(
             "GET /files/packages/test/example/1/",
-            s"GET $revisionPath",
-            s"GET $searchPath",
             "GET /files/packages/test/example/1/",
           )
           os.read(project / "ohi.yaml") shouldBe emptyDeclaration
