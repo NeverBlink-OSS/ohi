@@ -72,6 +72,7 @@ export default defineConfig({
             'reference/cli',
             'reference/sdks',
             'reference/project-files',
+            'reference/compatibility',
           ],
         },
       ],
