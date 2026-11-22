@@ -142,7 +142,8 @@ class BindingCoverageSpec extends AnyWordSpec, Matchers {
       val root = repoRoot.getOrElse(cancel("MILL_WORKSPACE_ROOT is not set"))
       val targets = playgroundTargets(root)
       // The playground drives the JS API, so its target ids are the facade's method names.
-      val missing = jsMethods(root).filterNot(targets)
+      // `serialize` writes the schema back as it is, so it is no target.
+      val missing = jsMethods(root).filterNot(_ == "serialize").filterNot(targets)
       withClue("add a target to ui/src/catalog/targets.ts, then run ./mill ui.check: ")(
         missing shouldBe empty,
       )
@@ -188,10 +189,11 @@ class BindingCoverageSpec extends AnyWordSpec, Matchers {
         root / "nativelib" / "src" / "eu" / "neverblink" / "linkml" / "nativelib" /
           "LinkMlCGenerators.scala",
       )
-      // Generated from the options schema, so this catches a stale checked-in copy.
+      // Generated from the options schema, so this catches a stale checked-in copy. An importer
+      // has two: itself and its loader.
       val exported = "@exported\\(\"(\\w+)\"\\)".r.findAllMatchIn(generated).size
       withClue("run LINKML_NATIVE=1 ./mill bindings and commit the result: ")(
-        exported shouldBe generators(root).size + importers(root).size,
+        exported shouldBe generators(root).size + 2 * importers(root).size,
       )
     }
 
@@ -277,6 +279,24 @@ class BindingCoverageSpec extends AnyWordSpec, Matchers {
       withClue("add a method to LinkMlJsApi in LinkMlJsApi.scala, then run ./mill ui.types: ")(
         missing shouldBe empty,
       )
+    }
+
+    "have a loader in every binding" in {
+      val root = repoRoot.getOrElse(cancel("MILL_WORKSPACE_ROOT is not set"))
+      val facade = os.read(
+        root / "generator" / "src-js" / "eu" / "neverblink" / "linkml" / "js" / "LinkMlJsApi.scala",
+      )
+      val python = os.read(root / "python" / "ohi_linkml" / "_generated.py")
+      val symbols = exportedSymbols(root)
+      val missing = importers(root).map(_.stripSuffix("Importer")).filterNot { name =>
+        facade.contains(s"def loadFrom$name(") &&
+        python.contains(s"def load_${name.toLowerCase}(") &&
+        symbols(s"linkml_load_${name.toLowerCase}")
+      }
+      withClue(
+        "add a loadFrom method to LinkMlJsApi in LinkMlJsApi.scala, then run " +
+          "LINKML_NATIVE=1 ./mill nativelib.bindings: ",
+      )(missing shouldBe empty)
     }
 
     "have a page on the docs site" in {

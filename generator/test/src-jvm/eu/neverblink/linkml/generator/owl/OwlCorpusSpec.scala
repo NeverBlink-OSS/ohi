@@ -1,5 +1,6 @@
 package eu.neverblink.linkml.generator.owl
 
+import eu.neverblink.linkml.generator.SchemaImporter
 import eu.neverblink.linkml.generator.options.{JsonOutputFormat, OwlGeneratorOptions, RdfFormat}
 import eu.neverblink.linkml.generator.owl.Axiom.*
 import eu.neverblink.linkml.generator.options.{
@@ -62,12 +63,14 @@ class OwlCorpusSpec extends AnyWordSpec, Matchers {
     )
 
   private val importedWithImports =
-    mutable.Map.empty[String, (OwlImporter.Result, String, Map[String, String])]
+    mutable.Map.empty[String, (SchemaImporter.Result, String, Map[String, String])]
 
   /** Imports an ontology after its imports, recursively. Returns the result, its YAML, and the YAML
     * of every schema it imports (directly or not) by file name.
     */
-  private def importWithImports(name: String): (OwlImporter.Result, String, Map[String, String]) =
+  private def importWithImports(
+      name: String,
+  ): (SchemaImporter.Result, String, Map[String, String]) =
     importedWithImports.getOrElse(
       name, {
         val imports = importsOf(name)

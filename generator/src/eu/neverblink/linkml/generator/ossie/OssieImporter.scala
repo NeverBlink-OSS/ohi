@@ -1,8 +1,8 @@
 package eu.neverblink.linkml.generator.ossie
 
-import eu.neverblink.linkml.generator.options.{ImportResult, OssieImporterOptions}
+import eu.neverblink.linkml.generator.options.OssieImporterOptions
 import eu.neverblink.linkml.generator.{ImportWarnings, SchemaImporter}
-import eu.neverblink.linkml.generator.importwarnings
+import eu.neverblink.linkml.generator.SchemaImporter.Result
 import eu.neverblink.linkml.generator.importwarnings.*
 import eu.neverblink.linkml.generator.ossie.expression.*
 import eu.neverblink.linkml.metamodel.*
@@ -15,7 +15,8 @@ import eu.neverblink.linkml.runtime.{
   Uri,
   UriCurieValidator,
 }
-import eu.neverblink.linkml.schemaview.{Case, SchemaCodec}
+import eu.neverblink.linkml.schemaview.{Case, SchemaCodec, SchemaView}
+import eu.neverblink.linkml.validation.SchemaFatal
 import eu.neverblink.linkml.yaml.DecodeError
 import org.virtuslab.yaml.{Node, NodeOps, parseYaml}
 
@@ -25,7 +26,7 @@ import scala.collection.immutable.VectorMap
 
 /** Reads an Apache Ossie (incubating) ontology and produces a LinkML schema.
   *
-  * Anything LinkML can't express is listed in [[OssieImporter.Result.warnings]].
+  * Anything LinkML can't express is listed in [[SchemaImporter.Result.warnings]].
   */
 class OssieImporter extends SchemaImporter[OssieImporterOptions] {
 
@@ -33,29 +34,18 @@ class OssieImporter extends SchemaImporter[OssieImporterOptions] {
 
   override protected def defaultOptions: OssieImporterOptions = OssieImporterOptions()
 
-  override def importSchema(
-      in: InputStream,
-      options: OssieImporterOptions = OssieImporterOptions(),
-  ): SchemaDefinition =
-    importWithWarnings(in, options).schema
-
-  def importWithWarnings(
+  override def importWithWarnings(
       in: InputStream,
       options: OssieImporterOptions = OssieImporterOptions(),
   ): Result =
     Conversion(decode(readUtf8(in)), options).result
 
-  override def importResult(
-      in: InputStream,
+  /** The schema imports only `linkml:types`, which is built in. */
+  override def load(
+      schema: SchemaDefinition,
       options: OssieImporterOptions = OssieImporterOptions(),
-  ): ImportResult = {
-    val result = importWithWarnings(in, options)
-    ImportResult(
-      schema = serializeSchema(result.schema, options.format, options.fullUris),
-      warnings = result.warnings,
-      report = importwarnings.Codec.toAny(result.report),
-    )
-  }
+  ): Either[Seq[SchemaFatal], SchemaView] =
+    SchemaView.loadSchemaView(schema)
 
   /** Parse and decode an ontology document. Accepts JSON too, since JSON is YAML.
     *
@@ -75,14 +65,6 @@ class OssieImporter extends SchemaImporter[OssieImporterOptions] {
 }
 
 object OssieImporter {
-
-  /** The schema, and a report of what could not be imported.
-    *
-    * `warnings` has one line per kind of thing that could not be imported.
-    */
-  final case class Result(schema: SchemaDefinition, report: ImportReport) {
-    def warnings: Seq[String] = ImportWarnings.lines(report)
-  }
 
   /** The LinkML type behind each of Ossie's built-in value types. */
   private val linkmlTypes: Map[String, String] = Map(

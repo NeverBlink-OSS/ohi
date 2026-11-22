@@ -4,8 +4,8 @@
  *
  *   - Options are one JSON string, and may be NULL for defaults.
  *   - Failure is NULL plus a message. A function returning a string returns NULL and writes the
- *     reason to *error; loading returns handle 0 instead. Both *error and *report are cleared
- *     first, so they can be reused across calls. A NULL return with no message is still a failure:
+ *     reason to *error; loading returns handle 0 instead. Every out-param is cleared first, so they
+ *     can be reused across calls. A NULL return with no message is still a failure:
  *     it means even the message could not be allocated.
  *   - A schema that can't be written, or an ontology that can't be imported, for a reason the
  *     caller can fix, writes a validation report in JSON to *error instead of a message. It has
@@ -27,8 +27,17 @@
 extern "C" {
 #endif
 
+/* Marks a function that is still exported, but will be removed. */
+#if defined(__GNUC__) || defined(__clang__)
+#define LINKML_DEPRECATED(reason) __attribute__((deprecated(reason)))
+#elif defined(_MSC_VER)
+#define LINKML_DEPRECATED(reason) __declspec(deprecated(reason))
+#else
+#define LINKML_DEPRECATED(reason)
+#endif
+
 /* Bumped whenever a change to the exported functions or to the options JSON breaks callers. */
-#define LINKML_ABI_VERSION 4
+#define LINKML_ABI_VERSION 5
 
 /* The ABI version this library was built with. Compare against LINKML_ABI_VERSION. */
 int linkml_abi_version(void);
@@ -53,6 +62,9 @@ long long linkml_load_string(const char *path, const char *schema, char **import
 
 /* Release a schema handle. Closing one that is already gone is not an error. */
 void linkml_close(long long handle);
+
+/* The schema as it was loaded, without its imports merged in, as YAML or JSON. */
+char *linkml_serialize(long long handle, const char *options, char **error);
 
 /* Re-run the validator over a loaded schema, as a SchemaValidationReport in JSON. */
 char *linkml_lint(long long handle, const char *options, char **error);
@@ -79,11 +91,24 @@ char *linkml_java(long long handle, const char *options, char **error);
 char *linkml_frictionless(long long handle, const char *options, char **error);
 char *linkml_docs(long long handle, const char *options, char **error);
 
-/* Importers. Each takes a document and returns an ImportResult in JSON: the LinkML schema it
- * describes in "schema", and what could not be imported, as lines in "warnings" and as an
- * ImportReport (model/import-warnings.yaml) in "report". */
+/* Importers, deprecated: use the loaders below and linkml_serialize instead. Each takes a document
+ * and returns an ImportResult in JSON: the LinkML schema it describes in "schema", and what could
+ * not be imported, as lines in "warnings" and as an ImportReport (model/import-warnings.yaml) in
+ * "report". */
+LINKML_DEPRECATED("use linkml_load_ossie and linkml_serialize")
 char *linkml_from_ossie(const char *ontology, const char *options, char **error);
+LINKML_DEPRECATED("use linkml_load_owl and linkml_serialize")
 char *linkml_from_owl(const char *ontology, const char *options, char **error);
+
+/* Loaders. Each imports a document like the importer of the same name, but loads the schema instead
+ * of writing it. Returns a handle, or 0 with the reason in *report (the schema was refused) or
+ * *error (the document could not be imported). *not_imported gets what could not be imported, as
+ * the "warnings" and "report" of an ImportResult. The options are the importer's, except "format"
+ * and "full_uris": the text of a loaded schema comes from linkml_serialize. */
+long long linkml_load_ossie(const char *ontology, const char *options, char **not_imported,
+                            char **report, char **error);
+long long linkml_load_owl(const char *ontology, const char *options, char **not_imported,
+                          char **report, char **error);
 
 /* Release anything the library returned. NULL-safe. */
 void linkml_free(char *buffer);

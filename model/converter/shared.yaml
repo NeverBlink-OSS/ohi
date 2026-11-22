@@ -54,6 +54,18 @@ slots:
   schema_id:
     range: string
     description: The `id` of the schema to produce.
+  warnings:
+    range: string
+    multivalued: true
+    required: true
+    description: >-
+      One line for each kind of thing that could not be imported. Empty if everything was.
+  report:
+    range: Any
+    required: true
+    description: >-
+      What could not be imported, one entry for each thing, as an `ImportReport` of
+      `model/import-warnings.yaml`. Each warning's `warning_type` says what kind it is.
   indentation_step:
     range: integer
     required: true
@@ -144,7 +156,7 @@ classes:
         description: The RDF serialization of the output.
   SchemaOutputOptions:
     mixin: true
-    description: Options of the importers, which write a LinkML schema.
+    description: Options of what writes a LinkML schema, such as the importers.
     slots:
       - full_uris
     attributes:
@@ -154,22 +166,24 @@ classes:
         ifabsent: JsonOutputFormat(yaml)
         description: The serialization of the schema.
 
+  SerializeOptions:
+    description: Options for writing a loaded schema as it was loaded.
+    mixins: [SchemaOutputOptions]
+
   ImportResult:
     description: What an importer produced.
+    slots:
+      - warnings
+      - report
     attributes:
       schema:
         range: string
         required: true
         description: The LinkML schema.
-      warnings:
-        range: string
-        multivalued: true
-        required: true
-        description: >-
-          One line for each kind of thing that could not be imported. Empty if everything was.
-      report:
-        range: Any
-        required: true
-        description: >-
-          What could not be imported, one entry for each thing, as an `ImportReport` of
-          `model/import-warnings.yaml`. Each warning's `warning_type` says what kind it is.
+
+  NotImported:
+    description: >-
+      What an importer could not import, for a schema that was imported and loaded in one go.
+    slots:
+      - warnings
+      - report

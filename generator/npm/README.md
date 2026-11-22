@@ -106,6 +106,7 @@ generators, their options and the defaults are the functions of
 | `ossie(options?)` | `string` | Apache Ossie ontology, `yaml` (default) or `json` |
 | `translation(options?)` | `string` | Translation dictionary for generator outputs |
 | `stats(options?)` | `SchemaStats` | counts of the elements, their documentation, mappings, languages and imports |
+| `serialize(options?)` | `string` | the schema as it was loaded, without its imports merged in, `yaml` (default) or `json` |
 
 The functions of `LinkML`:
 
@@ -115,37 +116,44 @@ The functions of `LinkML`:
 | `loadFromPath(path, imports, inferMessages?, importMap?)`                    | `LoadResult`             | parse from a path in `imports`; cycle-safe for the root                        |
 | `lint(view, inferMessages?)`                                                 | `SchemaValidationReport` | validation report, typed by issue kind (see below)                             |
 | `buildInfo()`                                                                | `object`                 | `BuildInfo` (JSON) – version and build metadata                                |
-| `fromOssie(document, options?)`                                              | `ImportResult`           | the LinkML schema from an Apache Ossie ontology                                |
-| `fromOwl(document, options?)`                                                | `ImportResult`           | the LinkML schema from an OWL ontology in Turtle or N-Triples (see the OWL guide) |
+| `loadFromOssie(document, options?)`                                          | `LoadResult`             | load the LinkML schema of an Apache Ossie ontology; `{ view?, report, notImported }` |
+| `loadFromOwl(document, options?)`                                            | `LoadResult`             | load the LinkML schema of an OWL ontology in Turtle or N-Triples (see the OWL guide) |
+| `fromOssie(document, options?)`                                              | `ImportResult`           | deprecated: use `loadFromOssie` and `serialize`                                |
+| `fromOwl(document, options?)`                                                | `ImportResult`           | deprecated: use `loadFromOwl` and `serialize`                                  |
 
-The importers, `fromOssie` and `fromOwl`, take the document to import, then an options object like
-the generators, such as `{ format: "json" }`. Their options are in `model/converter` too. Both
-return `{ schema, warnings, report }`: the schema, and what could not be imported, as one line for
-each kind in `warnings`, and as an `ImportReport` with one entry for each thing in `report`. Each
-warning's `warning_type` names its kind, so a `switch` on it narrows the warning to that kind.
+The loaders, `loadFromOssie` and `loadFromOwl`, take the document to import, then an options object
+like the generators, such as `{ schema_id: "https://example.org/x" }`. Their options are in
+`model/converter` too, except `format` and `full_uris`, which only shape the text of the schema:
+pass those to `view.serialize()`. Both return a `LoadResult` like `loadFromString`, with what could
+not be imported in `notImported`: as one line for each kind in `warnings`, and as an `ImportReport`
+with one entry for each thing in `report`. Each warning's `warning_type` names its kind, so a
+`switch` on it narrows the warning to that kind.
+
+`fromOssie` and `fromOwl`, which return `{ schema, warnings, report }` with the schema as text, are
+deprecated. Use the loaders and `view.serialize()` instead.
 
 See [`index.d.ts`](./index.d.ts) for full type signatures. The validation report that `lint` and
 `loadFromString`/`loadFromPath` return is fully typed: each issue's `issue_type` names its kind
 (e.g. `"UnknownReference"`), and checking it narrows the issue to that kind's fields. For how to use the generated TypeScript,
 see [the TypeScript guide](https://linkml.ohi.dev/docs/generators/typescript/), for `pydantic`
 [the Pydantic guide](https://linkml.ohi.dev/docs/generators/pydantic/), and for `java`
-[the Java guide](https://linkml.ohi.dev/docs/generators/java/). For `owl` and `fromOwl`, see
+[the Java guide](https://linkml.ohi.dev/docs/generators/java/). For `owl` and `loadFromOwl`, see
 [the OWL generator](https://linkml.ohi.dev/docs/generators/owl/) and [the OWL importer](https://linkml.ohi.dev/docs/importers/owl/).
 
 ### Errors
 
 A generator or importer that can't convert a schema or ontology, for a reason you can fix, throws
 an `Error` with an `issue` property. It is a `SchemaConversionError` issue, in the same shape as the
-issues of a validation report, and its `message` says what is wrong. `linkml`, `ossie`, `owl`,
-`fromOssie` and `fromOwl` can throw it. Any other error is a wrong argument, such as an unknown
+issues of a validation report, and its `message` says what is wrong. `linkml`, `ossie`, `owl`
+and the loaders of the importers can throw it. Any other error is a wrong argument, such as an unknown
 format or metadata profile, or a bug.
 
 ```js
 import { LinkML } from "@neverblink/linkml";
 
 try {
-  LinkML.fromOssie("- not\n- an ontology\n");
-  throw new Error("fromOssie should have failed");
+  LinkML.loadFromOssie("- not\n- an ontology\n");
+  throw new Error("loadFromOssie should have failed");
 } catch (e) {
   if (e.issue?.issue_type !== "SchemaConversionError") throw e; // a wrong argument or a bug
   console.log(e.issue.message); // Not a readable Ossie ontology: ...

@@ -1,10 +1,16 @@
 package eu.neverblink.linkml.generator
 
 import eu.neverblink.linkml.generator.importwarnings.{Codec, ImportReport}
-import eu.neverblink.linkml.generator.options.{ImportResult, JsonOutputFormat, SchemaOutputOptions}
+import eu.neverblink.linkml.generator.options.{
+  ImportResult,
+  JsonOutputFormat,
+  NotImported,
+  SchemaOutputOptions,
+}
 import eu.neverblink.linkml.generator.util.JsonUtil
 import eu.neverblink.linkml.metamodel.SchemaDefinition
-import eu.neverblink.linkml.schemaview.SchemaCodec
+import eu.neverblink.linkml.schemaview.{SchemaCodec, SchemaView}
+import eu.neverblink.linkml.validation.SchemaFatal
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, InputStream, OutputStream}
 import java.nio.charset.StandardCharsets.UTF_8
@@ -22,11 +28,22 @@ trait SchemaImporter[O <: SchemaOutputOptions] {
   /** Options to use when the caller does not pass any. */
   protected def defaultOptions: O
 
-  /** Read a document from `in` and build the LinkML schema it describes.
+  /** Read a document from `in` and build the LinkML schema it describes, with what could not be
+    * imported.
     *
     * Does not close the input stream, because the caller may have more to read from it.
     */
-  def importSchema(in: InputStream, options: O = defaultOptions): SchemaDefinition
+  def importWithWarnings(in: InputStream, options: O = defaultOptions): SchemaImporter.Result
+
+  /** Read a document from `in` and build the LinkML schema it describes. */
+  final def importSchema(in: InputStream, options: O = defaultOptions): SchemaDefinition =
+    importWithWarnings(in, options).schema
+
+  /** Load a schema this importer made, with its imports, as the bindings return it. */
+  def load(
+      schema: SchemaDefinition,
+      options: O = defaultOptions,
+  ): Either[Seq[SchemaFatal], SchemaView]
 
   /** Read a document that is already in memory. */
   final def importSchemaFromString(
@@ -50,12 +67,14 @@ trait SchemaImporter[O <: SchemaOutputOptions] {
     )
 
   /** The schema as a document, with what could not be imported, as the bindings return them. */
-  def importResult(in: InputStream, options: O = defaultOptions): ImportResult =
+  final def importResult(in: InputStream, options: O = defaultOptions): ImportResult = {
+    val result = importWithWarnings(in, options)
     ImportResult(
-      schema = serialize(in, options),
-      warnings = Nil,
-      report = Codec.toAny(ImportReport(Nil)),
+      schema = serializeSchema(result.schema, options.format, options.fullUris),
+      warnings = result.warnings,
+      report = Codec.toAny(result.report),
     )
+  }
 
   /** Write the schema to `out`. Flushes, but closes neither stream. */
   final def writeTo(in: InputStream, out: OutputStream, options: O = defaultOptions): Unit =
@@ -96,4 +115,23 @@ trait SchemaImporter[O <: SchemaOutputOptions] {
     }
     String(buffer.toByteArray, UTF_8)
   }
+}
+
+object SchemaImporter {
+
+  /** The schema, and a report of what could not be imported.
+    *
+    * `warnings` has one line per kind of thing that could not be imported.
+    */
+  final case class Result(schema: SchemaDefinition, report: ImportReport) {
+    def warnings: Seq[String] = ImportWarnings.lines(report)
+
+    /** What could not be imported, as the bindings return it next to a loaded schema. */
+    def notImported: NotImported = NotImported(warnings = warnings, report = Codec.toAny(report))
+  }
+
+  /** The options that only shape the schema's text. Loading writes no text, so it takes neither:
+    * the text of a loaded schema comes from `serialize`.
+    */
+  val textOptions: Seq[String] = Seq("format", "full_uris")
 }

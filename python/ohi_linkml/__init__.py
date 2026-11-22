@@ -20,9 +20,9 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any, Mapping, Union
+from typing import Any, Literal, Mapping, Union
 
-from ._generated import Generators, from_ossie, from_owl
+from ._generated import Generators, from_ossie, from_owl, load_ossie, load_owl
 from ._runtime import (
     LinkMlError,
     NativeLibraryNotFound,
@@ -42,6 +42,7 @@ __all__ = [
     "ImportMap",
     "LinkMlError",
     "NativeLibraryNotFound",
+    "NotImported",
     "Runtime",
     "Schema",
     "SchemaConversionError",
@@ -51,6 +52,8 @@ __all__ = [
     "from_owl",
     "library_path",
     "load_file",
+    "load_ossie",
+    "load_owl",
     "load_path",
     "load_string",
     "runtime",
@@ -65,6 +68,13 @@ Report = dict[str, Any]
 
 ``report["issues"]`` is a list of issues, each with at least an ``issue_type``, a ``severity``
 (one of :data:`FATAL`, :data:`ERROR`, :data:`WARNING`) and a ``location``.
+"""
+
+NotImported = dict[str, Any]
+"""What an importer could not import, following ``NotImported`` in ``model/converter``.
+
+``not_imported["warnings"]`` has one line for each kind of thing, and ``not_imported["report"]``
+one entry for each thing, as an ``ImportReport`` of ``model/import-warnings.yaml``.
 """
 
 BuildInfo = dict[str, Any]
@@ -98,16 +108,23 @@ class Schema(Generators):
 
     Parsing a schema is the expensive part, so this holds on to the parsed form inside the library
     and every generator call reuses it. Create one with :func:`load_file`, :func:`load_string` or
-    :func:`load_path`.
+    :func:`load_path`, or import one with :func:`load_owl` or :func:`load_ossie`.
 
     Release it with :meth:`close`, or use it as a context manager. Dropping the last reference also
     releases it, but only whenever the garbage collector gets round to it.
     """
 
-    def __init__(self, runtime_: Runtime, handle: int, report: Report) -> None:
+    def __init__(
+        self,
+        runtime_: Runtime,
+        handle: int,
+        report: Report,
+        not_imported: NotImported | None = None,
+    ) -> None:
         self._runtime = runtime_
         self._handle: int | None = handle
         self._report = report
+        self._not_imported = not_imported
 
     @property
     def report(self) -> Report:
@@ -117,6 +134,13 @@ class Schema(Generators):
         warnings against it. This is exactly what :meth:`lint` returns for the same schema.
         """
         return self._report
+
+    @property
+    def not_imported(self) -> NotImported | None:
+        """What the importer could not import, for a schema from :func:`load_owl` or
+        :func:`load_ossie`. None for a schema loaded from LinkML.
+        """
+        return self._not_imported
 
     def issues(self, severity: str | None = None) -> list[dict[str, Any]]:
         """The issues from :attr:`report`, optionally only those of one severity.
@@ -138,6 +162,17 @@ class Schema(Generators):
             it off for only the structured fields, which is a little faster.
         """
         return self._json("linkml_lint", infer_messages=infer_messages)
+
+    def serialize(
+        self, *, format: Literal["yaml", "json"] = "yaml", full_uris: bool = False
+    ) -> str:
+        """The schema as it was loaded, without its imports merged in.
+
+        :param format: The serialization of the schema.
+        :param full_uris: Whether to write URIs in full, instead of compacting them to CURIEs with
+            the schema's prefixes.
+        """
+        return self._document("linkml_serialize", format=format, full_uris=full_uris)
 
     # Lifecycle
 
@@ -314,7 +349,15 @@ def build_info() -> BuildInfo:
     return runtime().build_info()
 
 
-def _schema(current: Runtime, handle: int, report: Report) -> Schema:
+def _load_imported(function: str, document: str, options: Mapping[str, Any] | None) -> Schema:
+    """Call a loader, such as ``linkml_load_owl``, by its exported name."""
+    current = runtime()
+    return _schema(current, *current.load_imported(function, document, options))
+
+
+def _schema(
+    current: Runtime, handle: int, report: Report, not_imported: NotImported | None = None
+) -> Schema:
     """Wrap a load result, turning a refused load into an exception.
 
     The library returns handle 0 when fatal problems stopped the schema loading, and a report either
@@ -322,4 +365,4 @@ def _schema(current: Runtime, handle: int, report: Report) -> Schema:
     """
     if handle == 0:
         raise SchemaLoadError(report)
-    return Schema(current, handle, report)
+    return Schema(current, handle, report, not_imported)

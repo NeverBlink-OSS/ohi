@@ -22,6 +22,7 @@ import eu.neverblink.linkml.generator.SchemaImporter
 import eu.neverblink.linkml.schemaview.{
   ImportMapImporter,
   Importer,
+  SchemaCodec,
   SchemaIssues,
   SchemaValidator,
   SchemaView,
@@ -107,6 +108,14 @@ final class SchemaViewJs private[js] (private[js] val underlying: SchemaView) {
 
   def translation(params: Params = js.undefined): String =
     TranslationGenerator().serialize(decode[TranslationGeneratorOptions](params))
+
+  /** The schema as it was loaded, without its imports merged in, as YAML or JSON depending on the
+    * `format` option.
+    */
+  def serialize(params: Params = js.undefined): String = {
+    val options = decode[SerializeOptions](params)
+    JsonUtil.write(SchemaCodec.encode(underlying.root, options.fullUris), options.format)
+  }
 }
 
 private[js] object SchemaViewJs {
@@ -141,6 +150,7 @@ private[js] object SchemaViewJs {
   given LinkmlYamlCodec[OssieGeneratorOptions] = LinkmlYamlCodec.derived
   given LinkmlYamlCodec[OssieImporterOptions] = LinkmlYamlCodec.derived
   given LinkmlYamlCodec[OwlImporterOptions] = LinkmlYamlCodec.derived
+  given LinkmlYamlCodec[SerializeOptions] = LinkmlYamlCodec.derived
 }
 
 /** A `SchemaValidationReport` (model/validation-report.yaml) as a plain JS object. Only a name for
@@ -154,12 +164,13 @@ type SchemaValidationReport = js.Any
 type BuildInfo = js.Any
 
 /** What loading a schema produced: always a validation report, and a usable handle if the schema
-  * could be loaded at all.
+  * could be loaded at all. For a schema an importer made, also what it could not import.
   */
 @JSExportAll
 final class LoadResult private[js] (
     val view: js.UndefOr[SchemaViewJs],
     val report: SchemaValidationReport,
+    val notImported: js.UndefOr[js.Any] = js.undefined,
 )
 
 @JSExportTopLevel("LinkML")
@@ -326,7 +337,8 @@ object LinkMlJsApi {
         throw js.JavaScriptException(error)
     }
 
-  // The importers are the functions defined in model/converter/all_importers.yaml
+  // The importers are the functions defined in model/converter/all_importers.yaml. They are
+  // deprecated: the loaders below and `serialize` replace them.
 
   def fromOwl(document: String, params: Params = js.undefined): js.Any =
     // There is no file system to read the mapped schemas from: they come in the options.
@@ -334,6 +346,38 @@ object LinkMlJsApi {
 
   def fromOssie(document: String, params: Params = js.undefined): js.Any =
     imported(OssieImporter(), document, params)
+
+  // The loaders: each imports like its importer, but loads the schema instead of writing it
+
+  def loadFromOwl(document: String, params: Params = js.undefined): LoadResult =
+    loadImported(OwlImporter(schemas = JsImporter(js.Dictionary())), document, params)
+
+  def loadFromOssie(document: String, params: Params = js.undefined): LoadResult =
+    loadImported(OssieImporter(), document, params)
+
+  private def loadImported[O <: SchemaOutputOptions: LinkmlYamlCodec](
+      importer: SchemaImporter[O],
+      document: String,
+      params: Params,
+  ): LoadResult = {
+    params.foreach { p =>
+      SchemaImporter.textOptions.find(p.hasOwnProperty(_)).foreach { key =>
+        throw RuntimeException(
+          s"Invalid options: loading takes no `$key` option: pass it to serialize",
+        )
+      }
+    }
+    val options = decode[O](params)
+    val in =
+      java.io.ByteArrayInputStream(document.getBytes(java.nio.charset.StandardCharsets.UTF_8))
+    val result = converting(importer.importWithWarnings(in, options))
+    val notImported = js.JSON.parse(
+      JsonUtil.yamlToJson(LinkmlYamlCodec.derived[NotImported].encode(result.notImported)),
+    )
+    val loaded =
+      loadResult(importer.load(result.schema, options), runId = None, inferMessages = true)
+    new LoadResult(loaded.view, loaded.report, notImported)
+  }
 
   private def imported[O <: SchemaOutputOptions: LinkmlYamlCodec](
       importer: SchemaImporter[O],

@@ -34,20 +34,24 @@ import { LinkML } from "@neverblink/linkml";
 
 // from_ossie
 {
-  const result = LinkML.fromOssie(
+  const { view, report } = LinkML.loadFromOssie(
     readFileSync("prov-o.ossie.yaml", "utf8"),
     { schema_id: "https://example.org/prov" },
   );
-  if (!result.schema) throw new Error("from_ossie gave nothing");
+  if (!view) throw new Error(JSON.stringify(report));
+  const output = view.serialize();
+  if (!output) throw new Error("from_ossie gave nothing");
 }
 
 // from_owl
 {
-  const result = LinkML.fromOwl(
+  const { view, report } = LinkML.loadFromOwl(
     readFileSync("prov-o.ttl", "utf8"),
     { schema_id: "https://example.org/prov" },
   );
-  if (!result.schema) throw new Error("from_owl gave nothing");
+  if (!view) throw new Error(JSON.stringify(report));
+  const output = view.serialize();
+  if (!output) throw new Error("from_owl gave nothing");
 }
 
 // graphql

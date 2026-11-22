@@ -196,6 +196,14 @@ export interface MetadataLanguageOptions {
   metadata_language?: string;
 }
 
+/** What an importer could not import, for a schema that was imported and loaded in one go. */
+export interface NotImported {
+  /** What could not be imported, one entry for each thing, as an `ImportReport` of `model/import-warnings.yaml`. Each warning's `warning_type` says what kind it is. */
+  report: unknown;
+  /** One line for each kind of thing that could not be imported. Empty if everything was. */
+  warnings: string[];
+}
+
 /** Options of the Apache Ossie generator. */
 export interface OssieGeneratorOptions {
   /**
@@ -327,8 +335,22 @@ export interface ScalaGeneratorOptions {
   skip_leaf_interfaces?: boolean;
 }
 
-/** Options of the importers, which write a LinkML schema. */
+/** Options of what writes a LinkML schema, such as the importers. */
 export interface SchemaOutputOptions {
+  /**
+   * The serialization of the schema.
+   * @defaultValue "yaml"
+   */
+  format?: JsonOutputFormat;
+  /**
+   * Whether to write URIs in full, instead of compacting them to CURIEs with the schema's prefixes.
+   * @defaultValue false
+   */
+  full_uris?: boolean;
+}
+
+/** Options for writing a loaded schema as it was loaded. */
+export interface SerializeOptions {
   /**
    * The serialization of the schema.
    * @defaultValue "yaml"

@@ -1,5 +1,6 @@
 package eu.neverblink.linkml.optionsgen
 
+import eu.neverblink.linkml.generator.SchemaImporter
 import eu.neverblink.linkml.generator.scala.ScalaRenamer
 import eu.neverblink.linkml.schemaview.*
 
@@ -54,6 +55,9 @@ final case class ConverterFunction(fv: FunctionView) {
 
   val options: OptionsClass = OptionsClass(fv.parameters.get)
 
+  /** What loads the schema an importer makes, such as `load_owl`. None for a generator. */
+  def loader: Option[Loader] = Option.when(isImporter)(Loader(this))
+
   val returns: Returns = fv.returns match {
     case Some(_: TypeView) => Returns.Document
     case Some(cv: ClassView) if cv.isAny => Returns.Any
@@ -64,6 +68,29 @@ final case class ConverterFunction(fv: FunctionView) {
         .fold(Returns.Any)(Returns.Map(_))
     case other => sys.error(s"Function $name returns an unsupported element: $other")
   }
+}
+
+/** Imports a document like [[importer]], but loads the schema instead of writing it. */
+final case class Loader(importer: ConverterFunction) {
+
+  /** The name, such as `load_owl`. */
+  val name: String = "load_" + importer.name.stripPrefix("from_")
+
+  /** The Scala name, such as `loadOwl`. */
+  val scalaName: String = "load" + importer.scalaName.stripPrefix("from")
+
+  /** The name in the JavaScript API, such as `loadFromOwl`. */
+  val jsName: String = "load" + importer.scalaName.capitalize
+
+  /** The exported C function. */
+  val symbol: String = s"linkml_$name"
+
+  val description: String =
+    s"Like `${importer.name}`, but loads the schema instead of writing it, and returns its handle."
+
+  /** The importer's options, without those that only shape the schema's text. */
+  val fields: Seq[OptionField] =
+    importer.options.fields.filterNot(f => SchemaImporter.textOptions.contains(f.name))
 }
 
 /** What a function returns. All but a document are JSON. */

@@ -81,7 +81,8 @@ for (const issue of lintIssues) {
   void issue.reference_value;
 }
 
-// An importer takes the document, then its options, and returns the schema with its warnings.
+// An importer takes the document, then its options, and returns the schema with its warnings. The
+// importers are deprecated in favor of the loaders below, but still declared.
 const owlImport: ImportResult = LinkML.fromOwl("", {
   format: "json",
   config: { naming: { slots: "keep" } },
@@ -100,9 +101,19 @@ const ossieSchema: string = LinkML.fromOssie("{}", { schema_id: "https://example
 // @ts-expect-error the options follow model/converter, in snake case
 LinkML.fromOssie("{}", { schemaId: "https://example.org/x" });
 
+// A loader imports the document like its importer, but loads the schema, with what it could not
+// import. The text of the schema comes from `serialize`.
+const owlLoaded: LoadResult = LinkML.loadFromOwl("", { config: { naming: { slots: "keep" } } });
+const notImported: ImportReport | undefined = owlLoaded.notImported?.report;
+const owlYaml: string | undefined = owlLoaded.view?.serialize();
+const owlJson: string | undefined = owlLoaded.view?.serialize({ format: "json", full_uris: true });
+const ossieLoaded: LoadResult = LinkML.loadFromOssie("{}", { schema_id: "https://example.org/x" });
+// @ts-expect-error `format` shapes the text, which comes from `serialize`
+LinkML.loadFromOwl("", { format: "json" });
+
 // A problem with the input is thrown as an Error with a `SchemaConversionError` issue.
 try {
-  LinkML.fromOssie("- not\n- an ontology\n");
+  LinkML.loadFromOssie("- not\n- an ontology\n");
 } catch (e) {
   const issue: SchemaConversionError | undefined = (e as { issue?: SchemaConversionError }).issue;
   const reason: string | undefined = issue?.reason;
@@ -110,6 +121,11 @@ try {
 }
 
 void [
+  owlLoaded,
+  notImported,
+  owlYaml,
+  owlJson,
+  ossieLoaded,
   owlImport,
   owlWarnings,
   ossieSchema,

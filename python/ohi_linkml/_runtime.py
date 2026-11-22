@@ -29,7 +29,7 @@ __all__ = [
 ]
 
 # Bumped in lockstep with LinkMlNativeApi.abiVersion on the Scala side.
-_EXPECTED_ABI_VERSION = 4
+_EXPECTED_ABI_VERSION = 5
 
 _LIB_STEM = "libohi_linkml"
 
@@ -268,6 +268,37 @@ class Runtime:
         )
         return self._loaded(handle, report, error)
 
+    def load_imported(
+        self, function: str, document: str, options: Mapping[str, Any] | None = None
+    ) -> tuple[int, dict[str, Any], dict[str, Any]]:
+        """Call a loader, by its exported name: import a document and load the schema it describes.
+
+        :return: the schema handle, 0 if the schema had fatal problems, the validation report, and
+            what could not be imported.
+        :raises SchemaConversionError: if the document can't be imported as a schema.
+        :raises LinkMlError: if the library reported another failure.
+        """
+        not_imported, report, error = _Chars(), _Chars(), _Chars()
+        handle = self._call(
+            getattr(self._lib, function),
+            document.encode("utf-8"),
+            _options(options),
+            ctypes.byref(not_imported),
+            ctypes.byref(report),
+            ctypes.byref(error),
+        )
+        # Take all three, so none leaks whichever way the call went.
+        message = self._take(error)
+        report_json = self._take(report)
+        not_imported_json = self._take(not_imported)
+        if message is not None:
+            raise _failure(message, f"{function} failed without saying why")
+        return (
+            handle,
+            json.loads(report_json) if report_json else {},
+            json.loads(not_imported_json) if not_imported_json else {},
+        )
+
     def close(self, handle: int) -> None:
         """Release a schema handle. Releasing one that is already gone does nothing."""
         if sys.is_finalizing():
@@ -397,7 +428,7 @@ class Runtime:
         self._lib.linkml_build_info.restype = _Chars
 
         # Imported here, since the generated module imports this one.
-        from ._generated import DOCUMENT_FUNCTIONS, IMPORT_FUNCTIONS
+        from ._generated import DOCUMENT_FUNCTIONS, IMPORT_FUNCTIONS, LOAD_FUNCTIONS
 
         # Importers take a document instead of a handle.
         for name in IMPORT_FUNCTIONS:
@@ -405,9 +436,14 @@ class Runtime:
             function.argtypes = [ctypes.c_char_p, ctypes.c_char_p, chars_out]
             function.restype = _Chars
 
-        # linkml_lint has the same shape but is not a generator, so it is not in the generated
-        # list and gets declared alongside it.
-        for name in (*DOCUMENT_FUNCTIONS, "linkml_lint"):
+        for name in LOAD_FUNCTIONS:
+            function = getattr(self._lib, name)
+            function.argtypes = [ctypes.c_char_p, ctypes.c_char_p, chars_out, chars_out, chars_out]
+            function.restype = handle
+
+        # linkml_lint and linkml_serialize have the same shape but are not generators, so they are
+        # not in the generated list and get declared alongside it.
+        for name in (*DOCUMENT_FUNCTIONS, "linkml_lint", "linkml_serialize"):
             function = getattr(self._lib, name)
             function.argtypes = [handle, ctypes.c_char_p, chars_out]
             function.restype = _Chars

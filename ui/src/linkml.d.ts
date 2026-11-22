@@ -21,7 +21,7 @@ export * from "../../generator/npm/import-warnings.js";
 
 // The generators and their options, generated from model/converter/all_generators.yaml.
 import type { GeneratorFunctions, StatsGeneratorOptions } from "../../generator/npm/generator-options.js";
-export type { DocsGeneratorOptions, ErDiagramGeneratorOptions, File, Files, FrictionlessGeneratorOptions, GraphQlGeneratorOptions, JavaGeneratorOptions, JsonSchemaGeneratorOptions, LinkMlGeneratorOptions, MetadataLanguageOptions, OssieGeneratorOptions, OwlGeneratorOptions, PruningOptions, PydanticGeneratorOptions, RdfOptions, RdfsGeneratorOptions, ScalaGeneratorOptions, SchemaOutputOptions, ShaclGeneratorOptions, StatsGeneratorOptions, TranslationGeneratorOptions, TypeScriptGeneratorOptions, JavaStyle, JsonOutputFormat, OwlMetadataProfile, OwlPermissibleValueKind, RdfFormat, ScalaErrorHandling, TypeScriptErrorHandling, GeneratorFunctions } from "../../generator/npm/generator-options.js";
+export type { DocsGeneratorOptions, ErDiagramGeneratorOptions, File, Files, FrictionlessGeneratorOptions, GraphQlGeneratorOptions, JavaGeneratorOptions, JsonSchemaGeneratorOptions, LinkMlGeneratorOptions, MetadataLanguageOptions, OssieGeneratorOptions, OwlGeneratorOptions, PruningOptions, PydanticGeneratorOptions, RdfOptions, RdfsGeneratorOptions, ScalaGeneratorOptions, SchemaOutputOptions, SerializeOptions, ShaclGeneratorOptions, StatsGeneratorOptions, TranslationGeneratorOptions, TypeScriptGeneratorOptions, JavaStyle, JsonOutputFormat, OwlMetadataProfile, OwlPermissibleValueKind, RdfFormat, ScalaErrorHandling, TypeScriptErrorHandling, GeneratorFunctions } from "../../generator/npm/generator-options.js";
 
 // The importers and their options, generated from model/converter/all_importers.yaml.
 import type { ImporterFunctions } from "../../generator/npm/importer-options.js";
@@ -37,6 +37,8 @@ export interface SchemaView extends GeneratorFunctions {
   readonly __linkmlSchemaView: unique symbol;
   /** {@inheritDoc GeneratorFunctions.stats} */
   stats(params?: StatsGeneratorOptions): SchemaStats;
+  /** The schema as it was loaded, without its imports merged in, as YAML or JSON. */
+  serialize(params?: SerializeOptions): string;
 }
 
 /**
@@ -46,9 +48,16 @@ export interface SchemaView extends GeneratorFunctions {
 export interface LoadResult {
   readonly view?: SchemaView;
   readonly report: SchemaValidationReport;
+  /** What could not be imported, for a schema that an importer's loader made. */
+  readonly notImported?: NotImported;
 }
 
-import type { ImportResult as GeneratedImportResult } from "../../generator/npm/importer-options.js";
+import type {
+  ImportResult as GeneratedImportResult,
+  NotImported as GeneratedNotImported,
+  SchemaOutputOptions,
+  SerializeOptions,
+} from "../../generator/npm/importer-options.js";
 
 /** What an importer produced: the LinkML schema, and what could not be imported. */
 export interface ImportResult extends Omit<GeneratedImportResult, "report"> {
@@ -59,14 +68,29 @@ export interface ImportResult extends Omit<GeneratedImportResult, "report"> {
   report: ImportReport;
 }
 
-/** Functions that take the document to import before their options. */
-type Importers<F> = {
-  [K in keyof F]: F[K] extends (...args: infer A) => infer R
-    ? (document: string, ...args: A) => R extends GeneratedImportResult ? ImportResult : R
+/** What an importer could not import, for a schema that was imported and loaded in one go. */
+export interface NotImported extends Omit<GeneratedNotImported, "report"> {
+  /**
+   * What could not be imported, one entry for each thing. Each warning's `warning_type` says
+   * what kind it is. `warnings` has the same, as one line for each kind.
+   */
+  report: ImportReport;
+}
+
+/**
+ * One loader for each importer, such as `loadFromOwl` for `fromOwl`. It imports the document
+ * like the importer, but loads the schema instead of writing it. The options that only shape
+ * the schema's text are those of {@link SchemaView.serialize} instead.
+ */
+type Loaders<F> = {
+  [K in keyof F as K extends string ? `load${Capitalize<K>}` : never]: F[K] extends (
+    params?: infer P,
+  ) => unknown
+    ? (document: string, params?: Omit<P, keyof SchemaOutputOptions>) => LoadResult
     : never;
 };
 
-export interface LinkMLApi extends Importers<ImporterFunctions> {
+export interface LinkMLApi extends Loaders<ImporterFunctions> {
   /**
    * Version and build metadata of this copy of ohi LinkML: which version it is, which LinkML metamodel it was built against, and what it is running on.  Useful in bug reports, and for checking that the version you loaded is the one you meant to.
    * @returns A `BuildInfo` object, as described by https://linkml.ohi.dev/model/build-info
@@ -100,6 +124,18 @@ export interface LinkMLApi extends Importers<ImporterFunctions> {
    * @returns A `SchemaValidationReport` as a plain JS object. `issues` is empty if the schema is clean.
    */
   lint(schema: SchemaView, inferMessages?: boolean): SchemaValidationReport;
+
+  /**
+   * {@inheritDoc ImporterFunctions.fromOssie}
+   * @deprecated Use {@link LinkMLApi.loadFromOssie} and {@link SchemaView.serialize} instead.
+   */
+  fromOssie(document: string, ...args: Parameters<ImporterFunctions["fromOssie"]>): ImportResult;
+
+  /**
+   * {@inheritDoc ImporterFunctions.fromOwl}
+   * @deprecated Use {@link LinkMLApi.loadFromOwl} and {@link SchemaView.serialize} instead.
+   */
+  fromOwl(document: string, ...args: Parameters<ImporterFunctions["fromOwl"]>): ImportResult;
 }
 
 export declare const LinkML: LinkMLApi;

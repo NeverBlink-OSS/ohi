@@ -3,13 +3,12 @@ package eu.neverblink.linkml.generator.owl
 import eu.neverblink.linkml.generator.options.{
   NameStyle,
   OwlImportConfig,
-  ImportResult,
   OwlImporterOptions,
   RdfFormat,
   SomeValuesFrom,
 }
 import eu.neverblink.linkml.generator.{ImportWarnings, SchemaImporter}
-import eu.neverblink.linkml.generator.importwarnings
+import eu.neverblink.linkml.generator.SchemaImporter.Result
 import eu.neverblink.linkml.generator.importwarnings.*
 import eu.neverblink.linkml.generator.owl.Axiom.*
 import eu.neverblink.linkml.generator.owl.ClassExpr.Bound
@@ -36,7 +35,7 @@ import eu.neverblink.linkml.schemaview.{
   MapImporter,
   SchemaView,
 }
-import eu.neverblink.linkml.validation.{SchemaImportError, SchemaParseError}
+import eu.neverblink.linkml.validation.{SchemaFatal, SchemaImportError, SchemaParseError}
 
 import java.io.InputStream
 
@@ -56,7 +55,7 @@ import scala.util.control.NonFatal
   *   - Datatypes become types, and datatype restrictions become their constraints.
   *   - Annotations become documentation metaslots, see [[config.OwlImportConfigs.defaultMetadata]].
   *
-  * Anything LinkML can't express is listed in [[OwlImporter.Result.warnings]]. If it is about a
+  * Anything LinkML can't express is listed in [[SchemaImporter.Result.warnings]]. If it is about a
   * class, it also goes in that class's `notes`.
   *
   * @param schemas
@@ -71,13 +70,7 @@ class OwlImporter(schemas: Importer = FileSystemImporter, base: String = "")
 
   override protected def defaultOptions: OwlImporterOptions = OwlImporterOptions()
 
-  override def importSchema(
-      in: InputStream,
-      options: OwlImporterOptions = OwlImporterOptions(),
-  ): SchemaDefinition =
-    importWithWarnings(in, options).schema
-
-  def importWithWarnings(
+  override def importWithWarnings(
       in: InputStream,
       options: OwlImporterOptions = OwlImporterOptions(),
   ): Result = {
@@ -94,17 +87,12 @@ class OwlImporter(schemas: Importer = FileSystemImporter, base: String = "")
     importOntology(read.ontology.copy(prefixes = prefixes.result()), options, read.unparsed)
   }
 
-  override def importResult(
-      in: InputStream,
+  /** Loads the schemas that `owl:imports` map to the same way the import did. */
+  override def load(
+      schema: SchemaDefinition,
       options: OwlImporterOptions = OwlImporterOptions(),
-  ): ImportResult = {
-    val result = importWithWarnings(in, options)
-    ImportResult(
-      schema = serializeSchema(result.schema, options.format, options.fullUris),
-      warnings = result.warnings,
-      report = importwarnings.Codec.toAny(result.report),
-    )
-  }
+  ): Either[Seq[SchemaFatal], SchemaView] =
+    SchemaView.loadSchemaView(schema, importerOf(options), base)
 
   def importTriples(
       triples: IndexedSeq[Triple],
@@ -127,23 +115,15 @@ class OwlImporter(schemas: Importer = FileSystemImporter, base: String = "")
       ontology: Ontology,
       options: OwlImporterOptions,
       unparsed: Seq[Triple],
-  ): Result = {
-    val importer =
-      if (options.schemas.isEmpty) schemas
-      else MapImporter.from(options.schemas.valuesIterator.map(f => f.path -> f.content))
-    Conversion(ontology, options, importer, base, unparsed).result
-  }
+  ): Result = Conversion(ontology, options, importerOf(options), base, unparsed).result
+
+  /** Reads the schemas that `owl:imports` map to. */
+  private def importerOf(options: OwlImporterOptions): Importer =
+    if (options.schemas.isEmpty) schemas
+    else MapImporter.from(options.schemas.valuesIterator.map(f => f.path -> f.content))
 }
 
 object OwlImporter {
-
-  /** The schema, and a report of what could not be imported.
-    *
-    * `warnings` has one line per kind of thing that could not be imported.
-    */
-  final case class Result(schema: SchemaDefinition, report: ImportReport) {
-    def warnings: Seq[String] = ImportWarnings.lines(report)
-  }
 
   /** Properties in these namespaces are documentation, even when the ontology declares them. */
   private val metadataVocabularies: Set[String] = Set(

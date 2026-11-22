@@ -145,6 +145,17 @@ class OssieImporterSpec extends AnyWordSpec, Matchers, OssieFixtures {
       SchemaView(imports.prepended(schema)).validationProblems shouldBe empty
     }
 
+    "load as it was imported, with the LinkML types" in {
+      val schema = OssieImporter().importSchema(stream(ossie("""
+        |ontology:
+        |  - concept: Thing
+        |    type: EntityType
+        """)))
+      val sv = OssieImporter().load(schema).fold(e => fail(e.toString), identity)
+      sv.root shouldBe schema
+      sv.types.keySet should contain("string")
+    }
+
     "serialize as JSON when asked to" in {
       val json = OssieImporter().serialize(
         stream(ossie("""

@@ -9,9 +9,13 @@ The keyword arguments, their defaults and their documentation follow
 from __future__ import annotations
 
 import json
-from typing import Any, Literal
+import warnings
+from typing import TYPE_CHECKING, Any, Literal
 
 from ._runtime import runtime
+
+if TYPE_CHECKING:
+    from . import Schema
 
 # Every exported function taking (handle, options) and returning a document or NULL.
 DOCUMENT_FUNCTIONS = (
@@ -37,6 +41,12 @@ DOCUMENT_FUNCTIONS = (
 IMPORT_FUNCTIONS = (
     "linkml_from_ossie",
     "linkml_from_owl",
+)
+
+# Every exported function taking (document, options) and returning a schema handle or 0.
+LOAD_FUNCTIONS = (
+    "linkml_load_ossie",
+    "linkml_load_owl",
 )
 
 
@@ -522,6 +532,8 @@ def from_ossie(
     """Read an Apache Ossie ontology, as YAML or JSON, and produce the LinkML schema it
     describes. The opposite of `ossie`.
 
+    Deprecated: use :func:`load_ossie` and :meth:`Schema.serialize` instead.
+
     :param document: The document to import.
     :param format: The serialization of the schema.
     :param full_uris: Whether to write URIs in full, instead of compacting them to CURIEs with
@@ -529,6 +541,11 @@ def from_ossie(
     :param schema_id: The `id` of the schema to produce. An Ossie ontology has none of its own,
         so by default it is a placeholder built from the ontology's name.
     """
+    warnings.warn(
+        "from_ossie() is deprecated: use load_ossie() and Schema.serialize()",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     options = {
         "format": format,
         "full_uris": full_uris,
@@ -550,6 +567,8 @@ def from_owl(
     """Read an OWL ontology or RDFS vocabulary, as Turtle or N-Triples, and produce the LinkML
     schema it describes. The opposite of `owl`.
 
+    Deprecated: use :func:`load_owl` and :meth:`Schema.serialize` instead.
+
     :param document: The document to import.
     :param config: How to map the ontology: names, prefixes, which annotation properties fill
         which metaslots, and more. See https://linkml.ohi.dev/docs/importers/owl/.
@@ -562,6 +581,11 @@ def from_owl(
     :param schemas: The LinkML schemas that the `imports` of `config` map `owl:imports` to, from
         file name to YAML text. By default, they are read from the file system.
     """
+    warnings.warn(
+        "from_owl() is deprecated: use load_owl() and Schema.serialize()",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     options = {
         "config": config,
         "format": format,
@@ -571,3 +595,61 @@ def from_owl(
         "schemas": schemas,
     }
     return json.loads(runtime().import_document("linkml_from_owl", document, options))
+
+
+def load_ossie(
+    document: str,
+    *,
+    schema_id: str | None = None,
+) -> Schema:
+    """Like :func:`from_ossie`, but loads the schema instead of writing it.
+    :attr:`Schema.not_imported` says what could not be imported.
+
+    :param document: The document to import.
+    :param schema_id: The `id` of the schema to produce. An Ossie ontology has none of its own,
+        so by default it is a placeholder built from the ontology's name.
+    :raises SchemaConversionError: if the document can't be imported as a schema.
+    :raises SchemaLoadError: if fatal problems stopped the schema from loading.
+    """
+    options = {
+        "schema_id": schema_id,
+    }
+    return _load("linkml_load_ossie", document, options)
+
+
+def load_owl(
+    document: str,
+    *,
+    config: dict[str, Any] | None = None,
+    input_format: Literal["ttl", "nt"] = "ttl",
+    schema_id: str | None = None,
+    schemas: dict[str, Any] | None = None,
+) -> Schema:
+    """Like :func:`from_owl`, but loads the schema instead of writing it.
+    :attr:`Schema.not_imported` says what could not be imported.
+
+    :param document: The document to import.
+    :param config: How to map the ontology: names, prefixes, which annotation properties fill
+        which metaslots, and more. See https://linkml.ohi.dev/docs/importers/owl/.
+    :param input_format: The RDF syntax of the ontology. Turtle also reads N-Triples.
+    :param schema_id: The `id` of the schema to produce, instead of the `schema_id` of `config`.
+        The default is the ontology IRI.
+    :param schemas: The LinkML schemas that the `imports` of `config` map `owl:imports` to, from
+        file name to YAML text. By default, they are read from the file system.
+    :raises SchemaConversionError: if the document can't be imported as a schema.
+    :raises SchemaLoadError: if fatal problems stopped the schema from loading.
+    """
+    options = {
+        "config": config,
+        "input_format": input_format,
+        "schema_id": schema_id,
+        "schemas": schemas,
+    }
+    return _load("linkml_load_owl", document, options)
+
+
+def _load(function: str, document: str, options: dict[str, Any]) -> Schema:
+    # Imported here, since the package imports this module before it defines Schema.
+    from . import _load_imported
+
+    return _load_imported(function, document, options)

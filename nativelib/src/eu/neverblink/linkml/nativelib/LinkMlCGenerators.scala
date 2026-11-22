@@ -4,7 +4,7 @@ package eu.neverblink.linkml.nativelib
 
 import scala.scalanative.unsafe.*
 
-/** The generator and importer entry points of the C ABI, one per generator and importer.
+/** The generator and importer entry points of the C ABI, one per generator and two per importer.
   *
   * A generator takes a schema handle, an importer the document to import. Both then take an options
   * JSON that may be NULL for defaults, and an error out-param. The options follow
@@ -43,6 +43,7 @@ object LinkMlCGenerators {
 
   /** Read an Apache Ossie ontology, as YAML or JSON, and produce the LinkML schema it describes.
     * The opposite of `ossie`. Returns JSON. Options: `format`, `full_uris`, `schema_id`.
+    * Deprecated: use `linkml_load_ossie` and `linkml_serialize` instead.
     */
   @exported("linkml_from_ossie")
   def fromOssie(document: CString, options: CString, error: Ptr[CString]): CString =
@@ -50,7 +51,8 @@ object LinkMlCGenerators {
 
   /** Read an OWL ontology or RDFS vocabulary, as Turtle or N-Triples, and produce the LinkML schema
     * it describes. The opposite of `owl`. Returns JSON. Options: `config`, `format`, `full_uris`,
-    * `input_format`, `schema_id`, `schemas`.
+    * `input_format`, `schema_id`, `schemas`. Deprecated: use `linkml_load_owl` and
+    * `linkml_serialize` instead.
     */
   @exported("linkml_from_owl")
   def fromOwl(document: CString, options: CString, error: Ptr[CString]): CString =
@@ -158,4 +160,44 @@ object LinkMlCGenerators {
   @exported("linkml_typescript")
   def typescript(handle: CLongLong, options: CString, error: Ptr[CString]): CString =
     LinkMlCApi.document(handle, options, error, LinkMlNativeApi.typescript)
+
+  /** Like `from_ossie`, but loads the schema instead of writing it, and returns its handle.
+    * Options: `schema_id`.
+    */
+  @exported("linkml_load_ossie")
+  def loadOssie(
+      document: CString,
+      options: CString,
+      notImported: Ptr[CString],
+      report: Ptr[CString],
+      error: Ptr[CString],
+  ): CLongLong =
+    LinkMlCApi.loadImported(
+      document,
+      options,
+      notImported,
+      report,
+      error,
+      LinkMlNativeApi.loadOssie,
+    )
+
+  /** Like `from_owl`, but loads the schema instead of writing it, and returns its handle. Options:
+    * `config`, `input_format`, `schema_id`, `schemas`.
+    */
+  @exported("linkml_load_owl")
+  def loadOwl(
+      document: CString,
+      options: CString,
+      notImported: Ptr[CString],
+      report: Ptr[CString],
+      error: Ptr[CString],
+  ): CLongLong =
+    LinkMlCApi.loadImported(
+      document,
+      options,
+      notImported,
+      report,
+      error,
+      LinkMlNativeApi.loadOwl,
+    )
 }
