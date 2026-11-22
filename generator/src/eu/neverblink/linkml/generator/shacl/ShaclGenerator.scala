@@ -579,7 +579,7 @@ class ShaclGenerator(using sv: SchemaView) extends RdfGeneratorBase[ShaclGenerat
       // subclasses gets an open shape.
       val closed = !open && c.isConcrete && !c.allowsExtraSlots && !parentNames.contains(c.name)
       sink.triple(classNameIri, Shacl.closed, Literal(closed.toString, XmlSchema.boolean))
-      sink.list(classNameIri, Shacl.ignoredProperties, Seq(Rdf.`type`))
+      if (closed) sink.list(classNameIri, Shacl.ignoredProperties, Seq(Rdf.`type`))
       // LinkML's `rank` gives slots an explicit order. Slots without one keep their
       // declaration order, but start after the highest rank in the class.
       var order = 0
@@ -589,7 +589,7 @@ class ShaclGenerator(using sv: SchemaView) extends RdfGeneratorBase[ShaclGenerat
           slot.rank.foreachFast(r => if (r >= order) order = r + 1)
       }
       // The type designator gets no PropertyShape: in RDF, the class of an instance is its
-      // `rdf:type`, which is in sh:ignoredProperties.
+      // `rdf:type`, which closed shapes list in sh:ignoredProperties.
       c.attributeViews.values.foreach { av =>
         val slot = av.slotView.slot
         if (!slot.designatesType) {

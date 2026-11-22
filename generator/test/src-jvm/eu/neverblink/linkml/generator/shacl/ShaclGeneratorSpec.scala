@@ -564,7 +564,6 @@ class ShaclGeneratorSpec extends AnyWordSpec, Matchers {
           |
           |<https://neverblink.eu/linkml/shacl/test/SomeClass> a sh:NodeShape;
           |  sh:closed false;
-          |  sh:ignoredProperties (rdf:type);
           |  sh:property [
           |      sh:datatype xsd:string;
           |      sh:maxCount 1;
@@ -815,7 +814,6 @@ class ShaclGeneratorSpec extends AnyWordSpec, Matchers {
           |
           |<https://neverblink.eu/linkml/shacl/test/SomeClass> a sh:NodeShape;
           |  sh:closed false;
-          |  sh:ignoredProperties (rdf:type);
           |  sh:property [
           |      sh:datatype xsd:date;
           |      sh:maxCount 1;
@@ -984,7 +982,6 @@ class ShaclGeneratorSpec extends AnyWordSpec, Matchers {
           |linkml:Annotatable a sh:NodeShape;
           |  rdfs:comment "mixin for classes that support annotations";
           |  sh:closed false;
-          |  sh:ignoredProperties (rdf:type);
           |  sh:property [
           |      sh:class linkml:Annotation;
           |      sh:description "a collection of tag/text tuples with the semantics of OWL Annotation";
@@ -1035,7 +1032,6 @@ class ShaclGeneratorSpec extends AnyWordSpec, Matchers {
           |linkml:Extension a sh:NodeShape;
           |  rdfs:comment "a tag/value pair used to add non-model information to an entry";
           |  sh:closed false;
-          |  sh:ignoredProperties (rdf:type);
           |  sh:property [
           |      sh:description "a tag associated with an extension";
           |      sh:maxCount 1;
@@ -1061,7 +1057,6 @@ class ShaclGeneratorSpec extends AnyWordSpec, Matchers {
           |linkml:Extensible a sh:NodeShape;
           |  rdfs:comment "mixin for classes that support extension";
           |  sh:closed false;
-          |  sh:ignoredProperties (rdf:type);
           |  sh:property [
           |      sh:class linkml:Extension;
           |      sh:description "a tag/text tuple attached to an arbitrary element";
