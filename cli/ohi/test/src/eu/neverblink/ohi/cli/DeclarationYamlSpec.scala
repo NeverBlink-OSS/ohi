@@ -93,11 +93,20 @@ class DeclarationYamlSpec extends AnyWordSpec, Matchers {
     for (label, entry) <- Seq(
         "missing ontology" -> "- format: linkml-yaml\n",
         "missing format" -> "- ontology: w3c/dcat@2\n",
-        "unknown format" -> "- ontology: w3c/dcat@2\n  format: invalid\n",
         "unversioned ontology" -> "- ontology: w3c/dcat\n  format: linkml-yaml\n",
         "malformed ontology" -> "- ontology: w3c/dcat@bad+label\n  format: linkml-yaml\n",
       )
     do s"reject a dependency with $label" in { rejected(s"${header}dependencies:\n$entry") }
+
+    "advise an upgrade for a format this version of ohi does not know" in {
+      rejected(s"${header}dependencies:\n- ontology: w3c/dcat@2\n  format: future-format\n")
+        .getMessage should include("Upgrade ohi")
+    }
+
+    "not advise an upgrade for a format that is not text" in {
+      rejected(s"${header}dependencies:\n- ontology: w3c/dcat@2\n  format: 5\n")
+        .getMessage should not include "Upgrade ohi"
+    }
 
     "reject the same ontology and format listed twice" in {
       rejected(s"${header}dependencies:\n$dependency$dependency").getMessage should include(

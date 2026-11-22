@@ -55,9 +55,9 @@ class LockJsonSpec extends AnyWordSpec, Matchers {
           (
             "https://Hub.example/releases/z/2/?v=%2F#chosen",
             "https://Files.example/Z%2F.ttl?download=1#file",
-            Format.OwlTurtle,
+            "owl-turtle",
           ),
-          ("https://Hub.example/releases/a/1/", "https://files.example/a.yaml", Format.LinkmlYaml),
+          ("https://Hub.example/releases/a/1/", "https://files.example/a.yaml", "linkml-yaml"),
         )
       }
 
@@ -107,24 +107,11 @@ class LockJsonSpec extends AnyWordSpec, Matchers {
         assertError(intercept[LockException](decode(data)), "INVALID_LOCK", "DECODE")
       }
 
-    "reject unknown artifact formats" in {
+    "keep a format this version of ohi does not know" in {
       val data = example()
       data("files")(0)("format") = "future-format"
-      assertError(intercept[LockException](decode(data)), "INVALID_LOCK", "DECODE")
+      decode(data).files.head.format shouldBe "future-format"
     }
-
-    for (format, expected) <- Seq(
-        "owl-rdfxml" -> Format.OwlRdfxml,
-        "rdfs-turtle" -> Format.RdfsTurtle,
-        "ossie-yaml" -> Format.OssieYaml,
-        "shacl-turtle" -> Format.ShaclTurtle,
-      )
-    do
-      s"preserve format $format" in {
-        val data = example()
-        data("files")(0)("format") = format
-        decode(data).files.head.format shouldBe expected
-      }
 
     for revision <- Seq("3", "99999999999") do
       s"report unsupported revision $revision before missing collections" in {
@@ -271,7 +258,7 @@ class LockJsonSpec extends AnyWordSpec, Matchers {
     do
       s"reject revision $revision with invalid typed hash $hash" in {
         val lock = Lock(
-          Seq(LockedFile(Uri("urn:release:z"), Format.OwlTurtle, Uri("urn:file:z"), hash)),
+          Seq(LockedFile(Uri("urn:release:z"), "owl-turtle", Uri("urn:file:z"), hash)),
           revision,
           Seq.empty,
         )

@@ -7,7 +7,7 @@ import eu.neverblink.ohi.model.generated.{Artifact, Format, Publication}
 import org.virtuslab.yaml.StringNode
 
 private[cli] object OntologyReference {
-  private val formatCodec: LinkmlYamlCodec[Format] = LinkmlYamlCodec.derived
+  private[cli] val formatCodec: LinkmlYamlCodec[Format] = LinkmlYamlCodec.derived
 
   enum Problem {
     case InvalidFormat(message: String)

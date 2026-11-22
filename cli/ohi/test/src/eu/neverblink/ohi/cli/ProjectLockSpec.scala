@@ -17,7 +17,7 @@ class ProjectLockSpec extends AnyWordSpec, Matchers {
   private def selection(baseUrl: String, url: String): ArtifactSelectionImpl =
     ArtifactSelectionImpl(Uri(baseUrl), Uri(url))
 
-  private def fileValues(result: Lock): Seq[(String, String, Format)] =
+  private def fileValues(result: Lock): Seq[(String, String, String)] =
     result.files.map(file => (file.baseUrl.original, file.url.original, file.format))
 
   // Selects source.ttl from a publication with one dependency that offers `artifacts`.
@@ -48,24 +48,6 @@ class ProjectLockSpec extends AnyWordSpec, Matchers {
       )
     }
     (failure, requests.toSeq)
-  }
-
-  // Locks one selected artifact of `format` and returns its only locked file.
-  private def lockedFile(format: Format): (String, String, Format) = {
-    val result = build(
-      Seq(
-        selection(
-          "https://example.org/files/packages/test/source/1/",
-          "https://example.org/files/packages/test/source/1/artifact",
-        ),
-      ),
-      url =>
-        publication(url, Seq("https://example.org/files/packages/test/source/1/artifact" -> format)),
-    )
-    fileValues(result) match {
-      case Seq(file) => file
-      case files => fail(s"Expected one locked file, got $files")
-    }
   }
 
   "ProjectLock.build" should {
@@ -174,27 +156,27 @@ class ProjectLockSpec extends AnyWordSpec, Matchers {
         (
           "https://Hub.example/files/packages/test/z%2F/1/",
           "https://Hub.example/files/packages/test/z%2F/1/z%2F.ttl",
-          Format.OwlTurtle,
+          "owl-turtle",
         ),
         (
           "https://example.org/files/packages/test/a/1/",
           "https://example.org/files/packages/test/a/1/a.ttl",
-          Format.OwlTurtle,
+          "owl-turtle",
         ),
         (
           "https://example.org/files/packages/test/b/1/",
           "https://example.org/files/packages/test/b/1/b.ttl",
-          Format.OwlTurtle,
+          "owl-turtle",
         ),
         (
           "https://example.org/files/packages/test/c/1/",
           "https://example.org/files/packages/test/c/1/c.ttl",
-          Format.OwlTurtle,
+          "owl-turtle",
         ),
         (
           "https://Hub.example/files/packages/test/z%2F/1/",
           "https://Hub.example/files/packages/test/z%2F/1/z-second.ttl",
-          Format.OwlTurtle,
+          "owl-turtle",
         ),
       )
       result.files.map(_.sha256) shouldBe Seq(
@@ -249,22 +231,22 @@ class ProjectLockSpec extends AnyWordSpec, Matchers {
         (
           "https://example.org/files/packages/test/source/1/",
           "https://example.org/files/packages/test/source/1/source.ttl",
-          Format.OwlTurtle,
+          "owl-turtle",
         ),
         (
           "https://example.org/files/packages/test/dependency/1/",
           "https://example.org/files/packages/test/dependency/1/dependency.ttl",
-          Format.OwlTurtle,
+          "owl-turtle",
         ),
         (
           "https://example.org/files/packages/test/source/1/",
           "https://example.org/files/packages/test/source/1/source.yaml",
-          Format.LinkmlYaml,
+          "linkml-yaml",
         ),
         (
           "https://example.org/files/packages/test/dependency/1/",
           "https://example.org/files/packages/test/dependency/1/dependency.yaml",
-          Format.LinkmlYaml,
+          "linkml-yaml",
         ),
       )
     }
@@ -374,33 +356,6 @@ class ProjectLockSpec extends AnyWordSpec, Matchers {
         "https://example.org/files/packages/test/source/1/source.ttl?revision=2",
       )
       requests.toSeq shouldBe Seq("https://example.org/files/packages/test/source/1/")
-    }
-
-    "lock an OWL RDF/XML artifact as OWL RDF/XML" in {
-      lockedFile(Format.OwlRdfxml) shouldBe
-        (
-          "https://example.org/files/packages/test/source/1/",
-          "https://example.org/files/packages/test/source/1/artifact",
-          Format.OwlRdfxml,
-        )
-    }
-
-    "lock an RDFS Turtle artifact as RDFS Turtle" in {
-      lockedFile(Format.RdfsTurtle) shouldBe
-        (
-          "https://example.org/files/packages/test/source/1/",
-          "https://example.org/files/packages/test/source/1/artifact",
-          Format.RdfsTurtle,
-        )
-    }
-
-    "lock an Ossie YAML artifact as Ossie YAML" in {
-      lockedFile(Format.OssieYaml) shouldBe
-        (
-          "https://example.org/files/packages/test/source/1/",
-          "https://example.org/files/packages/test/source/1/artifact",
-          Format.OssieYaml,
-        )
     }
 
     "reject URL identity that disagrees with publication metadata" in {

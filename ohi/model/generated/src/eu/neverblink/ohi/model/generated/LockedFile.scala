@@ -9,7 +9,7 @@ import eu.neverblink.linkml.runtime.*
   *   Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns
   *   its publication JSON. Do not append a filename.
   * @param format
-  *   Ontology language and syntax of the artifact.
+  *   Ontology language and syntax of the file. A Format value, or one from a later version of ohi.
   * @param url
   *   Permanent absolute download URL of an immutable ontology file.
   * @param sha256
@@ -20,7 +20,7 @@ import eu.neverblink.linkml.runtime.*
 final case class LockedFile(
     @named("base_url")
     baseUrl: Uri,
-    format: Format,
+    format: String,
     url: Uri,
     sha256: Option[String] = None,
 ) extends ArtifactSelection {

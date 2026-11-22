@@ -18,17 +18,19 @@ import java.util.Objects;
 @JsonPropertyOrder({"base_url", "format", "url", "sha256"})
 public class LockedFile extends ArtifactSelection {
     @JsonProperty("format")
-    private Format format;
+    private String format;
 
     @JsonProperty("sha256")
     private String sha256;
 
-    /** Ontology language and syntax of the artifact. */
-    public Format getFormat() {
+    /**
+     * Ontology language and syntax of the file. A Format value, or one from a later version of ohi.
+     */
+    public String getFormat() {
         return format;
     }
 
-    public void setFormat(Format format) {
+    public void setFormat(String format) {
         this.format = format;
     }
 
@@ -74,7 +76,7 @@ public class LockedFile extends ArtifactSelection {
     @JsonCreator
     private static LockedFile json$create(
             @JsonProperty(value = "base_url", required = true) String baseUrl,
-            @JsonProperty(value = "format", required = true) Format format,
+            @JsonProperty(value = "format", required = true) String format,
             @JsonProperty(value = "url", required = true) String url,
             @JsonProperty("sha256") String sha256) {
         LockedFile json$item = new LockedFile();

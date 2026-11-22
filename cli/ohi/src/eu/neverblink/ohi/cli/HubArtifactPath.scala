@@ -21,14 +21,20 @@ private[cli] object HubArtifactPath {
   def artifact(url: String, directory: String): Identity = parse(url, directory, artifact = true)
 
   /** Requires an artifact beneath the exact publication authority and path. Returns an encoded
-    * relative filesystem path without inspecting or writing the destination.
+    * relative filesystem path without inspecting or writing the destination. The file is named
+    * after the ontology and `format`, or after the last segment of `url` when this version of ohi
+    * does not know the format.
     */
-  def relative(baseUrl: String, url: String, format: Format, directory: String): Path = {
+  def relative(baseUrl: String, url: String, format: String, directory: String): Path = {
     val identity = publication(baseUrl, directory)
     if artifact(url, directory) != identity then
       throw invalid(url, directory, "The artifact URL is outside its publication URL.")
     val name = encode(identity.name)
-    Path.of(encode(identity.namespace), name, encode(identity.version), s"$name.${suffix(format)}")
+    val file = OntologyReference.parseFormat(format).fold(
+      _ => encode(url.substring(url.lastIndexOf('/') + 1)),
+      known => s"$name.${suffix(known)}",
+    )
+    Path.of(encode(identity.namespace), name, encode(identity.version), file)
   }
 
   private def parse(url: String, directory: String, artifact: Boolean): Identity = {
