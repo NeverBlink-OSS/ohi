@@ -1,0 +1,8 @@
+# Ontologies used by this project.
+# Docs: https://ohi.dev/docs/guides/projects/
+format_version: 1
+default_format: linkml-yaml
+download_dir: .ohi
+dependencies:
+  - ontology: w3c/prov-o@2013
+    format: linkml-yaml

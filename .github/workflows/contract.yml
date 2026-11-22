@@ -1,0 +1,46 @@
+name: Contract schemas
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    paths:
+      - 'model/ohi/v2/**'
+      - 'cli/check-contract.sh'
+      - 'cli/contract/**'
+      - '.github/workflows/contract.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-ci-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    name: Compatibility with released clients
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the check reads the release tags
+
+      - name: Relocate the coursier archive cache # see checks.yml
+        run: echo "COURSIER_ARCHIVE_CACHE=${{ runner.temp }}/cs-arc" >> "$GITHUB_ENV"
+
+      - name: Cache dependencies
+        uses: coursier/cache-action@v8
+        with:
+          extraFiles: '["**/package.mill", "mill-build/src/**/*.scala", "!out/**", "!.bsp/**"]'
+
+      - name: Setup JVM
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Check the contract schemas
+        run: bash cli/check-contract.sh

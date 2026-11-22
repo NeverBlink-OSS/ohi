@@ -82,7 +82,7 @@ Some source files are generated and committed. CI regenerates them and fails if 
 | `generator.options`, `cli.options`                     | `model/converter/all_converters.yaml` |
 | `generator/npm/generator-options.d.ts`, `generator/npm/importer-options.d.ts` | `model/converter/all_generators.yaml`, `model/converter/all_importers.yaml` |
 | `tests.conformance`                                    | the conformance suite's model.yaml |
-| `ohi.model.*`, `cli.ohi.*`, `ohi/python/src/ohi/generated*.py`, `ohi/typescript/src/generated*.ts`, the generated classes in `ohi/java/src/` | `model/ohi/`, `model/ohi/cli/` |
+| `ohi.model.*`, `cli.ohi.*`, `ohi/python/src/ohi/generated*.py`, `ohi/typescript/src/generated*.ts`, the generated classes in `ohi/java/src/` | `model/ohi/`, `model/ohi/v2/`, `model/ohi/cli/` |
 | Agent skill references in `.agents/skills/linkml/`     | the metamodel, four LinkML docs pages and `tests/resources/models/`, see [.agents/README.md](.agents/README.md#maintenance) |
 | `ui/src/linkml.d.ts`                                   | `LinkMlJsApi.scala`, with `./mill ui.types` |
 | `python/ohi_linkml/_generated.py`, `LinkMlCGenerators.scala` | `model/converter/all_converters.yaml`, with `LINKML_NATIVE=1 ./mill nativelib.bindings` |
@@ -147,6 +147,21 @@ npm --prefix ohi/typescript ci
 python -m unittest discover -s ohi/python/tests -v
 npm --prefix ohi/typescript test
 npm --prefix ohi/typescript run test:browser   # browser checks, needs Chrome
+```
+
+### ohi contract
+
+The schemas in [`model/ohi/v2/`](model/ohi/v2/) define what the hub serves. Every client from 0.18.6 on has to keep reading it, so only add to them:
+
+- Add a field only as optional.
+- Never remove, rename or retype a field, or change whether it is required.
+- Add an enum value only where clients skip values they do not know, see `SKIPPED` in [`cli/contract/check.py`](cli/contract/check.py).
+
+A breaking change needs a version 3 next to version 2.
+
+```shell
+bash cli/check-contract.sh     # the schemas against 0.18.6 and the latest release, run on pull requests
+bash cli/check-production.sh   # api.ohi.dev against the 0.18.6 clients and the schemas, run nightly
 ```
 
 ### npm package
