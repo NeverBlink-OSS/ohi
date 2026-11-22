@@ -41,21 +41,22 @@ A schema is parsed once and reused across generators, the same way the [JavaScri
 
 ### Loading
 
-| Function | Use it when |
-|---|---|
-| `load_file(path)` | The schema and its imports are on disk. Behaves like the CLI. |
-| `load_string(schema, imports=None)` | You have the schema as text. `imports` maps filename to YAML text. |
+| Function | Use it when                                                                                                                                           |
+|---|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `load_file(path)` | The schema and its imports are on disk. Behaves like the CLI.                                                                                         |
+| `load_string(schema, imports=None)` | You have the schema as text. `imports` maps filename to YAML text.                                                                                    |
 | `load_path(path, imports)` | Same, but the root is read *through* the map by its own path, so imports that reference the root back resolve to it instead of loading a second copy. |
+| `load_ossie(document)`, `load_owl(document)` | You have an existing ontology. See [Converting to LinkML](#converting-to-linkml).                                                                     |
 
 Keys of the `imports` map are import paths as seen from the root schema. The `.yaml` and `.yml`
 extensions are optional and interchangeable, and each imported schema is loaded only once, even
 when it is reached through different relative paths or, with `load_file`, through symbolic or hard
 links.
 
-All three take `infer_messages=True`, which fills in each issue's human-readable `message` and
+The first three take `infer_messages=True`, which fills in each issue's human-readable `message` and
 `details`. Turn it off for only the structured fields.
 
-All three also take `import_map=`, which maps an import to the location to load it from, such as
+They also take `import_map=`, which maps an import to the location to load it from, such as
 `{"https://example.org/units/": "deps/units/"}`, or is the path of a JSON file with such an object.
 For `load_file` a location is a path, and for `load_string` and `load_path` it is a key of the
 `imports` map. See [Import maps](/docs/import-maps/).
@@ -66,7 +67,7 @@ not: a schema can load and still have things to say about it.
 A generator or importer that can't convert a schema or ontology, for a reason you can fix, raises
 `SchemaConversionError`. Its `.issue` is a `SchemaConversionError` issue, in the same shape as the
 issues of a report, and its `message` says why. For example, `schema.linkml()` raises it for a URI
-that would be read back as a CURIE with another meaning, and `from_ossie` for a document that isn't
+that would be read back as a CURIE with another meaning, and `load_ossie` for a document that isn't
 an Ossie ontology. Both exceptions are a `LinkMlError`, as is any other failure.
 
 ### Generating from LinkML
@@ -95,30 +96,46 @@ All arguments are keyword-only. Their names, values and defaults are the ones in
 `docs()`, which return a filename-to-content dict, and `stats()`, which returns the
 schema statistics as a dict.
 
+`schema.serialize(format="yaml", full_uris=False)` returns the schema as it was loaded, without
+its imports merged in, unlike `linkml()`.
+
 `shacl()`, `rdfs()` and `owl()` take a `format`: `"ttl"` for Turtle, the default, which is prefixed and
 pretty-printed, or `"nt"` for N-Triples. For `linkml()` and `ossie()`, `format` is `"yaml"` or
 `"json"`.
 
 ### Converting to LinkML
 
-We currently support importers for Apache Ossie (incubating) ontologies and for OWL ontologies:
+We currently support importers for Apache Ossie (incubating) ontologies and for OWL ontologies.
+Each loads the schema that the ontology describes:
 
 ```python
-ohi_linkml.from_ossie(document, format="yaml", full_uris=False, schema_id=None)
-ohi_linkml.from_owl(document, config=None, format="yaml", full_uris=False, input_format="ttl", schema_id=None, schemas=None)
+ohi_linkml.load_ossie(document, schema_id=None)
+ohi_linkml.load_owl(document, config=None, input_format="ttl", schema_id=None, schemas=None)
+```
+
+```python
+with ohi_linkml.load_owl(document, config=config) as schema:
+    print(schema.not_imported["warnings"])
+    print(schema.shacl())
+    print(schema.serialize())
 ```
 
 Like the generators, they take the options of
 [`model/converter`](https://github.com/NeverBlink-OSS/ohi/tree/main/model/converter) as
-keyword arguments. Each returns a dict: the LinkML schema in `"schema"`, and what it could not
-import in `"warnings"`, one line for each kind, which is empty if everything was. `"report"` has the
-same as an
+keyword arguments, except `format` and `full_uris`, which only shape the text of the schema: pass
+those to `schema.serialize()`. Each returns a `Schema`, the same as `load_file()`. Its
+`not_imported` has what could not be imported: `"warnings"` has one line for each kind, and is
+empty if everything was, and `"report"` has the same as an
 [`ImportReport`](https://github.com/NeverBlink-OSS/ohi/blob/main/model/import-warnings.yaml), with
-one entry for each thing, and its `"warning_type"`. Pass the schema to `load_string()` to run
-a generator over it. `from_owl()` reads Turtle (and so N-Triples), or N-Triples with its own
-parser with `input_format="nt"`. `config` is the mapping config as a dict, and
-`schemas` gives the LinkML schemas the config maps `owl:imports` to, from file name to YAML text.
-By default those are read from the file system. See [the OWL importer](/docs/importers/owl/).
+one entry for each thing, and its `"warning_type"`. It is None for a schema loaded from LinkML.
+
+`load_owl()` reads Turtle (and so N-Triples), or N-Triples with its own parser with
+`input_format="nt"`. `config` is the mapping config as a dict, and `schemas` gives the LinkML
+schemas the config maps `owl:imports` to, from file name to YAML text. By default those are read
+from the file system. See [the OWL importer](/docs/importers/owl/).
+
+`from_ossie()` and `from_owl()`, which return the schema as text in a dict, are deprecated and
+raise a `DeprecationWarning`. Use the loaders and `schema.serialize()` instead.
 
 ### Validating
 
@@ -166,6 +183,9 @@ char* linkml_json_schema(long long handle, const char* opts, char** err);
 /* rdfs, owl, linkml, frictionless, graphql, typescript, pydantic, java, er_diagram, docs, scala, stats, lint - same shape */
 
 long long linkml_load_file(const char* path, const char* opts, char** report, char** err);
+long long linkml_load_owl (const char* doc, const char* opts, char** not_imported, char** report, char** err);
+/* load_ossie - same shape */
+char*     linkml_serialize(long long handle, const char* opts, char** err);
 void      linkml_close    (long long handle);
 void      linkml_free     (char*);
 

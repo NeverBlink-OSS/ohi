@@ -17,6 +17,9 @@ object TsDefsGen {
   /** What the importers return. index.d.ts declares it, so `report` has its type. */
   private val importResult = "ImportResult"
 
+  /** What the loaders of the importers return next to the schema. Declared the same way. */
+  private val notImported = "NotImported"
+
   /** A file of TypeScript types generated from a LinkML model.
     *
     * @param name
@@ -98,16 +101,27 @@ object TsDefsGen {
 
     val nested = collectClasses(obj).flatMap(collectDefs).toSet
     val importerNames = importers(modelTypeFiles)
+    // The loaders, such as `loadFromOwl`, are declared below from the importers, like them.
+    val generatedNames = importerNames ++ importerNames.map("load" + _.capitalize)
     val methods = collectDefs(obj)
       .filterNot(nested.contains)
       .filterNot(_.mods.exists(_.is[Mod.Private]))
-      .filterNot(d => importerNames(d.name.value))
+      .filterNot(d => generatedNames(d.name.value))
 
-    val members = methods.map(renderMethod(scalaSource, _)).mkString("\n\n")
+    val deprecatedImporters = importerNames.toSeq.sorted.map { name =>
+      val loader = "load" + name.capitalize
+      s"""  /**
+         |   * {@inheritDoc ImporterFunctions.$name}
+         |   * @deprecated Use {@link ${exportedName}Api.$loader} and {@link SchemaView.serialize} instead.
+         |   */
+         |  $name(document: string, ...args: Parameters<ImporterFunctions["$name"]>): $importResult;""".stripMargin
+    }
+    val members = (methods.map(renderMethod(scalaSource, _)) ++ deprecatedImporters)
+      .mkString("\n\n")
     // A name that an earlier file exports already, such as the `PruningMode` of both the schema
     // statistics and the generator options, would be ambiguous, so only the others are exported.
-    // `ImportResult` is declared below, with a typed `report`.
-    val exported = collection.mutable.Set(importResult)
+    // `ImportResult` and `NotImported` are declared below, with a typed `report`.
+    val exported = collection.mutable.Set(importResult, notImported)
     val imports = modelTypes.map { m =>
       val module = s"$modelTypesDir${m.name}.js"
       val comment = m.comment.linesIterator.map("// ".concat).mkString("\n")
@@ -137,6 +151,8 @@ object TsDefsGen {
        |  readonly __linkmlSchemaView: unique symbol;
        |  /** {@inheritDoc GeneratorFunctions.stats} */
        |  stats(params?: StatsGeneratorOptions): SchemaStats;
+       |  /** The schema as it was loaded, without its imports merged in, as YAML or JSON. */
+       |  serialize(params?: SerializeOptions): string;
        |}
        |
        |/**
@@ -146,9 +162,16 @@ object TsDefsGen {
        |export interface LoadResult {
        |  readonly view?: SchemaView;
        |  readonly report: SchemaValidationReport;
+       |  /** What could not be imported, for a schema that an importer's loader made. */
+       |  readonly notImported?: $notImported;
        |}
        |
-       |import type { ImportResult as GeneratedImportResult } from "${modelTypesDir}importer-options.js";
+       |import type {
+       |  ImportResult as GeneratedImportResult,
+       |  NotImported as GeneratedNotImported,
+       |  SchemaOutputOptions,
+       |  SerializeOptions,
+       |} from "${modelTypesDir}importer-options.js";
        |
        |/** What an importer produced: the LinkML schema, and what could not be imported. */
        |export interface $importResult extends Omit<GeneratedImportResult, "report"> {
@@ -159,14 +182,29 @@ object TsDefsGen {
        |  report: ImportReport;
        |}
        |
-       |/** Functions that take the document to import before their options. */
-       |type Importers<F> = {
-       |  [K in keyof F]: F[K] extends (...args: infer A) => infer R
-       |    ? (document: string, ...args: A) => R extends GeneratedImportResult ? $importResult : R
+       |/** What an importer could not import, for a schema that was imported and loaded in one go. */
+       |export interface $notImported extends Omit<GeneratedNotImported, "report"> {
+       |  /**
+       |   * What could not be imported, one entry for each thing. Each warning's `warning_type` says
+       |   * what kind it is. `warnings` has the same, as one line for each kind.
+       |   */
+       |  report: ImportReport;
+       |}
+       |
+       |/**
+       | * One loader for each importer, such as `loadFromOwl` for `fromOwl`. It imports the document
+       | * like the importer, but loads the schema instead of writing it. The options that only shape
+       | * the schema's text are those of {@link SchemaView.serialize} instead.
+       | */
+       |type Loaders<F> = {
+       |  [K in keyof F as K extends string ? `load$${Capitalize<K>}` : never]: F[K] extends (
+       |    params?: infer P,
+       |  ) => unknown
+       |    ? (document: string, params?: Omit<P, keyof SchemaOutputOptions>) => LoadResult
        |    : never;
        |};
        |
-       |export interface ${exportedName}Api extends Importers<ImporterFunctions> {
+       |export interface ${exportedName}Api extends Loaders<ImporterFunctions> {
        |$members
        |}
        |

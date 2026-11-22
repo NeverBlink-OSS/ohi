@@ -52,22 +52,24 @@ class DocSnippetsTest(unittest.TestCase):
 
         import ohi_linkml
 
-        result = ohi_linkml.from_ossie(
+        with ohi_linkml.load_ossie(
             Path("prov-o.ossie.yaml").read_text(),
             schema_id="https://example.org/prov",
-        )
-        self.assertTrue(result["schema"])
+        ) as schema:
+            output = schema.serialize()
+        self.assertTrue(output)
 
     def test_from_owl(self) -> None:
         from pathlib import Path
 
         import ohi_linkml
 
-        result = ohi_linkml.from_owl(
+        with ohi_linkml.load_owl(
             Path("prov-o.ttl").read_text(),
             schema_id="https://example.org/prov",
-        )
-        self.assertTrue(result["schema"])
+        ) as schema:
+            output = schema.serialize()
+        self.assertTrue(output)
 
     def test_graphql(self) -> None:
         import ohi_linkml

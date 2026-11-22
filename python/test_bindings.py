@@ -22,6 +22,7 @@ import tempfile
 import textwrap
 import threading
 import unittest
+import warnings
 from pathlib import Path
 
 import ohi_linkml
@@ -94,7 +95,17 @@ class ExportsTest(unittest.TestCase):
         self.assertEqual(defined - set(_runtime.__all__), set())
 
 
-class FromOwlTest(unittest.TestCase):
+class DeprecatedImporterTest(unittest.TestCase):
+    """For the tests of from_owl() and from_ossie(), which still work but warn."""
+
+    def setUp(self):
+        catcher = warnings.catch_warnings()
+        catcher.__enter__()
+        self.addCleanup(catcher.__exit__, None, None, None)
+        warnings.simplefilter("ignore", DeprecationWarning)
+
+
+class FromOwlTest(DeprecatedImporterTest):
     ONTOLOGY = textwrap.dedent(
         """
         <https://example.org/Person> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Class> .
@@ -169,7 +180,7 @@ class FromOwlTest(unittest.TestCase):
         self.assertIn("kebab", str(raised.exception))
 
 
-class FromOssieTest(unittest.TestCase):
+class FromOssieTest(DeprecatedImporterTest):
     ONTOLOGY = textwrap.dedent(
         """
         version: 0.3.0.dev0
@@ -249,6 +260,79 @@ class FromOssieTest(unittest.TestCase):
         self.assertIn("Not a readable Ossie ontology", issue["reason"])
         self.assertEqual(issue["message"], str(raised.exception))
         self.assertIsInstance(raised.exception, LinkMlError)
+
+
+class LoadImportedTest(unittest.TestCase):
+    def test_loads_an_ossie_ontology(self):
+        with ohi_linkml.load_ossie(FromOssieTest.ONTOLOGY) as schema:
+            self.assertEqual({"warnings": [], "report": {"warnings": []}}, schema.not_imported)
+            self.assertEqual([], schema.issues(ohi_linkml.ERROR))
+            self.assertIn("concept: Airport", schema.ossie())
+
+    def test_loads_an_owl_ontology(self):
+        with ohi_linkml.load_owl(FromOwlTest.ONTOLOGY, input_format="nt") as schema:
+            self.assertTrue(schema.not_imported["warnings"])
+            self.assertTrue(schema.not_imported["report"]["warnings"])
+            self.assertIn("sh:path", schema.shacl())
+
+    def test_loads_the_mapped_imports_it_was_given(self):
+        ontology = FromOwlTest.ONTOLOGY + textwrap.dedent(
+            """
+            <https://example.org/onto> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://www.w3.org/2002/07/owl#Ontology> .
+            <https://example.org/onto> <http://www.w3.org/2002/07/owl#imports> <https://other.example.com/onto> .
+            <https://example.org/Person> <http://www.w3.org/2000/01/rdf-schema#subClassOf> <https://other.example.com/Agent> .
+            """
+        )
+        imported = textwrap.dedent(
+            """
+            id: https://other.example.com/schema
+            name: other
+            prefixes:
+              other: https://other.example.com/
+            default_prefix: other
+            classes:
+              Agent:
+            """
+        )
+        config = {"imports": {"https://other.example.com/onto": "other.yaml"}}
+        with ohi_linkml.load_owl(ontology, config=config, schemas={"other.yaml": imported}) as schema:
+            self.assertIn("is_a: Agent", schema.serialize())
+            self.assertIn("Agent:", schema.linkml())
+
+    def test_serializes_the_schema_as_imported(self):
+        with ohi_linkml.load_ossie(FromOssieTest.ONTOLOGY) as schema:
+            self.assertIn("name: flights", schema.serialize())
+            # As imported: the LinkML types are imported, not merged in.
+            self.assertIn("- linkml:types", schema.serialize())
+            as_json = json.loads(schema.serialize(format="json"))
+            self.assertEqual("flights", as_json["name"])
+
+    def test_options_of_the_text_are_rejected(self):
+        with self.assertRaises(LinkMlError) as raised:
+            ohi_linkml.runtime().load_imported(
+                "linkml_load_ossie", FromOssieTest.ONTOLOGY, {"format": "json"}
+            )
+        self.assertIn("linkml_serialize", str(raised.exception))
+
+    def test_a_document_that_is_not_an_ontology_is_a_conversion_error(self):
+        with self.assertRaises(SchemaConversionError) as raised:
+            ohi_linkml.load_ossie("- not\n- an ontology\n")
+        self.assertIn("Not a readable Ossie ontology", raised.exception.issue["reason"])
+
+    def test_a_schema_loaded_from_linkml_has_nothing_not_imported(self):
+        with ohi_linkml.load_ossie(FromOssieTest.ONTOLOGY) as imported:
+            text = imported.serialize()
+        with ohi_linkml.load_string(text) as schema:
+            self.assertIsNone(schema.not_imported)
+
+    def test_the_old_importers_warn(self):
+        with self.assertWarns(DeprecationWarning) as caught:
+            ohi_linkml.from_ossie(FromOssieTest.ONTOLOGY)
+        self.assertIn("load_ossie()", str(caught.warning))
+        # Pointed at the caller, not at the bindings.
+        self.assertEqual(__file__, caught.filename)
+        with self.assertWarns(DeprecationWarning):
+            ohi_linkml.from_owl(FromOwlTest.ONTOLOGY)
 
 
 class BuildInfoTest(unittest.TestCase):
@@ -595,14 +679,14 @@ class GeneratorTest(unittest.TestCase):
         self.assertIn("owl:Ontology", generated)
         self.assertIn("> .", self.schema.owl(format="nt"))
 
-    def test_owl_round_trips_through_from_owl(self):
+    def test_owl_round_trips_through_load_owl(self):
         def statements(nt):
             # The imported schema declares the linkml prefix, which the original does not, and
             # prefixes are written as sh:declare.
             return [line for line in nt.splitlines() if "http://www.w3.org/ns/shacl#" not in line]
 
         ontology = self.schema.owl()
-        with ohi_linkml.load_string(ohi_linkml.from_owl(ontology)["schema"]) as reloaded:
+        with ohi_linkml.load_owl(ontology) as reloaded:
             self.assertEqual(len(statements(self.schema.owl(format="nt"))), len(statements(reloaded.owl(format="nt"))))
 
     def test_er_diagram(self):

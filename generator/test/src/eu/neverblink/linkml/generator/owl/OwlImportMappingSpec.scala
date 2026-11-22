@@ -1,8 +1,10 @@
 package eu.neverblink.linkml.generator.owl
 
+import eu.neverblink.linkml.generator.SchemaImporter
 import eu.neverblink.linkml.generator.owl.Axiom.*
 import eu.neverblink.linkml.generator.owl.ClassExpr.*
 import eu.neverblink.linkml.generator.options.{
+  File,
   NameStyle,
   OwlImportConfig,
   OwlImporterOptions,
@@ -619,7 +621,7 @@ class OwlImportMappingSpec extends AnyWordSpec, Matchers {
       SubPropertyOf(ns + "owner", other + "related"),
     )
     val config = OwlImportConfigs.parse("imports:\n  https://other.example.com/onto: other.yaml\n")
-    def importWith(schemas: (String, String)*)(extra: Axiom*): OwlImporter.Result =
+    def importWith(schemas: (String, String)*)(extra: Axiom*): SchemaImporter.Result =
       OwlImporter(MapImporter(schemas*)).importOntology(
         Ontology(
           prefixes = prefixes,
@@ -640,6 +642,25 @@ class OwlImportMappingSpec extends AnyWordSpec, Matchers {
       s.slotDefinitions("owner").range shouldBe Some(Reference("Agent"))
       s.slotDefinitions("owner").isA shouldBe Some(Reference("related"))
       result.warnings shouldBe empty
+    }
+
+    "load the schema with the mapped schemas it was imported with" in {
+      val importer = OwlImporter(MapImporter("other.yaml" -> imported))
+      val options = OwlImporterOptions(config = Some(config))
+      val result = importWith("other.yaml" -> imported)()
+      val sv = importer.load(result.schema, options).fold(e => fail(e.toString), identity)
+      sv.root shouldBe result.schema
+      sv.classes.keySet should contain allOf ("Dog", "Animal", "Agent")
+    }
+
+    "load the schema with the mapped schemas that the options carry" in {
+      val options = OwlImporterOptions(
+        config = Some(config),
+        schemas = Map("other.yaml" -> File(path = "other.yaml", content = imported)),
+      )
+      val result = importWith("other.yaml" -> imported)()
+      val sv = OwlImporter().load(result.schema, options).fold(e => fail(e.toString), identity)
+      sv.classes.keySet should contain("Agent")
     }
 
     "report what the ontology says about a term of the imported schema" in {
@@ -766,7 +787,7 @@ object OwlImportMappingSpec {
 
   private val prefixes = Seq("ex" -> ns, "other" -> other)
 
-  def importOf(axioms: Axiom*): OwlImporter.Result =
+  def importOf(axioms: Axiom*): SchemaImporter.Result =
     OwlImporter().importOntology(Ontology(prefixes = prefixes, axioms = axioms))
 
   def schema(axioms: Axiom*): SchemaDefinition = importOf(axioms*).schema

@@ -299,13 +299,13 @@
           "sdk": "Python",
           "label": "Python",
           "lang": "python",
-          "code": "from pathlib import Path\n\nimport ohi_linkml\n\nresult = ohi_linkml.from_ossie(\n    Path(\"prov-o.ossie.yaml\").read_text(),\n    schema_id=\"https://example.org/prov\",\n)"
+          "code": "from pathlib import Path\n\nimport ohi_linkml\n\nwith ohi_linkml.load_ossie(\n    Path(\"prov-o.ossie.yaml\").read_text(),\n    schema_id=\"https://example.org/prov\",\n) as schema:\n    output = schema.serialize()"
         },
         {
           "sdk": "JavaScript",
           "label": "JavaScript",
           "lang": "js",
-          "code": "import { readFileSync } from \"node:fs\";\nimport { LinkML } from \"@neverblink/linkml\";\n\nconst result = LinkML.fromOssie(\n  readFileSync(\"prov-o.ossie.yaml\", \"utf8\"),\n  { schema_id: \"https://example.org/prov\" },\n);"
+          "code": "import { readFileSync } from \"node:fs\";\nimport { LinkML } from \"@neverblink/linkml\";\n\nconst { view, report } = LinkML.loadFromOssie(\n  readFileSync(\"prov-o.ossie.yaml\", \"utf8\"),\n  { schema_id: \"https://example.org/prov\" },\n);\nif (!view) throw new Error(JSON.stringify(report));\nconst output = view.serialize();"
         },
         {
           "sdk": "Scala",
@@ -317,7 +317,7 @@
           "sdk": "C",
           "label": "C",
           "lang": "c",
-          "code": "#include <stddef.h>\n#include \"ohi_linkml.h\"\n\n/* document is the text of prov-o.ossie.yaml. */\n/* The result is an ImportResult in JSON. */\nlinkml_init_threads();\nchar *error = NULL;\nchar *result = linkml_from_ossie(\n    document,\n    \"{\\\"schema_id\\\": \\\"https://example.org/prov\\\"}\",\n    &error\n);\nlinkml_free(result);\nlinkml_free(error);"
+          "code": "#include <stddef.h>\n#include \"ohi_linkml.h\"\n\n/* document is the text of prov-o.ossie.yaml. */\nlinkml_init_threads();\nchar *not_imported = NULL, *report = NULL, *error = NULL;\nlong long schema = linkml_load_ossie(\n    document,\n    \"{\\\"schema_id\\\": \\\"https://example.org/prov\\\"}\",\n    &not_imported,\n    &report,\n    &error\n);\nchar *output = linkml_serialize(schema, NULL, &error);\nlinkml_free(output);\nlinkml_free(not_imported);\nlinkml_free(report);\nlinkml_free(error);\nlinkml_close(schema);"
         }
       ],
       "options": [
@@ -380,13 +380,13 @@
           "sdk": "Python",
           "label": "Python",
           "lang": "python",
-          "code": "from pathlib import Path\n\nimport ohi_linkml\n\nresult = ohi_linkml.from_owl(\n    Path(\"prov-o.ttl\").read_text(),\n    schema_id=\"https://example.org/prov\",\n)"
+          "code": "from pathlib import Path\n\nimport ohi_linkml\n\nwith ohi_linkml.load_owl(\n    Path(\"prov-o.ttl\").read_text(),\n    schema_id=\"https://example.org/prov\",\n) as schema:\n    output = schema.serialize()"
         },
         {
           "sdk": "JavaScript",
           "label": "JavaScript",
           "lang": "js",
-          "code": "import { readFileSync } from \"node:fs\";\nimport { LinkML } from \"@neverblink/linkml\";\n\nconst result = LinkML.fromOwl(\n  readFileSync(\"prov-o.ttl\", \"utf8\"),\n  { schema_id: \"https://example.org/prov\" },\n);"
+          "code": "import { readFileSync } from \"node:fs\";\nimport { LinkML } from \"@neverblink/linkml\";\n\nconst { view, report } = LinkML.loadFromOwl(\n  readFileSync(\"prov-o.ttl\", \"utf8\"),\n  { schema_id: \"https://example.org/prov\" },\n);\nif (!view) throw new Error(JSON.stringify(report));\nconst output = view.serialize();"
         },
         {
           "sdk": "Scala",
@@ -398,7 +398,7 @@
           "sdk": "C",
           "label": "C",
           "lang": "c",
-          "code": "#include <stddef.h>\n#include \"ohi_linkml.h\"\n\n/* document is the text of prov-o.ttl. */\n/* The result is an ImportResult in JSON. */\nlinkml_init_threads();\nchar *error = NULL;\nchar *result = linkml_from_owl(\n    document,\n    \"{\\\"schema_id\\\": \\\"https://example.org/prov\\\"}\",\n    &error\n);\nlinkml_free(result);\nlinkml_free(error);"
+          "code": "#include <stddef.h>\n#include \"ohi_linkml.h\"\n\n/* document is the text of prov-o.ttl. */\nlinkml_init_threads();\nchar *not_imported = NULL, *report = NULL, *error = NULL;\nlong long schema = linkml_load_owl(\n    document,\n    \"{\\\"schema_id\\\": \\\"https://example.org/prov\\\"}\",\n    &not_imported,\n    &report,\n    &error\n);\nchar *output = linkml_serialize(schema, NULL, &error);\nlinkml_free(output);\nlinkml_free(not_imported);\nlinkml_free(report);\nlinkml_free(error);\nlinkml_close(schema);"
         }
       ],
       "options": [

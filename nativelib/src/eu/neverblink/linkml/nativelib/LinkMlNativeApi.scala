@@ -17,7 +17,12 @@ import eu.neverblink.linkml.generator.shacl.ShaclGenerator
 import eu.neverblink.linkml.generator.stats.StatsGenerator
 import eu.neverblink.linkml.generator.translation.TranslationGenerator
 import eu.neverblink.linkml.generator.SchemaImporter
-import eu.neverblink.linkml.generator.options.{ImportResult, JsonOutputFormat, SchemaOutputOptions}
+import eu.neverblink.linkml.generator.options.{
+  ImportResult,
+  JsonOutputFormat,
+  NotImported,
+  SchemaOutputOptions,
+}
 import eu.neverblink.linkml.generator.util.JsonUtil
 import eu.neverblink.linkml.rdf.RdfParseException
 import eu.neverblink.linkml.runtime.SchemaConversionException
@@ -27,6 +32,7 @@ import eu.neverblink.linkml.schemaview.{
   FileSystemImporter,
   ImportMapImporter,
   Importer,
+  SchemaCodec,
   SchemaIssues,
   SchemaValidator,
   SchemaView,
@@ -59,15 +65,22 @@ object LinkMlNativeApi {
     *   - 4: the options of the generators follow `model/converter/all_generators.yaml`, so their
     *     names are in snake case, and a tree root override is a `tree_root` option of its own. The
     *     options of loading, linting and the importers are in snake case too.
+    *   - 5: added `linkml_load_ossie`, `linkml_load_owl` and `linkml_serialize`.
     */
-  final val abiVersion: Int = 4
+  final val abiVersion: Int = 5
 
   private val schemas = new ConcurrentHashMap[_root_.java.lang.Long, SchemaView]()
 
   private val handleSeq = new AtomicLong(0L)
 
-  /** A loaded schema: the handle to use for it, and the validation report from loading it. */
-  final class Loaded private[nativelib] (val handle: Long, val report: String)
+  /** A loaded schema: the handle to use for it, and the validation report from loading it. For a
+    * schema an importer made, also what it could not import, as a `NotImported` in JSON.
+    */
+  final class Loaded private[nativelib] (
+      val handle: Long,
+      val report: String,
+      val notImported: String = null,
+  )
 
   // Loading
 
@@ -114,6 +127,22 @@ object LinkMlNativeApi {
       if schema eq null then throw BadRequest("loading needs either a path or the schema text")
       withImportMap(files, None, options)(SchemaView.loadSchemaViewFromString(schema, _))
     }
+  }
+
+  /** Import an Apache Ossie ontology and load the LinkML schema it describes. */
+  def loadOssie(ontology: String, optionsJson: String): Loaded =
+    loadImported(OssieImporter(), ontology, Options.loadOssie(optionsJson))
+
+  /** Import an OWL ontology, in Turtle or N-Triples, and load the LinkML schema it describes. */
+  def loadOwl(ontology: String, optionsJson: String): Loaded =
+    loadImported(OwlImporter(), ontology, Options.loadOwl(optionsJson))
+
+  /** The schema as it was loaded, without its imports merged in, as YAML or JSON depending on the
+    * `format` option.
+    */
+  def serialize(handle: Long, optionsJson: String, out: OutputStream): Unit = {
+    val options = Options.serialize(optionsJson)
+    JsonUtil.write(SchemaCodec.encode(view(handle).root, options.fullUris), options.format, out)
   }
 
   /** Drop a schema handle. Closing one that is already gone is not an error, so a caller can close
@@ -199,6 +228,19 @@ object LinkMlNativeApi {
   /** The LinkML schema an OWL ontology, in Turtle or N-Triples, describes. */
   def fromOwl(ontology: String, optionsJson: String, out: OutputStream): Unit =
     imported(OwlImporter(), ontology, Options.fromOwl(optionsJson), out)
+
+  private def loadImported[O <: SchemaOutputOptions](
+      importer: SchemaImporter[O],
+      document: String,
+      options: O,
+  ): Loaded = {
+    if document eq null then throw BadRequest("no document to import was given")
+    val result =
+      importer.importWithWarnings(ByteArrayInputStream(document.getBytes(UTF_8)), options)
+    val notImported =
+      JsonUtil.yamlToJson(LinkmlYamlCodec.derived[NotImported].encode(result.notImported))
+    loaded(importer.load(result.schema, options), None, inferMessages = true, notImported)
+  }
 
   /** What an importer made of the document, as an `ImportResult` in JSON. The schema in it is YAML
     * or JSON depending on the `format` option.
@@ -315,14 +357,15 @@ object LinkMlNativeApi {
       options: LoadOptions,
   )(load: Importer => Either[Seq[SchemaIssue], SchemaView]): Loaded =
     ImportMapImporter.fromEntries(options.importMap, underlying) match {
-      case Right(importer) => loaded(load(importer), runId, options)
-      case Left(issue) => loaded(new Left(Seq(issue)), runId, options)
+      case Right(importer) => loaded(load(importer), runId, options.inferMessages)
+      case Left(issue) => loaded(new Left(Seq(issue)), runId, options.inferMessages)
     }
 
   private def loaded(
       result: Either[Seq[SchemaIssue], SchemaView],
       runId: Option[String],
-      options: LoadOptions,
+      inferMessages: Boolean,
+      notImported: String = null,
   ): Loaded =
     result match {
       case Right(sv) =>
@@ -331,9 +374,9 @@ object LinkMlNativeApi {
         // Lint straight away, so the report covers errors and warnings too, not just the fatals that
         // would have blocked loading.
         val issues = SchemaValidator(using sv).lintProblems
-        new Loaded(handle, report(issues, runId, options.inferMessages))
+        new Loaded(handle, report(issues, runId, inferMessages), notImported)
       case Left(fatals) =>
-        new Loaded(0L, report(fatals, runId, options.inferMessages))
+        new Loaded(0L, report(fatals, runId, inferMessages), notImported)
     }
 
   private def view(handle: Long): SchemaView = {

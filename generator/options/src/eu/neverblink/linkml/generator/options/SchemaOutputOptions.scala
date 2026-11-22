@@ -3,7 +3,7 @@
 
 package eu.neverblink.linkml.generator.options
 
-/** Options of the importers, which write a LinkML schema.
+/** Options of what writes a LinkML schema, such as the importers.
   *
   * @see
   *   From schema: https://linkml.ohi.dev/model/converter/shared

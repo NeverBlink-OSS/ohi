@@ -2,9 +2,10 @@ package eu.neverblink.linkml.nativelib
 
 import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.github.plokhotnyuk.jsoniter_scala.macros.{CodecMakerConfig, JsonCodecMaker}
+import eu.neverblink.linkml.generator.SchemaImporter
 import eu.neverblink.linkml.generator.options.*
 import eu.neverblink.linkml.yaml.LinkmlYamlCodec
-import org.virtuslab.yaml.parseYaml
+import org.virtuslab.yaml.{Node, parseYaml}
 
 import scala.util.control.NonFatal
 
@@ -87,6 +88,32 @@ private object Options {
 
   def fromOwl(json: String): OwlImporterOptions =
     model(json, OwlImporterOptions())(using LinkmlYamlCodec.derived)
+
+  def loadOssie(json: String): OssieImporterOptions = withoutText(json, fromOssie)
+
+  def loadOwl(json: String): OwlImporterOptions = withoutText(json, fromOwl)
+
+  def serialize(json: String): SerializeOptions =
+    model(json, SerializeOptions())(using LinkmlYamlCodec.derived)
+
+  /** The options of an importer, for loading what it imports. Those that only shape the schema's
+    * text are refused, since loading writes none.
+    */
+  private def withoutText[T](json: String, read: String => T): T = {
+    if json ne null then
+      parseYaml(json) match {
+        case Right(Node.MappingNode(entries, _)) =>
+          entries.keys
+            .collectFirst {
+              case Node.ScalarNode(key, _) if SchemaImporter.textOptions.contains(key) => key
+            }
+            .foreach { key =>
+              throw BadRequest(s"loading takes no `$key` option: pass it to linkml_serialize")
+            }
+        case _ => ()
+      }
+    read(json)
+  }
 
   // The options below are not part of the model, and are read with jsoniter. Unknown fields are
   // rejected rather than skipped, and the names are in snake case like the generator options. The

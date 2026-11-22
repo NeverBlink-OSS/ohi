@@ -1,5 +1,7 @@
 package eu.neverblink.linkml.optionsgen
 
+import eu.neverblink.linkml.generator.SchemaImporter
+
 /** An SDK, with the name and the code block language of its tab in the docs. */
 enum Sdk(val label: String, val lang: String) {
   case Cli extends Sdk("CLI", "shell")
@@ -97,19 +99,22 @@ object Snippets {
   }
 
   private def python(function: ConverterFunction, examples: Examples): Snippet = {
-    val args = examples.map((f, value) => s"${f.name}=${pythonValue(f, value)}")
+    val args = examples.map(pythonArg)
     if function.isImporter then {
-      val call = Code.call(
-        s"result = ohi_linkml.${function.name}(",
-        s"""Path("${input(function)}").read_text()""" +: args,
-        ")",
+      val (load, text) = byStep(examples)
+      val open = Code.call(
+        s"with ohi_linkml.${function.loader.get.name}(",
+        s"""Path("${input(function)}").read_text()""" +: load.map(pythonArg),
+        ") as schema:",
         "    ",
       )
+      val serialize =
+        Code.call("output = schema.serialize(", text.map(pythonArg), ")", "    ", "    ")
       Snippet(
         Sdk.Python,
         Seq("from pathlib import Path", "", "import ohi_linkml"),
-        call,
-        "result",
+        s"$open\n$serialize",
+        "output",
       )
     } else {
       val result = resultName(function)
@@ -120,6 +125,15 @@ object Snippets {
     }
   }
 
+  private def pythonArg(f: OptionField, value: String): String =
+    s"${f.name}=${pythonValue(f, value)}"
+
+  /** The examples of an importer: those for its loader, and those for `serialize`, which shape the
+    * text.
+    */
+  private def byStep(examples: Examples): (Examples, Examples) =
+    examples.partition((f, _) => !SchemaImporter.textOptions.contains(f.name))
+
   private def pythonValue(f: OptionField, value: String): String = f.valueType match {
     case "Boolean" => value.capitalize
     case "Int" => value
@@ -127,21 +141,36 @@ object Snippets {
   }
 
   private def javaScript(function: ConverterFunction, examples: Examples): Snippet = {
-    val options =
+    def jsOptions(examples: Examples) =
       if examples.isEmpty then Nil
       else
         Seq(
           examples.map((f, value) => s"${f.name}: ${jsValue(f, value)}").mkString("{ ", ", ", " }"),
         )
+    val options = jsOptions(examples)
     val imports = Seq(
       """import { readFileSync } from "node:fs";""",
       """import { LinkML } from "@neverblink/linkml";""",
     )
     val read = s"""readFileSync("${input(function)}", "utf8")"""
     if function.isImporter then {
-      val call =
-        Code.call(s"const result = LinkML.${function.scalaName}(", read +: options, ");", "  ")
-      Snippet(Sdk.JavaScript, imports, call, "result")
+      val (load, text) = byStep(examples)
+      val call = Code.call(
+        s"const { view, report } = LinkML.${function.loader.get.jsName}(",
+        read +: jsOptions(load),
+        ");",
+        "  ",
+      )
+      val body =
+        s"""$call
+           |if (!view) throw new Error(JSON.stringify(report));
+           |${Code.call(
+            "const output = view.serialize(",
+            jsOptions(text),
+            ");",
+            "  ",
+          )}""".stripMargin
+      Snippet(Sdk.JavaScript, imports, body, "output")
     } else {
       val result = resultName(function)
       val body =
@@ -228,7 +257,7 @@ object Snippets {
   }
 
   private def c(function: ConverterFunction, examples: Examples): Snippet = {
-    val json =
+    def jsonOf(examples: Examples) =
       if examples.isEmpty then "NULL"
       else
         Code.quoted(
@@ -238,26 +267,37 @@ object Snippets {
             "}",
           ),
         )
+    val json = jsonOf(examples)
     if function.isImporter then {
+      val (load, text) = byStep(examples)
       val body =
         s"""/* document is the text of ${input(function)}. */
-           |/* The result is an ImportResult in JSON. */
            |linkml_init_threads();
-           |char *error = NULL;
+           |char *not_imported = NULL, *report = NULL, *error = NULL;
            |${Code.call(
-            s"char *result = ${function.symbol}(",
-            Seq("document", json, "&error"),
+            s"long long schema = ${function.loader.get.symbol}(",
+            Seq("document", jsonOf(load), "&not_imported", "&report", "&error"),
             ");",
             "    ",
             trailing = false,
           )}
-           |linkml_free(result);
-           |linkml_free(error);""".stripMargin
+           |${Code.call(
+            "char *output = linkml_serialize(",
+            Seq("schema", jsonOf(text), "&error"),
+            ");",
+            "    ",
+            trailing = false,
+          )}
+           |linkml_free(output);
+           |linkml_free(not_imported);
+           |linkml_free(report);
+           |linkml_free(error);
+           |linkml_close(schema);""".stripMargin
       Snippet(
         Sdk.C,
         Seq("#include <stddef.h>", "#include \"ohi_linkml.h\""),
         body,
-        "result",
+        "output",
       )
     } else {
       val result = resultName(function)

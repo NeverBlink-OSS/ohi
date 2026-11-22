@@ -29,7 +29,7 @@ Generators available on a `Schema`: `json_schema()`, `shacl()`, `rdfs()`, `linkm
 [the Pydantic guide](https://linkml.ohi.dev/docs/generators/pydantic/) and
 [the Java guide](https://linkml.ohi.dev/docs/generators/java/).
 
-Going the other way, `ohi_linkml.from_ossie()` reads an Apache Ossie (incubating) ontology, and `ohi_linkml.from_owl()` an OWL ontology in Turtle or N-Triples. Each returns a dict with the corresponding LinkML schema, and what it could not import: as lines in `"warnings"`, and as an `ImportReport` with one entry for each thing in `"report"`.
+Going the other way, `ohi_linkml.load_ossie()` reads an Apache Ossie (incubating) ontology, and `ohi_linkml.load_owl()` an OWL ontology in Turtle or N-Triples. Each returns a `Schema`, the same as `load_file()`, and `schema.serialize()` writes it as LinkML. What could not be imported is in `schema.not_imported`: as lines in `"warnings"`, and as an `ImportReport` with one entry for each thing in `"report"`. The older `from_ossie()` and `from_owl()`, which return the schema as text, are deprecated.
 
 To work from memory instead of the file system, use `load_string()` for a single schema or
 `load_path()` when imports are involved:

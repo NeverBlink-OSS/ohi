@@ -482,12 +482,20 @@ object SchemaView {
       yaml: String,
       importer: Importer = FileSystemImporter,
   ): Either[Seq[SchemaFatal], SchemaView] =
-    guarded(
-      importer.parseSchema(yaml)
-        .flatMap(root => loadImports(root, "", importer).map(root +: _))
-        .left.map(Seq(_))
-        .flatMap(viewOf),
-    )
+    guarded(importer.parseSchema(yaml).left.map(Seq(_)).flatMap(loadSchemaView(_, importer)))
+
+  /** Loads a schema view from a schema that is already parsed, such as one an importer made,
+    * loading its imports.
+    *
+    * @param baseUri
+    *   where the schema is, for resolving its relative imports
+    */
+  def loadSchemaView(
+      root: SchemaDefinition,
+      importer: Importer = FileSystemImporter,
+      baseUri: String = "",
+  ): Either[Seq[SchemaFatal], SchemaView] =
+    guarded(loadImports(root, baseUri, importer).map(root +: _).left.map(Seq(_)).flatMap(viewOf))
 
   /** Run a load, reporting anything it throws as an
     * [[eu.neverblink.linkml.validation.UnexpectedError]].

@@ -1,5 +1,6 @@
 package eu.neverblink.linkml.generator.owl
 
+import eu.neverblink.linkml.generator.SchemaImporter
 import eu.neverblink.linkml.generator.options.{
   JsonOutputFormat,
   OwlGeneratorOptions,
@@ -374,7 +375,7 @@ object OwlImporterSpec {
   private def stream(text: String) = ByteArrayInputStream(text.getBytes(UTF_8))
 
   /** Imports `body` as Turtle, with the usual prefixes and an ontology header in front. */
-  def importing(body: String): OwlImporter.Result =
+  def importing(body: String): SchemaImporter.Result =
     OwlImporter().importWithWarnings(
       stream(
         """@prefix : <https://example.org/test/> .

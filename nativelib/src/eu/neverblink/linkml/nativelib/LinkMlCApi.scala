@@ -73,6 +73,10 @@ object LinkMlCApi {
     }
   }
 
+  @exported("linkml_serialize")
+  def serialize(handle: CLongLong, options: CString, error: Ptr[CString]): CString =
+    document(handle, options, error, LinkMlNativeApi.serialize)
+
   @exported("linkml_close")
   def close(handle: CLongLong): Unit =
     try LinkMlNativeApi.close(handle)
@@ -102,6 +106,32 @@ object LinkMlCApi {
       body: (Long, String, OutputStream) => Unit,
   ): CString =
     write(error, out => body(handle, string(options), out))
+
+  /** Import a document and load the schema it describes, as `linkml_load_ossie` and
+    * `linkml_load_owl` do.
+    */
+  private[nativelib] def loadImported(
+      document: CString,
+      options: CString,
+      notImported: Ptr[CString],
+      report: Ptr[CString],
+      error: Ptr[CString],
+      body: (String, String) => LinkMlNativeApi.Loaded,
+  ): CLongLong = {
+    clear(notImported)
+    clear(report)
+    clear(error)
+    try {
+      val loaded = body(string(document), string(options))
+      set(notImported, loaded.notImported)
+      set(report, loaded.report)
+      loaded.handle
+    } catch {
+      case t: Throwable =>
+        set(error, LinkMlNativeApi.describe(t))
+        0L
+    }
+  }
 
   private[nativelib] def imported(
       document: CString,

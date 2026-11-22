@@ -153,6 +153,36 @@ int main(void) {
         expect_refused("a closed handle is refused", out, &error, "closed");
     }
 
+    /* A loader imports an ontology and returns a handle, like loading LinkML. */
+    {
+        char *not_imported = NULL;
+        long long imported = linkml_load_ossie(
+            "version: 0.3.0.dev0\n"
+            "name: flights\n"
+            "ontology:\n"
+            "  - concept: Airport\n"
+            "    type: EntityType\n",
+            NULL, &not_imported, &report, &error);
+        if (imported <= 0) {
+            fail("load an ontology", error != NULL ? error : report);
+        } else if (not_imported == NULL) {
+            fail("load an ontology", "nothing was written to not_imported");
+        } else {
+            ok("load an ontology");
+        }
+        linkml_free(not_imported);
+        linkml_free(report);
+        linkml_free(error);
+        report = NULL;
+        error = NULL;
+
+        if (imported > 0) {
+            char *out = linkml_serialize(imported, "{\"format\":\"json\"}", &error);
+            expect("serialize", out, &error, "\"Airport\"");
+            linkml_close(imported);
+        }
+    }
+
     /* A handle that was never issued. */
     char *never = linkml_shacl(999999, NULL, &error);
     expect_refused("an unknown handle is refused", never, &error, "999999");
