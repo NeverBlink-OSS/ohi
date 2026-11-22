@@ -87,10 +87,17 @@ object `package` extends Module, NativeOptional {
       if _root_.scala.util.Properties.isMac then Seq(s"-mmacosx-version-min=13.0")
       else Seq.empty
 
+    /** The MSVC headers refuse clangs older than they expect (STL1000), and the Windows runners
+      * ship a newer MSVC than clang. Only the Scala Native runtime's `eh.cpp` includes them.
+      */
+    private def stlMismatch =
+      if _root_.scala.util.Properties.isWin then Seq("-D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH")
+      else Seq.empty
+
     /** _LIBUNWIND_IS_NATIVE_ONLY: see https://github.com/scala-native/scala-native/pull/5034
       */
     override def nativeCompileOptions = Task {
-      super.nativeCompileOptions() ++ macosTarget ++
+      super.nativeCompileOptions() ++ macosTarget ++ stlMismatch ++
         Seq("-O3", "-D_LIBUNWIND_IS_NATIVE_ONLY")
     }
 
