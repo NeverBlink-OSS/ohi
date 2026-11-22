@@ -2,10 +2,14 @@ package eu.neverblink.ohi.cli
 
 import eu.neverblink.linkml.runtime.stringify
 import eu.neverblink.linkml.cli.TerminalOutput
+import eu.neverblink.ohi.catalog.OhiPages
 import eu.neverblink.ohi.model.generated.Format
 
 import java.io.PrintStream
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.Path
+import scala.util.Try
 
 private[cli] object CliFormatting {
   val formats: Seq[(Format, String)] = Seq(
@@ -35,6 +39,22 @@ private[cli] object CliFormatting {
             .mkString(", "),
         )
     }
+
+  /** Link to a release for people: its page on ohi.dev when it is published there, otherwise its
+    * base URL, as for releases on other hubs.
+    */
+  def releaseLink(baseUrl: String): String =
+    if !baseUrl.startsWith("https://api.ohi.dev/files/packages/") then baseUrl
+    else
+      Try(HubArtifactPath.publication(baseUrl, ".")).toOption.fold(baseUrl) { identity =>
+        // Path segments use %2B for a plus sign, while URLDecoder reads a plain + as a space.
+        def decode(segment: String) = URLDecoder.decode(segment.replace("+", "%2B"), UTF_8)
+        OhiPages.releasePage(
+          decode(identity.namespace),
+          decode(identity.name),
+          decode(identity.version),
+        )
+      }
 
   def enabled(stream: PrintStream): Boolean =
     TerminalOutput.colored(stream)

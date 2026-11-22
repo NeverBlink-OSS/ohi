@@ -1,7 +1,14 @@
 package eu.neverblink.ohi.cli
 
 import eu.neverblink.linkml.runtime.{LinkmlDateTime, Uri}
-import eu.neverblink.ohi.model.generated.{Agent, ArtifactOrigin, Citation, Format, SearchHit}
+import eu.neverblink.ohi.model.generated.{
+  Agent,
+  ArtifactOrigin,
+  Citation,
+  Dependency,
+  Format,
+  SearchHit,
+}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -38,7 +45,7 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
     |  Ontology: test/example
     |  Version: 1
     |  Description: Synthetic selection metadata
-    |  Release URL: https://example.org/release/1/
+    |  URL: https://example.org/release/1/
     |
     |Files
     |  Z sensor+v2.ttl
@@ -99,12 +106,12 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
           publication.copy(nativeElementCount = native, elementCount = linkml),
           json = false,
         )
-      render(Some(95), Some(120)) shouldBe expected.replace(
-        "  Release URL:",
-        "  Elements: 95 native, 120 in LinkML\n  Release URL:",
+      render(Some(95), Some(120)) shouldBe expected.replaceFirst(
+        "\n  URL:",
+        "\n  Elements: 95 native, 120 in LinkML\n  URL:",
       )
       render(Some(120), Some(120)) should include(
-        "  Description: Synthetic selection metadata\n  Elements: 120\n  Release URL:",
+        "  Description: Synthetic selection metadata\n  Elements: 120\n  URL:",
       )
       render(None, Some(120)) should include("\n  Elements: 120 in LinkML\n")
       render(Some(95), None) should include("\n  Elements: 95 native\n")
@@ -187,7 +194,20 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
         "  Description: This ontology describes measurements from temperature sensors and\n" +
           "    humidity sensors in rooms.\n",
       )
-      output should include(s"  Release URL: $url\n")
+      output should include(s"  URL: $url\n")
+    }
+
+    "link the release and its dependencies on ohi.dev to their pages" in {
+      val hub = "https://api.ohi.dev/files/packages"
+      val output = CatalogOutput.publication(
+        base.copy(
+          baseUrl = Uri(s"$hub/test/example/1/"),
+          dependencies = Seq(Dependency(Uri(s"$hub/w3c/prov-o/2013/"))),
+        ),
+        json = false,
+      )
+      output should include("  URL: https://ohi.dev/o/test/example@1\n")
+      output should include("\nDependencies\n  https://ohi.dev/o/w3c/prov-o@2013\n")
     }
 
     "list 10 versions after the release URL, then the count of the rest" in {
@@ -198,7 +218,7 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
         versions = Some(CatalogOutput.Versions(None, releases)),
       )
       output should include(
-        """  Release URL: https://example.org/release/1/
+        """  URL: https://example.org/release/1/
           |
           |Versions
           |  - test/example@12

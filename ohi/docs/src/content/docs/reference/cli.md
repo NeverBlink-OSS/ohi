@@ -60,7 +60,7 @@ ohi search 'energy' --filter-by 'namespace:=saref' --per-page 5
 | Option | Effect |
 | --- | --- |
 | `--page <number>` | Page to return, starting at `1`. Default `1`. |
-| `--per-page <number>` | Matches per page, from `1` to `250`. Default `10`. |
+| `--per-page <number>` | Matches per page, from `1` to `250`. Default `5`. |
 | `--filter-by <expression>` | Filter matches, for example `namespace:=saref`. |
 | `--sort-by <expression>` | Order matches, for example `published_at:desc`. |
 | `--facet-by <fields>` | Count values for comma-separated fields, such as `namespace`. |
@@ -80,7 +80,8 @@ ohi inspect <namespace/name[@version]> [options]
 ohi inspect <release-url> [options]
 ```
 
-Shows a release's metadata, all files, formats and dependency URLs. For a reference, terminal
+Shows a release's metadata, all files, formats and dependencies. Releases on ohi.dev link to their
+pages there. For a reference, terminal
 output also lists the ontology's versions, latest first.
 
 ```sh
