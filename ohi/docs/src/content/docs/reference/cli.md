@@ -46,6 +46,10 @@ specific format:
 The release must provide exactly one file in the requested format. ohi does not search older
 releases when a format is unavailable.
 
+Published versions may be corrected with a revision, such as `w3c/prov-o@2013-revision-2026-12-01`. 
+By default, the latest revision is selected, unless an exact revision is requested.
+To opt out of revisions completely, add `-no-revision`, for example `w3c/prov-o@2013-no-revision`.
+
 ## search
 
 `ohi search <query> [options]`
@@ -141,7 +145,8 @@ ohi add <release-url> --artifact <file-url> [options]
 ```
 
 Adds the ontology's version and format to `ohi.yaml`, updates `ohi.lock.json`, and downloads
-the project's ontologies and dependencies.
+the project's ontologies and dependencies. `ohi.yaml` gets the version, and `ohi.lock.json` its
+latest revision. Adding an ontology doesn't change the revisions locked for the others.
 
 ```sh
 ohi add w3c/prov-o@2013 --format owl-turtle
@@ -156,7 +161,9 @@ ohi add w3c/prov-o@2013 --format owl-turtle
 Downloads use the project's `download_dir`. If needed, `add` creates `ohi.yaml` with
 `default_format: linkml-yaml` and `download_dir: .ohi`.
 
-For the URL form, use the release and file URLs shown by `ohi inspect <reference>`.
+For the URL form, use the release and file URLs shown by `ohi inspect <reference>`. `ohi.yaml`
+then gets exactly that release: a revision such as `2013-revision-2026-12-01`, or a version such as
+`2013-no-revision`.
 
 See [Manage ontology projects](/docs/guides/projects/) for the complete workflow.
 
@@ -187,9 +194,11 @@ Use `--locked` in CI to make sure the committed lock matches `ohi.yaml`.
 
 ## lock
 
-`ohi lock [--project <directory>] [--check] [--json]`
+`ohi lock [--project <directory>] [--check] [--upgrade] [--json]`
 
 Rebuilds `ohi.lock.json` using the versions and formats in `ohi.yaml`, without downloading files.
+A version that is already locked keeps its locked revision. Use `--upgrade` to move every version
+to its latest revision.
 
 ```sh
 ohi lock --project ./my-project
@@ -199,6 +208,7 @@ ohi lock --project ./my-project
 |-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
 | `--project <directory>` | Directory containing `ohi.yaml`. Default is the current directory.                                                                          |
 | `--check`               | Only check that `ohi.lock.json` matches the dependencies in `ohi.yaml`. Fails if it doesn't or if it is missing. Does not change any files. |
+| `--upgrade`             | Resolve every dependency again, to the latest revision of its version. Can't be used with `--check`.                                        |
 
 ## linkml
 

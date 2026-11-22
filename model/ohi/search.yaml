@@ -68,6 +68,7 @@ classes:
     - description
     - licenses
     - published_at
+    - hub_version
     - keywords
     - element_count
     - native_element_count
@@ -85,6 +86,14 @@ classes:
         required: true
         multivalued: true
         minimum_cardinality: 1
+      original_version:
+        description: The version first published. For a revision, the original_version of its revision,
+          otherwise the version itself. Filtering on it finds a release and all its revisions.
+        range: string
+      revision_id:
+        description: The id of the revision, only for a revision. The latest revision of a version is
+          its document in packages_latest_revision.
+        range: string
   FacetCount:
     description: Counts for the returned values of one indexed field.
     extra_slots:

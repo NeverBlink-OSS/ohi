@@ -21,6 +21,13 @@ if page.hits:
     content = client.get(artifact.url)
 ```
 
+`inspect` and `latest` also take an ontology reference such as `w3c/dcat@3` instead of a URL, see [ontology references](https://ohi.dev/docs/reference/cli/#ontology-references-and-formats).
+
+```python
+hit = client.latest("w3c/dcat@3")  # search hit, or None
+publication = client.inspect("w3c/dcat@3")
+```
+
 `get` returns the file's bytes.
 
 **See the [SDK documentation](https://ohi.dev/docs/reference/sdks/)** for configuration, file selections, metadata and errors.

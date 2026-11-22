@@ -60,6 +60,10 @@ private[cli] object CatalogOutput {
       output += styled(clean(result.title), "1", colored)
       field("Ontology", s"${result.namespace}/${result.name}", code = "36")
       field("Version", result.version)
+      result.revision.foreach { revision =>
+        field("Revises", CliFormatting.releaseLink(revision.revises.original), code = "36")
+        revision.reason.foreach(field("Revision reason", _))
+      }
       SearchOutput.wrap(result.description, 80, "  Description: ", "    ").zipWithIndex.foreach {
         (line, index) =>
           val prefix = if index == 0 then 15 else 4
@@ -88,12 +92,7 @@ private[cli] object CatalogOutput {
       result.artifacts.zipWithIndex.foreach { (artifact, index) =>
         if index > 0 then output += ""
         val url = artifact.url.original
-        val name = try
-          Option(URI.create(url).getPath).map(_.split("/", -1).last).filter(_.nonEmpty).getOrElse(
-            url,
-          )
-        catch { case _: IllegalArgumentException => url }
-        output += "  " + styled(clean(name), "1", colored)
+        output += "  " + styled(clean(fileName(url)), "1", colored)
         field(
           "Format",
           s"${CliFormatting.formats.toMap.apply(artifact.format)} · ${stringify(artifact.format)}",
@@ -132,8 +131,36 @@ private[cli] object CatalogOutput {
         ),
       )
 
+      result.provenance.foreach { provenance =>
+        // In the order the hub makes them: downloads, then patches, then conversions
+        val files = provenance.remote.map(file =>
+          file.url -> Seq(("Downloaded from", file.from.original, "36")),
+        ) ++ provenance.index.map(file =>
+          file.url -> Seq(("From ohi-index", s"${file.path} at commit ${file.commit}", "0")),
+        ) ++ provenance.patched.map(file =>
+          file.url -> (Seq(("Patched from", file.from.original, "36")) ++
+            Option.when(file.convertedLineEndings)(("Line endings", "converted to LF", "0")) ++
+            file.addedBaseIri.map(iri => ("Added base IRI", iri.original, "36")) ++
+            file.jsonPatch.map(patch => ("JSON Patch", patch.original, "36"))),
+        ) ++ provenance.generated.map(file =>
+          file.url -> Seq(
+            ("Generated from", file.source.original, "36"),
+            ("Using", file.using, "0"),
+          ),
+        )
+        if files.nonEmpty then {
+          section("Provenance")
+          files.zipWithIndex.foreach { case ((url, details), index) =>
+            if index > 0 then output += ""
+            output += "  " + styled(clean(fileName(url.original)), "1", colored)
+            details.foreach((label, value, code) => field(label, value, "    ", code))
+          }
+        }
+      }
+
       section("Release details")
       field("Published to Hub", stringify(result.publishedAt))
+      result.hubVersion.foreach(field("Hub version", _))
       field("Authors", agents(result.authors))
       field("Publishers", agents(result.publishers))
       if result.contributors.nonEmpty then field("Contributors", agents(result.contributors))
@@ -149,6 +176,8 @@ private[cli] object CatalogOutput {
       result.namespaceIri.foreach(value => field("RDF namespace", value.original, code = "36"))
       result.preferredPrefix.foreach(value => field("Preferred prefix", value))
       field("License", reported(result.licenses))
+      if result.licenseFiles.nonEmpty then
+        field("License files", result.licenseFiles.map(_.original).mkString(", "), code = "36")
       field("Tags", reported(result.keywords))
       output.mkString("\n")
     }
@@ -158,6 +187,12 @@ private[cli] object CatalogOutput {
 
   def fileError(error: CliFileError): String =
     JsonUtil.yamlToJson(fileErrorCodec.encode(error))
+
+  /** The last segment of a URL's path, or the whole URL if it has none. */
+  private def fileName(url: String): String =
+    try
+      Option(URI.create(url).getPath).map(_.split("/", -1).last).filter(_.nonEmpty).getOrElse(url)
+    catch { case _: IllegalArgumentException => url }
 
   private def reported(values: Seq[String]): String =
     if values.isEmpty then "Not supplied" else values.mkString(", ")

@@ -69,6 +69,7 @@ class ProjectSpec extends AnyWordSpec, Matchers {
   private val graph = Map(
     base -> direct,
     "test/example@1" -> direct,
+    "test/example@1-no-revision" -> direct,
     dependencyBase -> ProjectTestData.publication(
       dependencyBase,
       Seq(dependencyUrl -> Format.OwlTurtle),
@@ -175,7 +176,7 @@ class ProjectSpec extends AnyWordSpec, Matchers {
         data("code").str shouldBe "STORAGE_ERROR"
         data("message").str should include(retry)
         data("files").arr shouldBe empty
-        requests.toSeq shouldBe Seq(base, "test/example@1")
+        requests.toSeq shouldBe Seq(base, "test/example@1-no-revision")
         os.read(directory / "ohi.yaml") shouldBe emptyDeclaration
         os.read(directory / "ohi.lock.json") shouldBe oldLock
         os.exists(directory / ".ohi") shouldBe false
@@ -222,7 +223,7 @@ class ProjectSpec extends AnyWordSpec, Matchers {
             value => { resumedRequests += value; metadata },
             value => { resumedRequests += value; bytes },
           )
-        resumedRequests.toSeq shouldBe Seq(base, "test/example@1", url)
+        resumedRequests.toSeq shouldBe Seq(base, "test/example@1-no-revision", url)
         resumed.declarationChanged shouldBe false
         os.read(directory / "ohi.yaml") shouldBe savedDeclaration
         ujson.read(os.read(directory / "ohi.lock.json"))("selections") shouldBe
@@ -275,7 +276,7 @@ class ProjectSpec extends AnyWordSpec, Matchers {
             value => { resumedRequests += value; metadata },
             value => { resumedRequests += value; bytes },
           )
-        resumedRequests.toSeq shouldBe Seq(base, "test/example@1", url)
+        resumedRequests.toSeq shouldBe Seq(base, "test/example@1-no-revision", url)
         resumed.declarationChanged shouldBe false
         os.read(directory / "ohi.yaml") shouldBe savedDeclaration
         ujson.read(os.read(directory / "ohi.lock.json"))("selections") shouldBe
@@ -358,7 +359,7 @@ class ProjectSpec extends AnyWordSpec, Matchers {
             value => { requests += value; metadata },
             value => { requests += value; bytes },
           )
-        requests.toSeq shouldBe Seq(base, "test/example@1", url)
+        requests.toSeq shouldBe Seq(base, "test/example@1-no-revision", url)
         resumed.declarationChanged shouldBe false
         resumed.files.map(_.status.toString) shouldBe Seq("Downloaded")
         os.read(directory / "ohi.yaml") shouldBe savedDeclaration
@@ -931,6 +932,200 @@ class ProjectSpec extends AnyWordSpec, Matchers {
         os.read(directory / ".ohi" / ".gitignore") shouldBe "*\n"
         os.exists(directory / ".ohi" / "test" / "example" / "1" / "example.owl.ttl") shouldBe false
       }
+    }
+  }
+
+  "project revisions" should {
+    val revisionBase = "https://example.org/files/packages/test/example/1-revision-2/"
+    val revisionUrl = revisionBase + "file.ttl"
+    val newerBase = "https://example.org/files/packages/test/example/1-revision-3/"
+    val newerUrl = newerBase + "file.ttl"
+    val revision =
+      ProjectTestData.publication(revisionBase, Seq(revisionUrl -> Format.OwlTurtle), sha256 = sha)
+    val newer =
+      ProjectTestData.publication(newerBase, Seq(newerUrl -> Format.OwlTurtle), sha256 = sha)
+    val revisionLock = s"""{"format_version":2,
+      "selections":[{"base_url":"$revisionBase","url":"$revisionUrl"}],
+      "files":[{"base_url":"$revisionBase","url":"$revisionUrl","format":"owl-turtle","sha256":"$sha"}]}"""
+    def selected(directory: os.Path) =
+      ujson.read(os.read(directory / "ohi.lock.json"))("selections")(0)("base_url").str
+
+    "record the version a revision revises and lock the revision" in {
+      withDirectory { directory =>
+        os.write(directory / "ohi.yaml", emptyDeclaration)
+        // The SDK resolves test/example@1 to its latest revision
+        new Project(directory.toNIO, ProjectOperation.Add).add(
+          "test/example@1",
+          None,
+          Some("owl-turtle"),
+          Map("test/example@1" -> revision, revisionBase -> revision),
+          _ => bytes,
+        )
+        os.read(directory / "ohi.yaml") should include("ontology: test/example@1\n")
+        selected(directory) shouldBe revisionBase
+      }
+    }
+
+    "record an explicitly requested revision exactly" in {
+      withDirectory { directory =>
+        os.write(directory / "ohi.yaml", emptyDeclaration)
+        new Project(directory.toNIO, ProjectOperation.Add).add(
+          "test/example@1-revision-2",
+          None,
+          Some("owl-turtle"),
+          Map("test/example@1-revision-2" -> revision, revisionBase -> revision),
+          _ => bytes,
+        )
+        os.read(directory / "ohi.yaml") should include("ontology: test/example@1-revision-2\n")
+        selected(directory) shouldBe revisionBase
+      }
+    }
+
+    "record the URL and file of a revision as that exact revision" in {
+      withDirectory { directory =>
+        os.write(directory / "ohi.yaml", emptyDeclaration)
+        new Project(directory.toNIO, ProjectOperation.Add).add(
+          revisionBase,
+          Some(revisionUrl),
+          None,
+          Map(revisionBase -> revision, "test/example@1-revision-2" -> revision),
+          _ => bytes,
+        )
+        os.read(directory / "ohi.yaml") should include("ontology: test/example@1-revision-2\n")
+        selected(directory) shouldBe revisionBase
+      }
+    }
+
+    "record the URL and file of a version that has revisions as that version alone" in {
+      withDirectory { directory =>
+        os.write(directory / "ohi.yaml", emptyDeclaration)
+        // test/example@1 would resolve to the revision, which is not the file asked for
+        new Project(directory.toNIO, ProjectOperation.Add).add(
+          base,
+          Some(url),
+          None,
+          Map(
+            base -> metadata,
+            "test/example@1" -> revision,
+            "test/example@1-no-revision" -> metadata,
+          ),
+          _ => bytes,
+        )
+        os.read(directory / "ohi.yaml") should include("ontology: test/example@1-no-revision\n")
+        selected(directory) shouldBe base
+      }
+    }
+
+    "record a version without its revisions as requested and lock that version" in {
+      withDirectory { directory =>
+        os.write(directory / "ohi.yaml", emptyDeclaration)
+        new Project(directory.toNIO, ProjectOperation.Add).add(
+          "test/example@1-no-revision",
+          None,
+          Some("owl-turtle"),
+          Map("test/example@1-no-revision" -> metadata, base -> metadata),
+          _ => bytes,
+        )
+        os.read(directory / "ohi.yaml") should include("ontology: test/example@1-no-revision\n")
+        selected(directory) shouldBe base
+        // The lock of version 1 satisfies it, so syncing looks nothing up
+        new Project(directory.toNIO, ProjectOperation.Sync)
+          .sync(noInspect, _ => bytes, mode = Project.LockMode.Locked)
+          .lockChanged shouldBe false
+      }
+    }
+
+    "install a locked revision of a declared version without looking for a newer one" in {
+      withDirectory { directory =>
+        os.write(directory / "ohi.yaml", selectedDeclaration)
+        os.write(directory / "ohi.lock.json", revisionLock)
+        val result = new Project(directory.toNIO, ProjectOperation.Sync)
+          .sync(noInspect, _ => bytes, mode = Project.LockMode.Locked)
+        result.lockChanged shouldBe false
+        result.files.map(_.url.original) shouldBe Seq(revisionUrl)
+        new Project(directory.toNIO, ProjectOperation.Lock).refresh(noInspect, check = true)
+        os.read(directory / "ohi.lock.json") shouldBe revisionLock
+      }
+    }
+
+    "keep a locked revision when the lock is rebuilt, and move to the newest with upgrade" in {
+      withDirectory { directory =>
+        os.write(directory / "ohi.yaml", selectedDeclaration)
+        os.write(directory / "ohi.lock.json", revisionLock)
+        // A newer revision of test/example@1 is published since the lock was made
+        val catalog = Map("test/example@1" -> newer, revisionBase -> revision, newerBase -> newer)
+        new Project(directory.toNIO, ProjectOperation.Lock).refresh(catalog)
+        selected(directory) shouldBe revisionBase
+        new Project(directory.toNIO, ProjectOperation.Lock).refresh(catalog, upgrade = true)
+        selected(directory) shouldBe newerBase
+      }
+    }
+
+    "keep a locked revision when another dependency is added" in {
+      withDirectory { directory =>
+        val otherBase = "https://example.org/files/packages/test/other/5/"
+        val other = ProjectTestData.publication(
+          otherBase,
+          Seq(otherBase + "file.ttl" -> Format.OwlTurtle),
+          sha256 = sha,
+        )
+        os.write(directory / "ohi.yaml", selectedDeclaration)
+        os.write(directory / "ohi.lock.json", revisionLock)
+        new Project(directory.toNIO, ProjectOperation.Add).add(
+          "test/other@5",
+          None,
+          Some("owl-turtle"),
+          Map(
+            "test/example@1" -> newer,
+            revisionBase -> revision,
+            "test/other@5" -> other,
+            otherBase -> other,
+          ),
+          _ => bytes,
+        )
+        val selections = ujson.read(os.read(directory / "ohi.lock.json"))("selections").arr
+        selections.map(_("base_url").str).toSeq shouldBe Seq(revisionBase, otherBase)
+      }
+    }
+
+    "accept only the releases the declared version asks for" in {
+      def dependency(ontology: String) = eu.neverblink.ohi.model.generated.ProjectDependency(
+        format = Format.OwlTurtle,
+        ontology = ontology,
+      )
+      ProjectLock.satisfies(
+        dependency("test/example@1"),
+        dependency("test/example@1-revision-2"),
+      ) shouldBe true
+      ProjectLock.satisfies(
+        dependency("test/example@1"),
+        dependency("test/example@1"),
+      ) shouldBe true
+      ProjectLock.satisfies(
+        dependency("test/example@1"),
+        dependency("test/example@1.5"),
+      ) shouldBe false
+      ProjectLock.satisfies(
+        dependency("test/example@1"),
+        dependency("test/other@1-revision-2"),
+      ) shouldBe false
+      ProjectLock.satisfies(
+        dependency("test/example@1-revision-2"),
+        dependency("test/example@1-revision-3"),
+      ) shouldBe false
+      ProjectLock.satisfies(
+        dependency("test/example@1"),
+        dependency("test/example@1-revision-2").copy(format = Format.LinkmlYaml),
+      ) shouldBe false
+      ProjectLock.satisfies(
+        dependency("test/example@1-no-revision"),
+        dependency("test/example@1"),
+      ) shouldBe
+        true
+      ProjectLock.satisfies(
+        dependency("test/example@1-no-revision"),
+        dependency("test/example@1-revision-2"),
+      ) shouldBe false
     }
   }
 

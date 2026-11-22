@@ -16,6 +16,7 @@ from .generated import (
     SearchRequest,
     SearchResult,
 )
+from ._version_tag import parse_version_tag
 from .publication import _is_new, decode_publication
 
 _SEARCH_PATH = "/search/collections/packages/documents/search"
@@ -110,6 +111,7 @@ class CatalogClient:
                             "https://api.ohi.dev/search/collections/packages/documents/search")
         base = self._search_url.removesuffix(_SEARCH_PATH)
         self._latest_url = base + "/search/collections/packages_latest/documents/search"
+        self._latest_revision_url = base + "/search/collections/packages_latest_revision/documents/search"
         self._files_url = base + "/files/packages/"
         self._query_by = data.get("query_by", "title,name,description,namespace")
         self._timeout = data.get("timeout_ms", 30000) / 1000
@@ -117,6 +119,9 @@ class CatalogClient:
 
     def search(self, request: SearchRequest) -> SearchResult:
         url = self._search_url if request.all_releases else self._latest_url
+        return self._search(url, request)
+
+    def _search(self, url, request: SearchRequest) -> SearchResult:
         try:
             params = SearchRequest.model_validate(request.model_dump(warnings=False)).model_dump()
         except ValueError as error:
@@ -132,29 +137,65 @@ class CatalogClient:
             raise _failure("INVALID_RESPONSE", "SEARCH", str(error), url, 200) from error
 
     def latest(self, reference: str) -> SearchHit | None:
-        """Return the search hit for the latest version of namespace/name, or None when the catalog
-        has no such ontology.
+        """Return the search hit of the release a reference requests, or None when the catalog has
+        none.
+
+        namespace/name requests the latest version, namespace/name@1.0 the latest revision of
+        1.0, namespace/name@1.0-no-revision the 1.0 version without its revisions, and
+        namespace/name@1.0-revision-2026-12-01 exactly that revision.
         """
         match = _REFERENCE.fullmatch(reference)
-        if match is None or match[3] is not None:
+        if match is None:
             raise _failure("INVALID_INPUT", "SEARCH",
-                           "reference must be namespace/name without a version", reference)
-        namespace, name, _ = match.groups()
+                           "reference must be namespace/name or namespace/name@version", reference)
+        namespace, name, version = match.groups()
         filter_by = f"namespace:=`{namespace}` && name:=`{name}`"
-        result = self.search(SearchRequest(q="*", filter_by=filter_by))
+
         # The := filter ignores case and separators, so look-alikes such as w3c/DCAT can match.
+        def same(hit):
+            return (hit.namespace, hit.name) == (namespace, name)
+
+        if version is None:
+            result = self.search(SearchRequest(q="*", filter_by=filter_by))
+            return next((hit for hit in result.hits if same(hit)), None)
+        tag = parse_version_tag(version)
+        if tag.exact is None:
+            if (hit := self._latest_revision(filter_by, tag.original, same)) is not None:
+                return hit
+        # The release itself; for a version, also on a hub without revisions or before its
+        # revisions are indexed
+        release = tag.exact or tag.original
+        result = self._search(self._search_url, SearchRequest(
+            q="*", filter_by=f"{filter_by} && version:=`{release}`"))
+        return next((hit for hit in result.hits if same(hit) and hit.version == release), None)
+
+    def _latest_revision(self, filter_by, original, same) -> SearchHit | None:
+        """The latest revision of a version from packages_latest_revision, or None when it has none
+        there. A hub before 0.2.0 doesn't have that collection."""
+        try:
+            result = self._search(self._latest_revision_url, SearchRequest(
+                q="*", filter_by=f"{filter_by} && original_version:=`{original}`"))
+        except CatalogException as error:
+            if error.error.code.value == "HTTP_ERROR" and error.error.status == 404:
+                return None
+            raise
         return next((hit for hit in result.hits
-                     if (hit.namespace, hit.name) == (namespace, name)), None)
+                     if same(hit) and hit.original_version == original), None)
 
     def inspect(self, base_url: str) -> Publication:
-        """Return the publication at an absolute HTTP(S) URL, of the release namespace/name@version,
-        or of the latest version of namespace/name.
-        """
+        """Return the publication at an absolute HTTP(S) URL, or of the release a reference
+        requests, as latest describes."""
         url = base_url
         if (match := _REFERENCE.fullmatch(base_url)) is not None:
             if match[3] is not None:
-                path = "/".join(quote(part, safe="") for part in match.groups())
-                url = self._files_url + path + "/"
+                exact = parse_version_tag(match[3]).exact
+                hit = None if exact is not None else self.latest(base_url)
+                if hit is not None:
+                    url = hit.base_url
+                else:
+                    # The release path when the catalog doesn't know the version
+                    parts = (match[1], match[2], exact or match[3])
+                    url = self._files_url + "/".join(quote(part, safe="") for part in parts) + "/"
             elif (hit := self.latest(base_url)) is not None:
                 url = hit.base_url
             else:

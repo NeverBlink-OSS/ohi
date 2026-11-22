@@ -13,6 +13,19 @@ private[cli] object ProjectTestData {
   ): Publication = {
     val identity = java.net.URI.create(baseUrl).getRawPath.split("/", -1).toSeq
     val hub = identity.take(3) == Seq("", "files", "packages") && identity.size >= 6
+    val version = if hub then identity(5) else "1"
+    // A revision, {original_version}-revision-{id}, revises its original version here
+    val revision = version.split("-revision-", 2) match {
+      case Array(original, id) =>
+        Some(
+          RevisionInfo(
+            id = id,
+            originalVersion = original,
+            revises = Uri(baseUrl.replace(s"/$version/", s"/$original/")),
+          ),
+        )
+      case _ => None
+    }
     Publication(
       authors = Seq(Agent(name = "Example author")),
       artifacts = artifacts.map { (url, format) =>
@@ -37,8 +50,9 @@ private[cli] object ProjectTestData {
       publisher = "Example publisher",
       publishers = Seq(Agent(name = "Example publisher")),
       schemaVersion = 2,
+      revision = revision,
       title = "Example ontology",
-      version = if hub then identity(5) else "1",
+      version = version,
     )
   }
 }

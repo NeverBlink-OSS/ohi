@@ -7,6 +7,12 @@ import eu.neverblink.ohi.model.generated.{
   Citation,
   Dependency,
   Format,
+  GeneratedFile,
+  IndexFile,
+  PatchedFile,
+  Provenance,
+  RemoteFile,
+  RevisionInfo,
   SearchHit,
 }
 import org.scalatest.matchers.should.Matchers
@@ -98,6 +104,94 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
   "CatalogOutput.publication" should {
     "show release fields in order and omit only entry points equal to the download URL" in {
       CatalogOutput.publication(publication, json = false) shouldBe expected
+    }
+
+    "show the revision, the hub version, the license files and where each file came from" in {
+      val release = "https://example.org/release/1-revision-2/"
+      val output = CatalogOutput.publication(
+        publication.copy(
+          version = "1-revision-2",
+          revision = Some(
+            RevisionInfo(
+              id = "2",
+              originalVersion = "1",
+              revises = Uri("https://example.org/release/1/"),
+              reason = Some("Derived again"),
+            ),
+          ),
+          hubVersion = Some("v0.2.0"),
+          licenseFiles = Seq(Uri(release + "LICENSE")),
+          provenance = Some(
+            Provenance(
+              remote = Seq(
+                RemoteFile(url = Uri(release + "a.ttl"), from = Uri("https://example.org/a.ttl")),
+              ),
+              index =
+                Seq(IndexFile(url = Uri(release + "LICENSE"), commit = "0123abc", path = "L")),
+              patched = Seq(
+                PatchedFile(
+                  url = Uri(release + "b.ttl"),
+                  from = Uri(release + "a.ttl"),
+                  convertedLineEndings = true,
+                  addedBaseIri = Some(Uri("https://example.org/b#")),
+                  jsonPatch = Some(Uri(release + "b.patch.json")),
+                ),
+                PatchedFile(url = Uri(release + "c.ttl"), from = Uri(release + "a.ttl")),
+              ),
+              generated = Seq(
+                GeneratedFile(
+                  url = Uri(release + "b.yaml"),
+                  source = Uri(release + "b.ttl"),
+                  using = "LinkML",
+                ),
+              ),
+            ),
+          ),
+        ),
+        json = false,
+      )
+      output should include(
+        """  Version: 1-revision-2
+          |  Revises: https://example.org/release/1/
+          |  Revision reason: Derived again
+          |  Description:""".stripMargin,
+      )
+      output should include(
+        s"""  https://example.org/dependency/
+           |
+           |Provenance
+           |  a.ttl
+           |    Downloaded from: https://example.org/a.ttl
+           |
+           |  LICENSE
+           |    From ohi-index: L at commit 0123abc
+           |
+           |  b.ttl
+           |    Patched from: ${release}a.ttl
+           |    Line endings: converted to LF
+           |    Added base IRI: https://example.org/b#
+           |    JSON Patch: ${release}b.patch.json
+           |
+           |  c.ttl
+           |    Patched from: ${release}a.ttl
+           |
+           |  b.yaml
+           |    Generated from: ${release}b.ttl
+           |    Using: LinkML
+           |
+           |Release details
+           |  Published to Hub: 2026-10-15T00:00:00Z
+           |  Hub version: v0.2.0
+           |  Authors:""".stripMargin,
+      )
+      output should include(s"  License: MIT\n  License files: ${release}LICENSE\n")
+    }
+
+    "leave out the provenance when it lists no files" in {
+      CatalogOutput.publication(
+        publication.copy(provenance = Some(Provenance())),
+        json = false,
+      ) shouldBe expected
     }
 
     "show the element counts after the description, and equal counts once" in {

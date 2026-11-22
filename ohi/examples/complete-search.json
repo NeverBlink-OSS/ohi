@@ -19,10 +19,10 @@
   "hits": [
     {
       "document": {
-        "base_url": "https://example.org/packages/sensors/1.0.0/",
+        "base_url": "https://example.org/packages/sensors/1.0.0-revision-2026-12-01/",
         "namespace": "example",
         "name": "sensors",
-        "version": "1.0.0",
+        "version": "1.0.0-revision-2026-12-01",
         "title": "Sensors",
         "description": "Sensors and their observations.",
         "formats": [
@@ -36,6 +36,7 @@
           "sensors"
         ],
         "published_at": "2026-10-13T12:30:00Z",
+        "hub_version": "v0.2.0",
         "element_count": 12,
         "native_element_count": 34,
         "authors": [
@@ -74,7 +75,9 @@
             "title": "Sensors: an ontology of sensors and observations",
             "link": "https://doi.org/10.0000/example.sensors"
           }
-        ]
+        ],
+        "original_version": "1.0.0",
+        "revision_id": "2026-12-01"
       }
     }
   ]

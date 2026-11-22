@@ -23,6 +23,7 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
   private val binary = Array[Byte](0, -1, 65, -128)
   private val searchPath = "/search/collections/packages/documents/search"
   private val latestPath = "/search/collections/packages_latest/documents/search"
+  private val revisionPath = "/search/collections/packages_latest_revision/documents/search"
 
   private def withServer(
       respond: HttpExchange => Unit,
@@ -86,22 +87,30 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
       ),
     ).getBytes(UTF_8)
 
-  private def hit(baseUrl: String, namespace: String, name: String, version: String): ujson.Obj =
+  private def hit(
+      baseUrl: String,
+      namespace: String,
+      name: String,
+      version: String,
+      originalVersion: Option[String] = None,
+  ): ujson.Obj =
     ujson.Obj(
-      "document" -> ujson.Obj(
-        "base_url" -> baseUrl,
-        "namespace" -> namespace,
-        "name" -> name,
-        "version" -> version,
-        "title" -> "Sensors",
-        "description" -> "Sensor measurements",
-        "formats" -> ujson.Arr("owl-turtle"),
-        "licenses" -> ujson.Arr(),
-        "published_at" -> "2026-10-13T12:30:00Z",
-        "keywords" -> ujson.Arr(),
-        "authors" -> ujson.Arr(ujson.Obj("name" -> "Example Author")),
-        "publishers" -> ujson.Arr(ujson.Obj("name" -> "Example Project")),
-        "original_sources" -> ujson.Arr("https://example.org/sensors/"),
+      "document" -> ujson.Obj.from(
+        Seq(
+          "base_url" -> ujson.Str(baseUrl),
+          "namespace" -> ujson.Str(namespace),
+          "name" -> ujson.Str(name),
+          "version" -> ujson.Str(version),
+          "title" -> ujson.Str("Sensors"),
+          "description" -> ujson.Str("Sensor measurements"),
+          "formats" -> ujson.Arr("owl-turtle"),
+          "licenses" -> ujson.Arr(),
+          "published_at" -> ujson.Str("2026-10-13T12:30:00Z"),
+          "keywords" -> ujson.Arr(),
+          "authors" -> ujson.Arr(ujson.Obj("name" -> "Example Author")),
+          "publishers" -> ujson.Arr(ujson.Obj("name" -> "Example Project")),
+          "original_sources" -> ujson.Arr("https://example.org/sensors/"),
+        ) ++ originalVersion.map(value => "original_version" -> ujson.Str(value)),
       ),
     )
 
@@ -324,17 +333,92 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
         client.inspect("w3c/dcat@2")
         requests.asScala.toSeq.map(_._1.takeWhile(_ != '?')) shouldBe Seq(
           "/hub/search/collections/packages_latest/documents/search",
+          "/hub/search/collections/packages_latest_revision/documents/search",
+          "/hub/search/collections/packages/documents/search",
           "/hub/files/packages/w3c/dcat/2/",
         )
       }
     }
 
-    "inspect a versioned reference with one GET of its percent-encoded release path" in {
+    "inspect a revision with one GET of its percent-encoded release path" in {
       withServer(exchange => reply(exchange, 200, packageJson)) { (url, requests) =>
-        configured(url + searchPath).inspect("team:a/model%x@v1.0é")
+        configured(url + searchPath).inspect("team:a/model%x@v1.0é-revision-2026-12-31")
         requests.asScala.toSeq shouldBe Seq(
-          "/files/packages/team%3Aa/model%25x/v1.0%C3%A9/" -> "identity",
+          "/files/packages/team%3Aa/model%25x/v1.0%C3%A9-revision-2026-12-31/" -> "identity",
         )
+      }
+    }
+
+    "inspect a version at its percent-encoded release path when the catalog doesn't know it" in {
+      withServer { exchange =>
+        exchange.getRequestURI.getRawPath match {
+          case `revisionPath` => reply(exchange, 404, Array.empty)
+          case `searchPath` => reply(exchange, 200, searchResponse(10))
+          case _ => reply(exchange, 200, packageJson)
+        }
+      } { (url, requests) =>
+        configured(url + searchPath).inspect("team:a/model%x@v1.0é")
+        requests.asScala.toSeq.map(_._1.takeWhile(_ != '?')) shouldBe Seq(
+          revisionPath,
+          searchPath,
+          "/files/packages/team%3Aa/model%25x/v1.0%C3%A9/",
+        )
+      }
+    }
+
+    "inspect the base_url of the latest revision of a version, skipping look-alikes" in {
+      withServer { exchange =>
+        val origin = s"http://127.0.0.1:${exchange.getLocalAddress.getPort}"
+        val body =
+          if (exchange.getRequestURI.getRawPath == revisionPath)
+            searchResponse(
+              10,
+              Seq(
+                hit(
+                  s"$origin/files/packages/w3c/DCAT/2-revision-9/",
+                  "w3c",
+                  "DCAT",
+                  "2-revision-9",
+                  Some("2"),
+                ),
+                hit(s"$origin/files/packages/w3c/dcat/2.0/", "w3c", "dcat", "2.0", Some("2.0")),
+                hit(
+                  s"$origin/files/packages/w3c/dcat/2-revision-1/",
+                  "w3c",
+                  "dcat",
+                  "2-revision-1",
+                  Some("2"),
+                ),
+              ),
+            )
+          else packageJson
+        reply(exchange, 200, body)
+      } { (url, requests) =>
+        configured(url + searchPath).inspect("w3c/dcat@2")
+        val targets = requests.asScala.toSeq.map(_._1)
+        targets.map(_.takeWhile(_ != '?')) shouldBe Seq(
+          revisionPath,
+          "/files/packages/w3c/dcat/2-revision-1/",
+        )
+        parameters(targets.head) shouldBe Map(
+          "q" -> "*",
+          "query_by" -> "name,description",
+          "page" -> "1",
+          "per_page" -> "10",
+          "filter_by" -> "namespace:=`w3c` && name:=`dcat` && original_version:=`2`",
+        )
+      }
+    }
+
+    "inspect a version without a hit at its release path" in {
+      withServer { exchange =>
+        if (exchange.getRequestURI.getRawPath.startsWith("/search/"))
+          reply(exchange, 200, searchResponse(10))
+        else reply(exchange, 200, packageJson)
+      } { (url, requests) =>
+        configured(url + searchPath).inspect("w3c/dcat@2")
+        requests.asScala.toSeq.map(_._1.takeWhile(_ != '?')) shouldBe
+          Seq(revisionPath, searchPath, "/files/packages/w3c/dcat/2/")
       }
     }
 
@@ -378,12 +462,98 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
       }
     }
 
-    "reject a versioned reference for latest without a request" in {
-      withServer(exchange => reply(exchange, 200, binary)) { (url, requests) =>
-        error(CatalogErrorCode.InvalidInput, CatalogOperation.Search, Some("w3c/dcat@2"), None)(
+    "find exactly a revision, without looking for a newer one" in {
+      withServer { exchange =>
+        reply(
+          exchange,
+          200,
+          searchResponse(
+            10,
+            Seq(
+              hit("urn:ohi:r2", "w3c", "dcat", "2-revision-2", Some("2")),
+              hit("urn:ohi:r1", "w3c", "dcat", "2-revision-1", Some("2")),
+            ),
+          ),
+        )
+      } { (url, requests) =>
+        configured(url + searchPath).latest("w3c/dcat@2-revision-1").map(_.version) shouldBe
+          Some("2-revision-1")
+        val targets = requests.asScala.toSeq.map(_._1)
+        targets.map(_.takeWhile(_ != '?')) shouldBe Seq(searchPath)
+        parameters(targets.head)("filter_by") shouldBe
+          "namespace:=`w3c` && name:=`dcat` && version:=`2-revision-1`"
+      }
+    }
+
+    "find the version itself when the hub has no revisions, skipping look-alikes" in {
+      withServer { exchange =>
+        if (exchange.getRequestURI.getRawPath == revisionPath) reply(exchange, 404, Array.empty)
+        else
+          reply(
+            exchange,
+            200,
+            searchResponse(
+              10,
+              Seq(hit("urn:ohi:20", "w3c", "dcat", "2.0"), hit("urn:ohi:2", "w3c", "dcat", "2")),
+            ),
+          )
+      } { (url, requests) =>
+        configured(url + searchPath).latest("w3c/dcat@2").map(_.baseUrl.original) shouldBe
+          Some("urn:ohi:2")
+        val targets = requests.asScala.toSeq.map(_._1)
+        targets.map(_.takeWhile(_ != '?')) shouldBe Seq(revisionPath, searchPath)
+        parameters(targets.last)(
+          "filter_by",
+        ) shouldBe "namespace:=`w3c` && name:=`dcat` && version:=`2`"
+      }
+    }
+
+    "find a version without its revisions, without looking for them" in {
+      withServer { exchange =>
+        reply(
+          exchange,
+          200,
+          searchResponse(10, Seq(hit("urn:ohi:2", "w3c", "dcat", "2"))),
+        )
+      } { (url, requests) =>
+        configured(url + searchPath).latest("w3c/dcat@2-no-revision").map(
+          _.baseUrl.original,
+        ) shouldBe
+          Some("urn:ohi:2")
+        val targets = requests.asScala.toSeq.map(_._1)
+        targets.map(_.takeWhile(_ != '?')) shouldBe Seq(searchPath)
+        parameters(targets.head)(
+          "filter_by",
+        ) shouldBe "namespace:=`w3c` && name:=`dcat` && version:=`2`"
+      }
+    }
+
+    "inspect a version without its revisions with one GET of its release path" in {
+      withServer(exchange => reply(exchange, 200, packageJson)) { (url, requests) =>
+        configured(url + searchPath).inspect("w3c/dcat@2-no-revision")
+        requests.asScala.toSeq shouldBe Seq("/files/packages/w3c/dcat/2/" -> "identity")
+      }
+    }
+
+    "find nothing for a version the catalog doesn't have" in {
+      withServer { exchange =>
+        if (exchange.getRequestURI.getRawPath == revisionPath) reply(exchange, 404, Array.empty)
+        else reply(exchange, 200, searchResponse(10))
+      } { (url, _) =>
+        configured(url + searchPath).latest("w3c/dcat@2") shouldBe None
+      }
+    }
+
+    "report other failures of the latest revision search" in {
+      withServer(exchange => reply(exchange, 503, Array.empty)) { (url, _) =>
+        error(
+          CatalogErrorCode.HttpError,
+          CatalogOperation.Search,
+          Some(url + revisionPath),
+          Some(503),
+        )(
           configured(url + searchPath).latest("w3c/dcat@2"),
         )
-        requests shouldBe empty
       }
     }
 

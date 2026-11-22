@@ -22,6 +22,13 @@ if (page.hits.length > 0) {
 }
 ```
 
+`inspect` and `latest` also take an ontology reference such as `w3c/dcat@3` instead of a URL, see [ontology references](https://ohi.dev/docs/reference/cli/#ontology-references-and-formats).
+
+```typescript
+const hit = await client.latest("w3c/dcat@3"); // search hit, or undefined
+const publication = await client.inspect("w3c/dcat@3");
+```
+
 `get` returns the file's bytes as a `Uint8Array`. File reading and writing are in `@neverblink/ohi/node`.
 
 **See the [SDK documentation](https://ohi.dev/docs/reference/sdks/)** for configuration, file selections, metadata and errors.

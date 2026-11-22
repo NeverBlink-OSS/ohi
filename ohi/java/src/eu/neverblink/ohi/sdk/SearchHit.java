@@ -32,6 +32,7 @@ import java.util.Objects;
     "description",
     "element_count",
     "formats",
+    "hub_version",
     "keywords",
     "licenses",
     "maintainers",
@@ -39,9 +40,11 @@ import java.util.Objects;
     "namespace",
     "native_element_count",
     "original_sources",
+    "original_version",
     "publications",
     "published_at",
     "publishers",
+    "revision_id",
     "title",
     "version",
 })
@@ -64,6 +67,9 @@ public class SearchHit {
     @JsonProperty("formats")
     private List<Format> formats;
 
+    @JsonProperty("hub_version")
+    private String hubVersion;
+
     @JsonProperty("keywords")
     private List<String> keywords;
 
@@ -85,6 +91,9 @@ public class SearchHit {
     @JsonProperty("original_sources")
     private List<String> originalSources;
 
+    @JsonProperty("original_version")
+    private String originalVersion;
+
     @JsonProperty("publications")
     private List<Citation> publications;
 
@@ -92,6 +101,9 @@ public class SearchHit {
 
     @JsonProperty("publishers")
     private List<Agent> publishers;
+
+    @JsonProperty("revision_id")
+    private String revisionId;
 
     @JsonProperty("title")
     private String title;
@@ -157,6 +169,15 @@ public class SearchHit {
 
     public void setFormats(List<Format> formats) {
         this.formats = formats;
+    }
+
+    /** Hub version that released this publication. */
+    public String getHubVersion() {
+        return hubVersion;
+    }
+
+    public void setHubVersion(String hubVersion) {
+        this.hubVersion = hubVersion;
     }
 
     /** Keywords describing the ontology's subject. An empty list means no keywords are provided. */
@@ -228,6 +249,17 @@ public class SearchHit {
         this.originalSources = originalSources;
     }
 
+    /**
+     * The version first published. For a revision, the original_version of its revision, otherwise the version itself. Filtering on it finds a release and all its revisions.
+     */
+    public String getOriginalVersion() {
+        return originalVersion;
+    }
+
+    public void setOriginalVersion(String originalVersion) {
+        this.originalVersion = originalVersion;
+    }
+
     /** Papers that introduce or describe the ontology. */
     public List<Citation> getPublications() {
         return publications;
@@ -257,6 +289,17 @@ public class SearchHit {
         this.publishers = publishers;
     }
 
+    /**
+     * The id of the revision, only for a revision. The latest revision of a version is its document in packages_latest_revision.
+     */
+    public String getRevisionId() {
+        return revisionId;
+    }
+
+    public void setRevisionId(String revisionId) {
+        this.revisionId = revisionId;
+    }
+
     /** Display title of the ontology. */
     public String getTitle() {
         return title;
@@ -266,7 +309,7 @@ public class SearchHit {
         this.title = title;
     }
 
-    /** Complete publication version label, including amendments. */
+    /** Complete publication version label, including the revision id if present. */
     public String getVersion() {
         return version;
     }
@@ -295,6 +338,7 @@ public class SearchHit {
             && Objects.equals(description, other.description)
             && Objects.equals(elementCount, other.elementCount)
             && Objects.equals(formats, other.formats)
+            && Objects.equals(hubVersion, other.hubVersion)
             && Objects.equals(keywords, other.keywords)
             && Objects.equals(licenses, other.licenses)
             && Objects.equals(maintainers, other.maintainers)
@@ -302,9 +346,11 @@ public class SearchHit {
             && Objects.equals(namespace, other.namespace)
             && Objects.equals(nativeElementCount, other.nativeElementCount)
             && Objects.equals(originalSources, other.originalSources)
+            && Objects.equals(originalVersion, other.originalVersion)
             && Objects.equals(publications, other.publications)
             && Objects.equals(publishedAt, other.publishedAt)
             && Objects.equals(publishers, other.publishers)
+            && Objects.equals(revisionId, other.revisionId)
             && Objects.equals(title, other.title)
             && Objects.equals(version, other.version)
             && Objects.equals(extraProperties, other.extraProperties);
@@ -312,7 +358,7 @@ public class SearchHit {
 
     @Override
     public int hashCode() {
-        return Objects.hash(authors, baseUrl, contributors, description, elementCount, formats, keywords, licenses, maintainers, name, namespace, nativeElementCount, originalSources, publications, publishedAt, publishers, title, version, extraProperties);
+        return Objects.hash(authors, baseUrl, contributors, description, elementCount, formats, hubVersion, keywords, licenses, maintainers, name, namespace, nativeElementCount, originalSources, originalVersion, publications, publishedAt, publishers, revisionId, title, version, extraProperties);
     }
 
     @Override
@@ -324,6 +370,7 @@ public class SearchHit {
             + ", description=" + getDescription()
             + ", elementCount=" + getElementCount()
             + ", formats=" + getFormats()
+            + ", hubVersion=" + getHubVersion()
             + ", keywords=" + getKeywords()
             + ", licenses=" + getLicenses()
             + ", maintainers=" + getMaintainers()
@@ -331,9 +378,11 @@ public class SearchHit {
             + ", namespace=" + getNamespace()
             + ", nativeElementCount=" + getNativeElementCount()
             + ", originalSources=" + getOriginalSources()
+            + ", originalVersion=" + getOriginalVersion()
             + ", publications=" + getPublications()
             + ", publishedAt=" + getPublishedAt()
             + ", publishers=" + getPublishers()
+            + ", revisionId=" + getRevisionId()
             + ", title=" + getTitle()
             + ", version=" + getVersion()
             + ", extraProperties=" + getExtraProperties()
@@ -350,6 +399,7 @@ public class SearchHit {
             @JsonProperty(value = "description", required = true) String description,
             @JsonProperty("element_count") Long elementCount,
             @JsonProperty(value = "formats", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Format> formats,
+            @JsonProperty("hub_version") String hubVersion,
             @JsonProperty(value = "keywords", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> keywords,
             @JsonProperty(value = "licenses", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> licenses,
             @JsonProperty("maintainers") @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> maintainers,
@@ -357,9 +407,11 @@ public class SearchHit {
             @JsonProperty(value = "namespace", required = true) String namespace,
             @JsonProperty("native_element_count") Long nativeElementCount,
             @JsonProperty(value = "original_sources", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> originalSources,
+            @JsonProperty("original_version") String originalVersion,
             @JsonProperty("publications") @JsonSetter(contentNulls = Nulls.FAIL) List<Citation> publications,
             @JsonProperty(value = "published_at", required = true) Object publishedAt,
             @JsonProperty(value = "publishers", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> publishers,
+            @JsonProperty("revision_id") String revisionId,
             @JsonProperty(value = "title", required = true) String title,
             @JsonProperty(value = "version", required = true) String version) {
         SearchHit json$item = new SearchHit();
@@ -369,6 +421,7 @@ public class SearchHit {
         json$item.setDescription(description);
         json$item.setElementCount(elementCount);
         json$item.setFormats(formats);
+        json$item.setHubVersion(hubVersion);
         json$item.setKeywords(keywords);
         json$item.setLicenses(licenses);
         json$item.setMaintainers(maintainers);
@@ -376,9 +429,11 @@ public class SearchHit {
         json$item.setNamespace(namespace);
         json$item.setNativeElementCount(nativeElementCount);
         json$item.setOriginalSources(originalSources);
+        json$item.setOriginalVersion(originalVersion);
         json$item.setPublications(publications);
         json$item.setPublishedAt(LinkMLJson.dateTime(publishedAt));
         json$item.setPublishers(publishers);
+        json$item.setRevisionId(revisionId);
         json$item.setTitle(title);
         json$item.setVersion(version);
         return json$item;

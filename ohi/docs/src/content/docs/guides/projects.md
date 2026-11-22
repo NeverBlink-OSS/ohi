@@ -34,6 +34,17 @@ Use `--format linkml-yaml` to choose LinkML YAML for an addition. The
 [CLI reference](/docs/reference/cli/#ontology-references-and-formats) lists the available formats
 and defaults.
 
+## Revisions
+
+`ohi.lock.json` keeps the [revision](/docs/reference/cli/#ontology-references-and-formats) it
+locked for each version. `ohi sync`, `ohi lock` and adding other ontologies never move it to a
+newer revision. To take the latest revisions, run:
+
+```sh
+ohi lock --upgrade
+ohi sync
+```
+
 ## Restore a project on another machine
 
 Keep `ohi.yaml` and `ohi.lock.json` in version control. After cloning the project on another
