@@ -211,6 +211,12 @@ class SearchCodecTests(unittest.TestCase):
                          (1, 2, 18446744073709551617))
 
 
+# Long enough that the response headers always arrive in time, even on a slow CI runner, so the
+# stalled-body tests see the HTTP status. The server stalls for much longer than this.
+STALL_TIMEOUT_MS = 1000
+STALL_SECONDS = 10
+
+
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.server.requests.append((self.path, self.headers.get("Accept-Encoding")))
@@ -224,7 +230,7 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
         self.wfile.flush()
         if stall:
-            self.server.release.wait(2)
+            self.server.release.wait(STALL_SECONDS)
 
     def log_message(self, *args):
         pass
@@ -517,13 +523,13 @@ class CatalogTests(unittest.TestCase):
 
     def test_stalled_success_body_times_out_without_returning_partial_bytes(self):
         url = self.route("/stall", b"partial", stall=True)
-        client = self.client(CatalogConfig(timeout_ms=50))
+        client = self.client(CatalogConfig(timeout_ms=STALL_TIMEOUT_MS))
         start = time.monotonic()
         self.assert_failure(lambda: client.get(url), "TIMEOUT", "GET", url, 200)
-        self.assertLess(time.monotonic() - start, 1.5)
+        self.assertLess(time.monotonic() - start, STALL_SECONDS / 2)
 
     def test_stalled_error_body_preserves_known_http_failure(self):
         url = self.route("/stall-error", b'{"partial":', status=503, stall=True)
-        client = self.client(CatalogConfig(timeout_ms=50))
+        client = self.client(CatalogConfig(timeout_ms=STALL_TIMEOUT_MS))
         error = self.assert_failure(lambda: client.get(url), "HTTP_ERROR", "GET", url, 503)
         self.assertNotIn("response_json", error.model_dump())

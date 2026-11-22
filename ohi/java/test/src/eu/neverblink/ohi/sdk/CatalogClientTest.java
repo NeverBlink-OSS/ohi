@@ -42,6 +42,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 class CatalogClientTest {
     static final String SEARCH_PATH = "/search/collections/packages/documents/search";
     static final String LATEST_PATH = "/search/collections/packages_latest/documents/search";
+    // Long enough that the response headers always arrive in time, even on a slow CI runner, so the
+    // stalled-body tests see the HTTP status. The server stalls for much longer than this.
+    static final long STALL_TIMEOUT_MS = 1000;
+    static final long STALL_SECONDS = 10;
 
     /** What the server answers on a path. With {@code stall}, it sends the body but not all of it. */
     record Route(int status, byte[] body, Map<String, String> headers, boolean stall) {
@@ -73,7 +77,7 @@ class CatalogClientTest {
                 out.write(route.body());
                 out.flush();
                 if (route.stall()) {
-                    release.await(2, TimeUnit.SECONDS);
+                    release.await(STALL_SECONDS, TimeUnit.SECONDS);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -566,17 +570,17 @@ class CatalogClientTest {
     void aStalledBodyTimesOutWithoutReturningPartialBytes() {
         String url = route("/stall", "partial".getBytes(StandardCharsets.UTF_8), 200, Map.of(), true);
         CatalogConfig config = new CatalogConfig();
-        config.setTimeoutMs(50L);
+        config.setTimeoutMs(STALL_TIMEOUT_MS);
         long start = System.nanoTime();
         assertFailure(() -> new CatalogClient(config).get(url), CatalogErrorCode.TIMEOUT, CatalogOperation.GET, url, 200);
-        assertTrue(System.nanoTime() - start < TimeUnit.MILLISECONDS.toNanos(1500));
+        assertTrue(System.nanoTime() - start < TimeUnit.SECONDS.toNanos(STALL_SECONDS / 2));
     }
 
     @Test
     void aStalledErrorBodyKeepsTheHttpFailure() {
         String url = route("/stall-error", "{\"partial\":".getBytes(StandardCharsets.UTF_8), 503, Map.of(), true);
         CatalogConfig config = new CatalogConfig();
-        config.setTimeoutMs(50L);
+        config.setTimeoutMs(STALL_TIMEOUT_MS);
         CatalogError error = assertFailure(() -> new CatalogClient(config).get(url), CatalogErrorCode.HTTP_ERROR,
                 CatalogOperation.GET, url, 503);
         assertNull(error.getResponseJson());
