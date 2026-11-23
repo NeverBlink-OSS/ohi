@@ -4,6 +4,8 @@ extends: default
 ignore: |
   # Third-party files, kept as they were published upstream.
   /benchmark/resources/
+  # Upstream LinkML test schema
+  /tests/resources/models/kitchenSink/
 
 rules:
   # LinkML descriptions are often long prose on a single line.
