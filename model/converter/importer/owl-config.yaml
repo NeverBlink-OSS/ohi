@@ -2,8 +2,8 @@ id: https://linkml.ohi.dev/model/converter/importer/owl-config
 name: owl-import-config
 title: OWL import config
 description: >-
-  Settings for importing an OWL ontology into LinkML (`linkml-scala from owl --config`). 
-  Properties and datatypes can be written as CURIEs over the ontology's prefixes, `prefixes`, 
+  Settings for importing an OWL ontology into LinkML (`linkml-scala from owl --config`).
+  Properties and datatypes can be written as CURIEs over the ontology's prefixes, `prefixes`,
   or well-known ones such as `rdfs`.
 license: https://creativecommons.org/publicdomain/zero/1.0/
 prefixes:

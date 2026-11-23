@@ -3,8 +3,8 @@ name: Git lint
 
 on:
   pull_request:
-    branches: [ "main" ]
-    types: [ opened, edited, synchronize, reopened ]
+    branches: ["main"]
+    types: [opened, edited, synchronize, reopened]
 
 concurrency:
   group: ${{ github.workflow }}-ci-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}

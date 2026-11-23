@@ -12,9 +12,9 @@ classes:
   CliFileError:
     tree_root: true
     slots:
-    - message
-    - target_url
-    - path
+      - message
+      - target_url
+      - path
     slot_usage:
       target_url:
         required: true

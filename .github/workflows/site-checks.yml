@@ -2,13 +2,33 @@ name: Site checks
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 concurrency:
   group: ${{ github.workflow }}-ci-pr-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # Here to run the check on every PR
+  yaml-lint:
+    name: YAML lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+
+      - name: Relocate the coursier archive cache # see checks.yml
+        shell: bash
+        run: echo "COURSIER_ARCHIVE_CACHE=${{ runner.temp }}/cs-arc" >> "$GITHUB_ENV"
+
+      - name: Cache dependencies
+        uses: coursier/cache-action@v8
+        with:
+          extraFiles: '["**/package.mill", "mill-build/src/**/*.scala", "!out/**", "!.bsp/**"]'
+
+      - name: Run yamllint
+        run: ./mill --no-server yamllint
+
   ui-check:
     name: UI typecheck & build
     runs-on: ubuntu-latest

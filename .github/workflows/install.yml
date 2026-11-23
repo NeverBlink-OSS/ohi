@@ -5,7 +5,7 @@ name: Test install script
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
       - 'cli/install.sh'
       - 'cli/test-install.sh'
@@ -31,7 +31,7 @@ jobs:
       matrix:
         # Every platform with a published release asset that install.sh supports.
         # windows-latest runs it under Git Bash.
-        os: [ ubuntu-latest, ubuntu-22.04-arm, macos-15, macos-15-intel, windows-latest ]
+        os: [ubuntu-latest, ubuntu-22.04-arm, macos-15, macos-15-intel, windows-latest]
     defaults:
       run:
         shell: bash

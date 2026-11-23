@@ -219,7 +219,7 @@ classes:
   UnexpectedError:
     is_a: SchemaFatal
     description: >-
-      Something unexpected went wrong that during schema loading or validation. Consider filing 
+      Something unexpected went wrong that during schema loading or validation. Consider filing
       a bug report with the schema and the error message: {reason}
     attributes:
       reason:

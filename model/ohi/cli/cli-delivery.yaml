@@ -12,7 +12,7 @@ classes:
   DeliveryResult:
     tree_root: true
     slots:
-    - path
+      - path
     slot_usage:
       path:
         required: true

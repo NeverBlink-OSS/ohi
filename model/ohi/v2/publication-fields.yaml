@@ -71,7 +71,7 @@ slots:
   hub_version:
     description: Hub version that released this publication.
     comments:
-      - Hub versions before 0.2.0 may lack this field.
+    - Hub versions before 0.2.0 may lack this field.
     range: string
   element_count:
     description: Number of LinkML elements in the publication.

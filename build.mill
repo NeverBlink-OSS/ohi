@@ -27,6 +27,7 @@ import mill.scalanativelib.api.{BuildTarget, LTO, ReleaseMode}
 import io.github.alexarchambault.millnativeimage.NativeImage
 import com.carlosedp.aliases.*
 import mill.contrib.buildinfo.BuildInfo
+import mill.pythonlib.PythonModule
 import mill.api.Evaluator
 import mill.javalib.Dep
 import millbuild.*
@@ -45,7 +46,8 @@ object `package` extends Module {
     def lint: Seq[String] = {
       val platforms =
         Seq("__.jvm.__", "__.js.__") ++ Option.when(NativeOptional.nativeEnabled)("__.native.__")
-      alias((platforms :+ "agents.__").flatMap(p => Seq(s"$p.fix", s"$p.reformat"))*)
+      val scala = (platforms :+ "agents.__").flatMap(p => Seq(s"$p.fix", s"$p.reformat"))
+      alias((scala :+ "yamllint.run")*)
     }
 
     /** Regenerate every checked-in source generated from a LinkML model. */
@@ -70,6 +72,18 @@ object `package` extends Module {
 
   def lint(ev: Evaluator, args: String*) = Task.Command(exclusive = true) {
     AliasesModule.run(ev, "lint")
+  }
+
+  /** yamllint `./mill yamllint` checks every YAML file in the repository,
+    * `./mill yamllint.run a.yaml b.yaml` only lints the selected files. The venv is managed by
+    * mill.
+    */
+  object yamllint extends PythonModule {
+    override def pythonDeps = Task { Seq(s"yamllint==${YamlLint.version}") }
+
+    override def run(args: mill.api.Args) = Task.Command {
+      YamlLint.run(mill.api.BuildCtx.workspaceRoot, pythonExe().path, args.value)
+    }
   }
 
   def regenerate(ev: Evaluator, args: String*) = Task.Command(exclusive = true) {

@@ -5,7 +5,7 @@ name: Native build
 # the `full-wheels` label. To also test installation from sdist, give it the `test-sdist` label.
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     paths: &paths
       - 'nativelib/**'
       - 'python/**'
@@ -14,7 +14,7 @@ on:
       - '.github/workflows/native-build.yml'
       - '.github/workflows/wheels.yml'
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     paths: *paths
 
 concurrency:
