@@ -3,7 +3,7 @@ name: Deploy linkml.ohi.dev
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
     # Folders that aren't used for building the site
     paths-ignore:
       - ".agents/**"

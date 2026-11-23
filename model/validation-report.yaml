@@ -44,8 +44,8 @@ classes:
     notes:
       - >-
         This class is intended to be subclassed for specific types of issues. The issues should
-        declare additional slots that are specific to the type of issue (e.g., name of class). 
-        The `message` and `details` slots should be specified in the subclass using `equals_expression` 
+        declare additional slots that are specific to the type of issue (e.g., name of class).
+        The `message` and `details` slots should be specified in the subclass using `equals_expression`
         to provide a human-readable message describing the issue.
       - >-
         Do not subclass this class directly. Instead, subclass one of the following classes:
@@ -145,7 +145,7 @@ classes:
       A region of code in a schema where an issue was found.
       This class is a simplified (special case) version of the `region` object from the SARIF specification:
       https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/sarif-v2.1.0-errata01-os-complete.html#_Toc141790935
-      
+
       Indexing is 1-based.
     attributes:
       start_line:

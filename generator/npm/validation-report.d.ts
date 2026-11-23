@@ -611,7 +611,7 @@ export interface UnexpandedCurie {
   uri_or_curie: string;
 }
 
-/** Something unexpected went wrong that during schema loading or validation. Consider filing  a bug report with the schema and the error message: {reason} */
+/** Something unexpected went wrong that during schema loading or validation. Consider filing a bug report with the schema and the error message: {reason} */
 export interface UnexpectedError {
   /** details: Longer, human-readable message describing the issue in more detail. */
   details?: string;

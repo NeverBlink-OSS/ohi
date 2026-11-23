@@ -2,7 +2,7 @@ id: https://neverblink.eu/linkml/tests/typeDesignator2/
 name: typeDesignator2
 description: >-
   Type designators on classes with different attributes.
-  This tests whether the type designator is correctly used to determine the class 
+  This tests whether the type designator is correctly used to determine the class
   of an object when deserializing or validating the data.
 imports:
   - linkml:types

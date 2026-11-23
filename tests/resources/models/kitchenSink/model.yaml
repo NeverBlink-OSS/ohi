@@ -245,7 +245,7 @@ classes:
         range: Person
         required: true
       cordialness:
-        # required: true
+      # required: true
 
   BirthEvent:
     is_a: Event
@@ -400,7 +400,7 @@ slots:
     inlined: true
   addresses:
     range: Address
-    multivalued: True
+    multivalued: true
   age in years:
     description: number of years since birth
     range: integer
@@ -476,7 +476,7 @@ enums:
   other codes:
     permissible_values:
       a b:
-      #1+2:
+      # 1+2:
   LifeStatusEnum:
     permissible_values:
       LIVING:

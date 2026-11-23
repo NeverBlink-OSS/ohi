@@ -41,8 +41,8 @@ classes:
         required: true
         ifabsent: 'false'
         description: >-
-          Whether loading should check the data like the JSON Schema does: the JSON type of 
-          every value, patterns, minimum and maximum values, lengths and cardinality. 
+          Whether loading should check the data like the JSON Schema does: the JSON type of
+          every value, patterns, minimum and maximum values, lengths and cardinality.
           Without it, values are coerced into their types, such as `"2"` to `2`, and only
           the required slots, enums, type designators and unknown keys are checked.
       package:
@@ -55,7 +55,7 @@ classes:
 functions:
   java:
     description: >-
-      Generate Java classes for the schema's JSON data, one file per class and enum. The classes 
+      Generate Java classes for the schema's JSON data, one file per class and enum. The classes
       only need the Jackson annotations. Load data with `mapper.readValue(text, X.class)` and dump
       it with `mapper.writeValueAsString(x)`.
     parameters: JavaGeneratorOptions

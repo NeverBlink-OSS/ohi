@@ -7,7 +7,7 @@ description: |-
 default_curi_maps:
   - semweb_context
 imports:
- - linkml:types
+  - linkml:types
 prefixes:
   pav: http://purl.org/pav/
   dce: http://purl.org/dc/elements/1.1/
@@ -35,7 +35,6 @@ types:
 # TODO: update on model update
 #    minimum_value: 0
 #    maximum_value: 999
-
 
 
 classes:

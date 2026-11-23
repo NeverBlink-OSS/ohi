@@ -14,14 +14,14 @@ enums:
 
   SomeEnum:
     is_a: SomeClass
-    mixins: [ SomeBaseEnum ]
+    mixins: [SomeBaseEnum]
     permissible_values:
       SOME_VALUE:
       SOME_OTHER_VALUE:
 
   SomeOtherEnum:
     is_a: SomeClass
-    mixins: [ SomeBaseEnum ]
+    mixins: [SomeBaseEnum]
     permissible_values:
       YET_ANOTHER_VALUE:
       ONE_MORE_VALUE:

@@ -120,7 +120,7 @@ export interface JavaGeneratorOptions {
    */
   pruning_mode?: PruningMode;
   /**
-   * Whether loading should check the data like the JSON Schema does: the JSON type of  every value, patterns, minimum and maximum values, lengths and cardinality.  Without it, values are coerced into their types, such as `"2"` to `2`, and only the required slots, enums, type designators and unknown keys are checked.
+   * Whether loading should check the data like the JSON Schema does: the JSON type of every value, patterns, minimum and maximum values, lengths and cardinality. Without it, values are coerced into their types, such as `"2"` to `2`, and only the required slots, enums, type designators and unknown keys are checked.
    * @defaultValue false
    */
   strict?: boolean;
@@ -507,7 +507,7 @@ export interface GeneratorFunctions {
   /** Generate a GraphQL schema: types, interfaces, scalars and enums, but no queries. */
   graphql(params?: GraphQlGeneratorOptions): string;
 
-  /** Generate Java classes for the schema's JSON data, one file per class and enum. The classes  only need the Jackson annotations. Load data with `mapper.readValue(text, X.class)` and dump it with `mapper.writeValueAsString(x)`. */
+  /** Generate Java classes for the schema's JSON data, one file per class and enum. The classes only need the Jackson annotations. Load data with `mapper.readValue(text, X.class)` and dump it with `mapper.writeValueAsString(x)`. */
   java(params?: JavaGeneratorOptions): Files;
 
   /** Generate a JSON Schema. */

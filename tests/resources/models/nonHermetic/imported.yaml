@@ -4,4 +4,3 @@ name: nonHermeticImported
 slots:
   some_slot:
     range: int
-

@@ -17,24 +17,24 @@ classes:
     extra_slots:
       allowed: true
     slots:
-    - base_url
-    - namespace
-    - name
-    - version
-    - title
-    - description
-    - licenses
-    - published_at
-    - hub_version
-    - keywords
-    - element_count
-    - native_element_count
-    - authors
-    - publishers
-    - contributors
-    - maintainers
-    - original_sources
-    - publications
+      - base_url
+      - namespace
+      - name
+      - version
+      - title
+      - description
+      - licenses
+      - published_at
+      - hub_version
+      - keywords
+      - element_count
+      - native_element_count
+      - authors
+      - publishers
+      - contributors
+      - maintainers
+      - original_sources
+      - publications
     attributes:
       schema_version:
         description: Metadata contract revision, independent of the ontology's version.
@@ -230,7 +230,7 @@ classes:
     description: Information about the revision
     comments:
       - >-
-        Revisions use version tags of the form "{original_version}-revision-{id}", 
+        Revisions use version tags of the form "{original_version}-revision-{id}",
         for example: v1.2.3-revision-2026-12-31
     notes:
       - This will include more information in the future

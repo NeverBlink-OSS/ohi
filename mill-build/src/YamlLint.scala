@@ -22,7 +22,7 @@ object YamlLint {
       check = false,
     )
     if result.exitCode != 0 then throw new Exception("yamllint found problems")
-    println(s"yamllint: ${toCheck.size} OK")
+    println(s"yamllint: ${toCheck.size} files OK")
   }
 
   /** Tracked files and new files git doesn't ignore, so out/, .venv/ and node_modules/ are skipped.
