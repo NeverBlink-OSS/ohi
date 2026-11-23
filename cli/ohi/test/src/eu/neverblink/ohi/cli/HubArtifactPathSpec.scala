@@ -1,6 +1,6 @@
 package eu.neverblink.ohi.cli
 
-import eu.neverblink.ohi.model.generated.{CliFileErrorCode, Format}
+import eu.neverblink.ohi.model.generated.CliFileErrorCode
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -11,12 +11,12 @@ class HubArtifactPathSpec extends AnyWordSpec, Matchers {
 
   "Hub artifact paths" should {
     for (format, expected) <- Seq(
-        Format.LinkmlYaml -> "w3c/dcat/3/dcat.linkml.yaml",
-        Format.OwlTurtle -> "w3c/dcat/3/dcat.owl.ttl",
-        Format.OwlRdfxml -> "w3c/dcat/3/dcat.owl",
-        Format.RdfsTurtle -> "w3c/dcat/3/dcat.rdfs.ttl",
-        Format.OssieYaml -> "w3c/dcat/3/dcat.ossie.yaml",
-        Format.ShaclTurtle -> "w3c/dcat/3/dcat.shacl.ttl",
+        "linkml-yaml" -> "w3c/dcat/3/dcat.linkml.yaml",
+        "owl-turtle" -> "w3c/dcat/3/dcat.owl.ttl",
+        "owl-rdfxml" -> "w3c/dcat/3/dcat.owl",
+        "rdfs-turtle" -> "w3c/dcat/3/dcat.rdfs.ttl",
+        "ossie-yaml" -> "w3c/dcat/3/dcat.ossie.yaml",
+        "shacl-turtle" -> "w3c/dcat/3/dcat.shacl.ttl",
       )
     do
       s"use the declared $format suffix and publication name instead of the advertised basename" in {
@@ -24,6 +24,11 @@ class HubArtifactPathSpec extends AnyWordSpec, Matchers {
           expected,
         )
       }
+
+    "name a file in a format this version of ohi does not know after the encoded last segment of its URL" in {
+      HubArtifactPath.relative(base, base + "legacy/Dcat3.shex", "future-format", ".ohi") shouldBe
+        Path.of("w3c/dcat/3/%44cat3.shex")
+    }
 
     for (publication, expected) <- Seq(
         "https://hub.example/files/packages/other/dcat/3/" -> "other/dcat/3/dcat.linkml.yaml",
@@ -34,7 +39,7 @@ class HubArtifactPathSpec extends AnyWordSpec, Matchers {
         HubArtifactPath.relative(
           publication,
           publication + "same.yaml",
-          Format.LinkmlYaml,
+          "linkml-yaml",
           ".ohi",
         ) shouldBe Path.of(expected)
       }
@@ -54,7 +59,7 @@ class HubArtifactPathSpec extends AnyWordSpec, Matchers {
         HubArtifactPath.relative(
           publication,
           publication + "raw.yaml",
-          Format.LinkmlYaml,
+          "linkml-yaml",
           ".ohi",
         ) shouldBe
           Path.of(s"ns/$expected/1/$expected.linkml.yaml")
@@ -101,7 +106,7 @@ class HubArtifactPathSpec extends AnyWordSpec, Matchers {
     do
       s"reject artifact $invalid outside the canonical publication" in {
         val error = intercept[CliFileException](
-          HubArtifactPath.relative(base, invalid, Format.LinkmlYaml, ".ohi"),
+          HubArtifactPath.relative(base, invalid, "linkml-yaml", ".ohi"),
         ).error
         error.code shouldBe CliFileErrorCode.UnsupportedFilename
         error.targetUrl shouldBe invalid

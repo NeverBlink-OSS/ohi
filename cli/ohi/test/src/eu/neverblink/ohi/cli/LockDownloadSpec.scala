@@ -7,7 +7,6 @@ import eu.neverblink.ohi.model.generated.{
   CatalogErrorCode,
   CatalogOperation,
   CliFileErrorCode,
-  Format,
   LockFileStatus,
   LockedFile,
 }
@@ -33,7 +32,7 @@ class LockDownloadSpec extends AnyWordSpec, Matchers, Inside {
       host: String = "hub.example",
   ): LockedFile = {
     val base = s"https://$host/files/packages/test/$name/1/"
-    LockedFile(Uri(base), Format.OwlTurtle, Uri(base + "source.ttl"), Some(hash))
+    LockedFile(Uri(base), "owl-turtle", Uri(base + "source.ttl"), Some(hash))
   }
 
   private def withDirectory(test: Path => Unit): Unit = {
@@ -55,7 +54,7 @@ class LockDownloadSpec extends AnyWordSpec, Matchers, Inside {
         val directory = root.resolve("managed")
         val base = "https://hub.example/files/packages/.gitignore/z/1/"
         val locked =
-          LockedFile(Uri(base), Format.OwlTurtle, Uri(base + "source.ttl"), Some(binaryHash))
+          LockedFile(Uri(base), "owl-turtle", Uri(base + "source.ttl"), Some(binaryHash))
         val error = intercept[CliFileException] {
           LockDownload.prepare(
             Seq(locked),

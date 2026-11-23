@@ -31,12 +31,16 @@ classes:
   LockedFile:
     is_a: ArtifactSelection
     slots:
-    - format
     - sha256
+    attributes:
+      format:
+        description: Ontology language and syntax of the file. A Format value, or one from a later
+          version of ohi.
+        range: string
+        required: true
+        rank: 1
     slot_usage:
       base_url:
         rank: 0
-      format:
-        rank: 1
       url:
         rank: 2

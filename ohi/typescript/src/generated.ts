@@ -145,8 +145,8 @@ export interface LockError {
 export interface LockedFile {
   /** Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns its publication JSON. Do not append a filename. */
   base_url: string;
-  /** Ontology language and syntax of the artifact. */
-  format: Format;
+  /** Ontology language and syntax of the file. A Format value, or one from a later version of ohi. */
+  format: string;
   /** Permanent absolute download URL of an immutable ontology file. */
   url: string;
   /** SHA-256 of the file bytes before HTTP content encoding. */
