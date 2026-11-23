@@ -3,7 +3,7 @@ title: Compatibility
 description: Compatibility between ohi versions and ohi.dev.
 ---
 
-ohi 0.18.6 and later keep working as [ohi.dev](https://ohi.dev) changes. You upgrade when you want
+ohi 0.18.7 and later keep working as [ohi.dev](https://ohi.dev) changes. You upgrade when you want
 something new.
 
 ## Published files
@@ -16,7 +16,7 @@ A file on ohi.dev does not change after it is published. So a project with a com
 ohi.dev adds file formats and details about ontologies over time. An older version of ohi ignores
 what it does not know and keeps working as before.
 
-For example, if ohi.dev adds a new format, ohi 0.18.6 does not list those files, and
+For example, if ohi.dev adds a new format, ohi 0.18.7 does not list those files, and
 `ohi get w3c/dcat@3 --format owl-turtle` still downloads the same file.
 
 ## Upgrading ohi
