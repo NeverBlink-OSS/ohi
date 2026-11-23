@@ -401,6 +401,11 @@ class DocsGenerator(using sv: SchemaView) extends CharDocumentGenerator[DocsGene
       md.startItem("Range")
       slotRange(md, s, from)
       md.endItem()
+      slot.domain.foreachFast { domain =>
+        md.startItem("Domain")
+        classLinkByName(md, domain.value, from)
+        md.endItem()
+      }
       md.startItem("Cardinality")
       cardinality(md, slot)
       md.endItem()

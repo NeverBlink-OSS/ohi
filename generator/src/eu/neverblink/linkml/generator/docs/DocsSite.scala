@@ -12,8 +12,7 @@ import scala.collection.mutable
 /** Which elements the documentation covers, what their pages are called, and how they are used.
   *
   * @param pruning
-  *   Which classes to document. The enums and types they use are documented with them, and so are
-  *   the slots they have.
+  *   Which elements to document
   * @param singleFile
   *   Whether all pages are sections of one document, which changes how they link to each other
   */
@@ -47,9 +46,6 @@ final class DocsSite private[docs] (pruning: Pruning, singleFile: Boolean)(using
   /** Usages of top-level slots, keyed by the slot's name. */
   private val slotUsages = mutable.HashMap.empty[String, mutable.ListBuffer[Usage]]
 
-  /** Names of the top-level slots that a documented class has, either its own or inherited. */
-  private val usedSlots = mutable.HashSet.empty[String]
-
   /** Functions that name a class, an enum or a type, keyed by that element's name. */
   private val functionUsages = mutable.HashMap.empty[String, mutable.ListBuffer[FunctionUsage]]
 
@@ -76,7 +72,6 @@ final class DocsSite private[docs] (pruning: Pruning, singleFile: Boolean)(using
     cv.sortedAttributeViews.foreach { av =>
       val name = av.slotView.name
       val topLevel = isTopLevelSlot(cv, name)
-      if (topLevel) usedSlots.add(name)
       val declarer = declarers.getOrElse(name, null)
       if ((declarer eq cv) || cv.cls.slotUsage.contains(name)) {
         val usage = Usage(cv, av)
@@ -90,12 +85,8 @@ final class DocsSite private[docs] (pruning: Pruning, singleFile: Boolean)(using
     slotRows.update(cv.name, rows.result())
   }
 
-  /** The documented top-level slots: all of them if nothing is pruned, otherwise the ones that a
-    * documented class has.
-    */
-  val slots: Seq[SlotView] = sorted(
-    sv.slotDefinitions.values.filter(s => pruning == Pruning.skip || usedSlots(s.name)),
-  )
+  /** The documented top-level slots. */
+  val slots: Seq[SlotView] = sorted(sv.slotDefinitions.values.filter(query.reachable))
 
   private val classPages = pagesOf(PageKind.classes, classes, DocsRenamer.className)
   private val slotPages = pagesOf(PageKind.slots, slots, DocsRenamer.slotName)

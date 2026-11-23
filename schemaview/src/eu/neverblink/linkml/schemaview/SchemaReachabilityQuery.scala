@@ -2,6 +2,7 @@ package eu.neverblink.linkml.schemaview
 
 import eu.neverblink.linkml.metamodel.*
 import eu.neverblink.linkml.runtime.FastUtils.*
+import eu.neverblink.linkml.runtime.Reference
 import SchemaReachabilityQuery.*
 import ElementTypeTag.*
 
@@ -73,6 +74,11 @@ final class IncludeAllReachabilityQuery(using SchemaView) extends SchemaReachabi
 
 /** Reachability query for a derived schema (resolved inheritance, all slots inlined to class
   * definitions).
+  *
+  * Top-level slots are reachable from the start, from classes that have them, and from elements
+  * that name them. Only slots in [[from]] are followed; a class' slots are followed as its
+  * attributes, with `slot_usage` applied.
+  *
   * @param from
   *   [[Element]]s to start the search from
   * @param inlinedOnly
@@ -98,17 +104,23 @@ final class DerivedReachabilityQuery(
     useHashCode = true,
   )
 
+  /** Names of the slots in [[from]]. */
+  private lazy val startSlots: Set[String] =
+    from.iterator.collect { case s: SlotView => s.name }.toSet
+
   private def walk(current: TaggedReference): Iterable[TaggedReference] = {
     val result = new mutable.ArrayBuffer[TaggedReference]
     val name = current.value
     val tag = current.tag
     if (tag eq ElementTypeTag.classDef) {
       sv.classes.get(name).foreachFast { classView =>
-        classView.derivedAttributes.values.foreach {
+        classView.derivedAttributes.foreachEntry { (attrName, slotView) =>
           // if the classes are going to be derived, then we can simply skip to the ranges of derived attributes
-          case slotView if !inlinedOnly || slotView.derivedInlined =>
-            collectSlotRefs(slotView, result)
-          case _ =>
+          if (!inlinedOnly || slotView.derivedInlined) collectSlotRefs(slotView, result)
+          if (
+            sv.slotDefinitions.contains(attrName) &&
+            !classView.isSlotFromAttributes(new Reference[SlotDefinition](attrName))
+          ) result.addOne((slotDef, attrName))
         }
         // Class-level references, such as ranges in rules, are never inlined values
         if (!inlinedOnly) derivedClassRefs.collect(classView.cls, result)
@@ -116,9 +128,12 @@ final class DerivedReachabilityQuery(
           classView.parents.foreach(anc => result.addOne((classDef, anc.name)))
         }
       }
+    } else if (tag eq ElementTypeTag.slotDef) {
+      if (startSlots.contains(name)) sv.slotDefinitions.get(name).foreachFast { slotView =>
+        if (!inlinedOnly || slotView.derivedInlined) collectSlotRefs(slotView, result)
+      }
     } else collectOtherRefs(current, result)
-    // Derived classes have attributes instead of slots, so top-level slots are not reachable
-    result.filterInPlace(_.tag ne slotDef)
+    result
   }
 }
 

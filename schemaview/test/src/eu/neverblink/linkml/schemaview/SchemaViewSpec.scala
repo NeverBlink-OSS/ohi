@@ -665,7 +665,7 @@ class SchemaViewSpec extends AnyWordSpec, Matchers {
       inlinedOnly.reachable(sv.classes("Ref")) shouldBe false
     }
 
-    "not reach top-level slots in the derived query" in {
+    "reach the top-level slots that an attribute names in the derived query" in {
       val schema =
         """id: https://example.org/derived-slots/
           |name: derived_slots
@@ -675,6 +675,7 @@ class SchemaViewSpec extends AnyWordSpec, Matchers {
           |  base_slot:
           |    range: string
           |  group:
+          |  unused:
           |classes:
           |  Root:
           |    attributes:
@@ -686,8 +687,92 @@ class SchemaViewSpec extends AnyWordSpec, Matchers {
       val sv = SchemaIssues.orThrow(SchemaView.loadSchemaViewFromString(schema))
 
       val derived = sv.derivedReachabilityQuery(Seq(sv.classes("Root")), false, true)
-      derived.reachable(sv.slotDefinitions("base_slot")) shouldBe false
-      derived.reachable(sv.slotDefinitions("group")) shouldBe false
+      derived.reachable(sv.slotDefinitions("base_slot")) shouldBe true
+      derived.reachable(sv.slotDefinitions("group")) shouldBe true
+      derived.reachable(sv.slotDefinitions("unused")) shouldBe false
+    }
+
+    "reach the top-level slots that a class has in the derived query, but not their own ranges" in {
+      val schema =
+        """id: https://example.org/class-slots/
+          |name: class_slots
+          |imports:
+          |  - linkml:types
+          |slots:
+          |  pet:
+          |    range: Animal
+          |  name:
+          |    range: string
+          |classes:
+          |  Animal:
+          |  Dog:
+          |    is_a: Animal
+          |  Owner:
+          |    slots: [pet]
+          |    slot_usage:
+          |      pet:
+          |        range: Dog
+          |  Child:
+          |    is_a: Owner
+          |    attributes:
+          |      name:
+          |        range: integer
+          |""".stripMargin
+
+      val sv = SchemaIssues.orThrow(SchemaView.loadSchemaViewFromString(schema))
+
+      val fromOwner = sv.derivedReachabilityQuery(Seq(sv.classes("Owner")), false, false)
+      fromOwner.reachable(sv.slotDefinitions("pet")) shouldBe true
+      fromOwner.reachable(sv.classes("Dog")) shouldBe true
+      // The class narrows the range, so the slot's own range is not reached through it
+      fromOwner.reachable(sv.classes("Animal")) shouldBe false
+
+      // An attribute with the name of a top-level slot is not that slot
+      val fromChild = sv.derivedReachabilityQuery(Seq(sv.classes("Child")), false, false)
+      fromChild.reachable(sv.slotDefinitions("pet")) shouldBe true
+      fromChild.reachable(sv.slotDefinitions("name")) shouldBe false
+    }
+
+    "follow the slots that the derived query starts from" in {
+      val schema =
+        """id: https://example.org/start-slots/
+          |name: start_slots
+          |imports:
+          |  - linkml:types
+          |slots:
+          |  status:
+          |    range: integer
+          |    any_of:
+          |      - range: StatusEnum
+          |    domain: Holder
+          |  owner:
+          |    range: Person
+          |classes:
+          |  Holder:
+          |  Person:
+          |    attributes:
+          |      id:
+          |        identifier: true
+          |enums:
+          |  StatusEnum:
+          |    permissible_values:
+          |      on:
+          |""".stripMargin
+
+      val sv = SchemaIssues.orThrow(SchemaView.loadSchemaViewFromString(schema))
+      val slots = Seq(sv.slotDefinitions("status"), sv.slotDefinitions("owner"))
+
+      val derived = sv.derivedReachabilityQuery(slots, false, false)
+      derived.reachable(sv.types("integer")) shouldBe true
+      derived.reachable(sv.enums("StatusEnum")) shouldBe true
+      derived.reachable(sv.classes("Holder")) shouldBe true
+      derived.reachable(sv.classes("Person")) shouldBe true
+      derived.reachable(sv.types("string")) shouldBe true
+
+      // `owner` holds a reference to a `Person`, not a `Person` itself
+      val inlinedOnly = sv.derivedReachabilityQuery(slots, true, false)
+      inlinedOnly.reachable(sv.enums("StatusEnum")) shouldBe true
+      inlinedOnly.reachable(sv.classes("Person")) shouldBe false
     }
 
     "not reach the default range from a slot usage without a range" in {

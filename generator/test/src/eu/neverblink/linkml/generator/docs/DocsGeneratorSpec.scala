@@ -173,6 +173,52 @@ class DocsGeneratorSpec extends AnyWordSpec, Matchers {
       index should include("| [string](types/string.md) | A character string |\n")
     }
 
+    "list the slots of a schema that has only slots, with what they point to" in {
+      val sv = schemaOf(
+        """slots:
+          |  status:
+          |    description: How far along it is
+          |    range: StatusKind
+          |  holder:
+          |    domain: Holder
+          |classes:
+          |  Holder:
+          |    description: Has a holder
+          |enums:
+          |  StatusKind:
+          |    permissible_values:
+          |      done:
+          |""".stripMargin,
+      )
+      val pages = files(sv)
+      val index = pages("index.md")
+      index should include("## Slots\n")
+      index should include("| [status](slots/status.md) | How far along it is |\n")
+      index should include("| [holder](slots/holder.md) |  |\n")
+      pages("slots/status.md") should include(
+        "- **Range:** [StatusKind](../enums/status_kind.md)\n",
+      )
+      pages("slots/holder.md") should include("- **Domain:** [Holder](../classes/holder.md)\n")
+      pages.keySet should contain allOf ("enums/status_kind.md", "classes/holder.md")
+    }
+
+    "leave out the slots of the schema that no class has when pruning from the tree root" in {
+      val sv = schemaOf(
+        """classes:
+          |  Container:
+          |    tree_root: true
+          |    slots: [used]
+          |slots:
+          |  used: {}
+          |  unused: {}
+          |""".stripMargin,
+      )
+      val treeRoot = files(sv, DocsGeneratorOptions(pruningMode = PruningMode.TreeRoot))
+      treeRoot.keySet should contain("slots/used.md")
+      treeRoot.keySet should not contain "slots/unused.md"
+      files(sv).keySet should contain allOf ("slots/used.md", "slots/unused.md")
+    }
+
     "list the slots of a class, with their ranges, cardinalities and where they come from" in {
       val page = files(ModelCatalogue.inheritance.model)("classes/child_class.md")
       page should include("# Class: ChildClass\n")
