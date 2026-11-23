@@ -4,7 +4,7 @@
 # search hit or publication that does not match the contract schemas in model/ohi/v2.
 set -euo pipefail
 
-baseline=0.18.6
+baseline=0.18.7
 
 temporary=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/ohi-production.XXXXXX")
 trap 'rm -rf "$temporary"' EXIT

@@ -5,7 +5,7 @@
 # or the latest full release.
 set -euo pipefail
 
-baseline=v0.18.6
+baseline=v0.18.7
 
 temporary=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/ohi-contract.XXXXXX")
 trap 'rm -rf "$temporary"' EXIT

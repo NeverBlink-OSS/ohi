@@ -151,7 +151,7 @@ npm --prefix ohi/typescript run test:browser   # browser checks, needs Chrome
 
 ### ohi contract
 
-The schemas in [`model/ohi/v2/`](model/ohi/v2/) define what the hub serves. Every client from 0.18.6 on has to keep reading it, so only add to them:
+The schemas in [`model/ohi/v2/`](model/ohi/v2/) define what the hub serves. Every client from 0.18.7 on has to keep reading it, so only add to them:
 
 - Add a field only as optional.
 - Never remove, rename or retype a field, or change whether it is required.
@@ -160,8 +160,8 @@ The schemas in [`model/ohi/v2/`](model/ohi/v2/) define what the hub serves. Ever
 A breaking change needs a version 3 next to version 2.
 
 ```shell
-bash cli/check-contract.sh     # the schemas against 0.18.6 and the latest release, run on pull requests
-bash cli/check-production.sh   # api.ohi.dev against the 0.18.6 clients and the schemas, run nightly
+bash cli/check-contract.sh     # the schemas against 0.18.7 and the latest release, run on pull requests
+bash cli/check-production.sh   # api.ohi.dev against the 0.18.7 clients and the schemas, run nightly
 ```
 
 ### npm package

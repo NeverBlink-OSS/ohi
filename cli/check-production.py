@@ -19,7 +19,7 @@ from ohi import CatalogClient, CatalogException, SearchRequest, decode_publicati
 
 binary = str(Path(sys.argv[1]).resolve())
 schemas = Path(sys.argv[2])
-# Locked by ohi 0.18.6. The hub generated the locked file, so a regeneration that changes it
+# Locked by ohi 0.18.7. The hub generated the locked file, so a regeneration that changes it
 # fails the sync.
 baseline = Path(__file__).resolve().parent / "contract" / "baseline"
 
