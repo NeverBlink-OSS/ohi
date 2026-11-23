@@ -1,0 +1,21 @@
+# Config for yamllint, run with `./mill yamllint`. Rules: https://yamllint.readthedocs.io/en/stable/rules.html
+extends: default
+
+ignore: |
+  # Third-party files, kept as they were published upstream.
+  /benchmark/resources/
+
+rules:
+  # LinkML descriptions are often long prose on a single line.
+  line-length: disable
+  # Few of our files start with `---`, and nothing needs it.
+  document-start: disable
+  # GitHub workflows use `on:` as a key, which YAML 1.1 reads as a boolean.
+  truthy:
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1
+  # Both `key:\n  - item` and `key:\n- item` are fine, as long as a file sticks to one.
+  indentation:
+    spaces: 2
+    indent-sequences: consistent

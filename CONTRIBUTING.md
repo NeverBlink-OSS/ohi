@@ -41,7 +41,8 @@ In IntelliJ, [import the project as BSP](https://mill-build.org/mill/cli/install
 | Compile everything           | `./mill __.compile`                          |
 | Test one module              | `./mill generator.jvm.test`                  |
 | Test everything              | `./mill __.testForked`                       |
-| Lint (scalafix and scalafmt) | `./mill lint`                                |
+| Lint (scalafix, scalafmt and yamllint) | `./mill lint`                      |
+| Lint only the YAML files     | `./mill yamllint` |
 | Run the `linkml-scala` CLI   | `./mill cli.jvm.run --help`                  |
 | Run the `ohi` CLI            | `./mill cli.ohi.jvm.run --help`              |
 | Build a runnable jar         | `./mill cli.jvm.assembly`, `./mill cli.ohi.jvm.assembly` |
