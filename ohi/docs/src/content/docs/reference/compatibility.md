@@ -17,7 +17,7 @@ ohi.dev adds file formats and details about ontologies over time. An older versi
 what it does not know and keeps working as before.
 
 For example, if ohi.dev adds a new format, ohi 0.18.7 does not list those files, and
-`ohi get w3c/dcat@3 --format owl-turtle` still downloads the same file.
+`ohi get w3c/dcat@3 --format owl-turtle` still downloads the OWL Turtle file.
 
 ## Upgrading ohi
 
