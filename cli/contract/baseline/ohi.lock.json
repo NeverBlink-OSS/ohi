@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "base_url": "https://api.ohi.dev/files/packages/w3c/prov-o/2013/",
+      "format": "linkml-yaml",
+      "url": "https://api.ohi.dev/files/packages/w3c/prov-o/2013/prov-o.linkml.yaml",
+      "sha256": "6a9325746db714f0ca356642506975411437133a92c92b170e7ad33c194efc8d"
+    }
+  ],
+  "format_version": 2,
+  "selections": [
+    {
+      "base_url": "https://api.ohi.dev/files/packages/w3c/prov-o/2013/",
+      "url": "https://api.ohi.dev/files/packages/w3c/prov-o/2013/prov-o.linkml.yaml"
+    }
+  ]
+}
