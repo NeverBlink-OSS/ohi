@@ -1,7 +1,7 @@
 package eu.neverblink.ohi.model
 
 import eu.neverblink.linkml.runtime.{Uri, stringify}
-import eu.neverblink.ohi.model.generated.{Format, Lock, LockedFile}
+import eu.neverblink.ohi.model.generated.{Lock, LockedFile}
 import java.io.{FilterOutputStream, IOException}
 import java.nio.charset.StandardCharsets.{UTF_8, UTF_16LE}
 import java.nio.file.{AtomicMoveNotSupportedException, Files, Path}
@@ -67,7 +67,7 @@ class LockFilesSpec extends AnyWordSpec, Matchers {
         val path = root.resolve("./chosen.json")
         Files.write(path, previous)
         val invalid = Lock(
-          Seq(LockedFile(Uri("urn:release:z"), Format.OwlTurtle, Uri("urn:file:z"))),
+          Seq(LockedFile(Uri("urn:release:z"), "owl-turtle", Uri("urn:file:z"))),
           2,
           Seq.empty,
         )

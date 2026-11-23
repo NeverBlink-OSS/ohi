@@ -277,8 +277,8 @@ class LockError(LinkMLModel):
 class LockedFile(ArtifactSelection):
     base_url: str
     """Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns its publication JSON. Do not append a filename."""
-    format: Format
-    """Ontology language and syntax of the artifact."""
+    format: str
+    """Ontology language and syntax of the file. A Format value, or one from a later version of ohi."""
     url: str
     """Permanent absolute download URL of an immutable ontology file."""
     sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}(?![\s\S])")] | None = None

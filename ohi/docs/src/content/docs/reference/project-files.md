@@ -71,6 +71,7 @@ Downloads are grouped by namespace, ontology and version. For example, DCAT 3 in
 ```
 
 The [format table](/docs/reference/cli/#ontology-references-and-formats) lists filename suffixes.
+A locked file in a format that your version of ohi does not know keeps the file name from its URL.
 
 ohi creates a `.gitignore` inside the download folder to keep downloads out of Git, unless that
 file already exists. Edit it if you want to commit the downloads too. Keep files you write

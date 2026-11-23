@@ -887,6 +887,27 @@ class ProjectSpec extends AnyWordSpec, Matchers {
       }
     }
 
+    "install a locked file in a format this version of ohi does not know, named after its URL" in {
+      withDirectory { directory =>
+        os.write(directory / "ohi.lock.json", currentLock.replace("owl-turtle", "future-format"))
+        val result = new Project(directory.toNIO, ProjectOperation.Sync).sync(noInspect, _ => bytes)
+        result.files.map(_.status.toString) shouldBe Seq("Downloaded")
+        os.read.bytes(directory / ".ohi" / "test" / "example" / "1" / "file.ttl") shouldBe bytes
+      }
+    }
+
+    "refuse to create a declaration for a locked format this version of ohi does not know" in {
+      withDirectory { directory =>
+        os.write(directory / "ohi.lock.json", currentLock.replace("owl-turtle", "future-format"))
+        val failure = intercept[ProjectException](
+          new Project(directory.toNIO, ProjectOperation.Sync).sync(noInspect, noFetch, init = true),
+        )
+        failure.code shouldBe ProjectErrorCode.InvalidDeclaration
+        failure.getMessage should include("Upgrade ohi")
+        os.list(directory).map(_.last) shouldBe Seq("ohi.lock.json")
+      }
+    }
+
     "keep a lock unchanged and retry initialization after declaration creation fails" in {
       withDirectory { directory =>
         os.write(directory / "ohi.lock.json", currentLock)

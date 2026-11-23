@@ -1,6 +1,8 @@
 package eu.neverblink.ohi.cli
 
+import eu.neverblink.linkml.runtime.stringify
 import eu.neverblink.linkml.yaml.LinkmlYamlCodec
+import eu.neverblink.ohi.model.ModelJson
 import eu.neverblink.ohi.model.generated.{Declaration, ProjectErrorCode}
 import org.virtuslab.yaml.{Node, NodeOps, Tag, parseYaml}
 import scala.util.control.NonFatal
@@ -29,8 +31,16 @@ private[cli] object DeclarationYaml {
           }
         case _ => ()
       }
+      unknownFormat(node).foreach { label =>
+        val known = CliFormatting.formats.map((format, _) => stringify(format)).mkString(", ")
+        throw new ProjectException(
+          ProjectErrorCode.InvalidDeclaration,
+          s"ohi.yaml asks for the format '$label', which this version of ohi does not know. Upgrade ohi, or use one of $known.",
+        )
+      }
       codec.decode(node)
     catch {
+      case failure: ProjectException => throw failure
       case NonFatal(cause) =>
         throw new ProjectException(
           ProjectErrorCode.InvalidDeclaration,
@@ -40,6 +50,18 @@ private[cli] object DeclarationYaml {
     }
     check(declaration)
     declaration
+  }
+
+  private def unknownFormat(node: Node): Option[String] = {
+    val dependencies = ModelJson.get(node, "dependencies") match {
+      case Some(list: Node.SequenceNode) => list.nodes
+      case _ => Nil
+    }
+    (ModelJson.get(node, "default_format") ++ dependencies.flatMap(ModelJson.get(_, "format")))
+      .collectFirst {
+        case label: Node.ScalarNode if ModelJson.isNew(OntologyReference.formatCodec, label) =>
+          label.value
+      }
   }
 
   /** Serializes `declaration` as YAML with its purpose and documentation comments.

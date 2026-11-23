@@ -271,7 +271,7 @@ The URLs and hash below are illustrative.
     LockedFile selected = new LockedFile();
     selected.setBaseUrl("https://hub.example/releases/energy/2/");
     selected.setUrl("https://files.example/energy.ttl");
-    selected.setFormat(Format.OWL_TURTLE);
+    selected.setFormat("owl-turtle");
     selected.setSha256("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
     ArtifactSelection selection = new ArtifactSelection();
     selection.setBaseUrl(selected.getBaseUrl());
@@ -303,7 +303,7 @@ contents on failure.
 ## Metadata
 
 The ohi SDKs accept
-[revision 2 publication metadata](https://github.com/NeverBlink-OSS/ohi/blob/main/model/ohi/package.yaml),
+[revision 2 publication metadata](https://github.com/NeverBlink-OSS/ohi/blob/main/model/ohi/v2/package.yaml),
 illustrated by the synthetic
 [Sensors example](https://github.com/NeverBlink-OSS/ohi/blob/main/ohi/examples/sensors-package.json).
 Check the publication's licenses and each artifact's format and loading roots. Verify downloaded

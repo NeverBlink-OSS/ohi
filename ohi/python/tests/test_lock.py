@@ -143,10 +143,10 @@ class LockCodecTests(LockAssertions):
                 target["future"] = True
                 self.reject(data)
 
-    def test_rejects_unknown_format(self):
+    def test_keeps_a_format_this_version_does_not_know(self):
         data = example()
-        data["files"][0]["format"] = "owl"
-        self.reject(data)
+        data["files"][0]["format"] = "future-format"
+        self.assertEqual(decode_lock(json.dumps(data)).files[0].format, "future-format")
 
     def test_reports_unsupported_integer_revision_before_missing_fields(self):
         self.reject({"format_version": 3}, "UNSUPPORTED_VERSION")

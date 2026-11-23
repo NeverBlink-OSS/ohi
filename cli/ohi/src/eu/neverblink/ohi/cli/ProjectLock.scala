@@ -9,13 +9,20 @@ private[cli] object ProjectLock {
 
   /** Reconstructs direct requirements in selection order from a validated lock, without metadata
     * requests. Hub identities must be canonical. Declaration validation remains the caller's job.
+    * Throws [[ProjectException]] for a selection in a format this version of ohi does not know.
     */
   def requirements(complete: Lock): Seq[ProjectDependency] = {
     val files = complete.files.map(file => (file.baseUrl, file.url) -> file).toMap
     complete.selections.map { selection =>
       val identity = HubArtifactPath.publication(selection.baseUrl.original, ".")
+      val label = files((selection.baseUrl, selection.url)).format
       ProjectDependency(
-        format = files((selection.baseUrl, selection.url)).format,
+        format = OntologyReference.parseFormat(label).getOrElse(
+          throw new ProjectException(
+            ProjectErrorCode.InvalidDeclaration,
+            s"The lock selects a file in the format '$label', which this version of ohi does not know and ohi.yaml cannot name. Upgrade ohi.",
+          ),
+        ),
         ontology = s"${identity.namespace}/${identity.name}@${identity.version}",
       )
     }
@@ -115,7 +122,7 @@ private[cli] object ProjectLock {
       )
     LockedFile(
       publication.baseUrl,
-      artifact.format,
+      stringify(artifact.format),
       artifact.url,
       Some(artifact.sha256),
     )

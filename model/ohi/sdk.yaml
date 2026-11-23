@@ -8,8 +8,8 @@ prefixes:
   linkml: https://w3id.org/linkml/
 default_prefix: ohi
 imports:
-- package
-- search
+- v2/package
+- v2/search
 - search-request
 - catalog-config
 - catalog-error

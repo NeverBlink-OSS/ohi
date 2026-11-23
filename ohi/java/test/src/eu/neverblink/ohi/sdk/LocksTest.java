@@ -79,7 +79,7 @@ class LocksTest {
     void decodesAndEncodesExactRecordsInSuppliedOrder(int revision) throws IOException {
         Lock lock = Locks.decode(example(revision).toString());
         assertInstanceOf(LockedFile.class, lock.getFiles().get(0));
-        assertEquals(Format.OWL_TURTLE, lock.getFiles().get(0).getFormat());
+        assertEquals("owl-turtle", lock.getFiles().get(0).getFormat());
         assertEquals("https://Files.example/Z%2F.ttl?download=1#file", lock.getSelections().get(0).getUrl());
         assertExample(Json.MAPPER.readTree(Locks.encode(lock)), revision);
     }
@@ -92,7 +92,7 @@ class LocksTest {
         LockedFile file = new LockedFile();
         file.setBaseUrl("urn:pub");
         file.setUrl("urn:file");
-        file.setFormat(Format.OWL_TURTLE);
+        file.setFormat("owl-turtle");
         Lock lock = new Lock();
         lock.setFormatVersion(1L);
         lock.setSelections(List.of(selection));
@@ -159,10 +159,10 @@ class LocksTest {
     }
 
     @Test
-    void rejectsAnUnknownFormat() {
+    void keepsAFormatThisVersionDoesNotKnow() {
         ObjectNode data = example(1);
-        file(data, 0).put("format", "owl");
-        reject(data);
+        file(data, 0).put("format", "future-format");
+        assertEquals("future-format", Locks.decode(data.toString()).getFiles().get(0).getFormat());
     }
 
     @Test

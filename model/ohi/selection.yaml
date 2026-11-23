@@ -6,7 +6,7 @@ prefixes:
   ohi: https://ohi.neverblink.eu/contracts/
 default_prefix: ohi
 imports:
-- publication-fields
+- v2/publication-fields
 slots:
   selections:
     description: Direct publication and artifact selections in supplied order.
