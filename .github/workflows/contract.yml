@@ -2,7 +2,7 @@ name: Contract schemas
 
 on:
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
     paths:
       - 'model/ohi/v2/**'
       - 'cli/check-contract.sh'
