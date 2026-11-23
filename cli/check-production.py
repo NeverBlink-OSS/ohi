@@ -91,7 +91,7 @@ def publication_mismatches(base_url):
 
 problems = []
 releases = set()
-for collection in ("packages", "packages_latest"):
+for collection in ("packages", "packages_latest", "packages_latest_revision"):
     indexed = list(documents(collection))
     assert indexed, f"{collection} is empty"
     for document in indexed:
