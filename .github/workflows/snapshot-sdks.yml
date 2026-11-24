@@ -1,0 +1,131 @@
+name: Publish ohi SDK snapshots
+
+# Runs after "Build & test" passes on a push to main, so the ohi SDKs get a snapshot at the same
+# points as the Maven snapshot, which test.yml publishes. Versions come from
+# cli/ohi-snapshot-version.py: 0.18.8.dev7 on PyPI, 0.18.8-snapshot.7.g249e1f3b on npm under the
+# `snapshot` dist-tag. `pip install` and `npm install` keep picking the latest release, unless
+# asked for `--pre` or `@neverblink/ohi@snapshot`.
+on:
+  workflow_run:
+    workflows: ["Build & test"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build snapshot packages
+    if: >-
+      github.repository == 'NeverBlink-OSS/ohi' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      python: ${{ steps.version.outputs.python }}
+      npm: ${{ steps.version.outputs.npm }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0 # The version counts the commits since the last tag
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Compute snapshot versions
+        id: version
+        run: |
+          python cli/ohi-snapshot-version.py | tee -a "$GITHUB_OUTPUT"
+
+      - name: Build Python distributions
+        if: steps.version.outputs.python
+        run: |
+          python -m pip install --quiet build twine
+          bash cli/package-ohi.sh python "$RUNNER_TEMP/ohi-python" "${{ steps.version.outputs.python }}"
+          python -m twine check "$RUNNER_TEMP/ohi-python/"*
+
+      - name: Build npm package
+        if: steps.version.outputs.npm
+        run: |
+          npm --prefix ohi/typescript ci
+          npm --prefix ohi/typescript run build
+          bash cli/package-ohi.sh npm "$RUNNER_TEMP/ohi-npm" "${{ steps.version.outputs.npm }}"
+
+      - name: Upload Python distributions
+        if: steps.version.outputs.python
+        uses: actions/upload-artifact@v7
+        with:
+          name: ohi-python
+          path: ${{ runner.temp }}/ohi-python/*
+          if-no-files-found: error
+
+      - name: Upload npm package
+        if: steps.version.outputs.npm
+        uses: actions/upload-artifact@v7
+        with:
+          name: ohi-npm
+          path: ${{ runner.temp }}/ohi-npm/*.tgz
+          if-no-files-found: error
+
+  pypi:
+    name: Publish to PyPI
+    needs: build
+    if: needs.build.outputs.python
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # PyPI trusted publishing
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: ohi-python
+          path: ohi-dist
+
+      - name: Publish ohi-sdk ${{ needs.build.outputs.python }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ohi-dist
+          skip-existing: true # Re-runs of the same commit
+
+  npm:
+    name: Publish to npm
+    needs: build
+    if: needs.build.outputs.npm
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # npm trusted publishing
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: ohi-npm
+          path: ohi-npm
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24 # >= 22.14.0 required by trusted publishing
+
+      - name: Ensure npm supports trusted publishing
+        run: npm install -g npm@latest # Trusted publishing needs npm >= 11.5.1
+
+      - name: Publish @neverblink/ohi ${{ needs.build.outputs.npm }}
+        env:
+          VERSION: ${{ needs.build.outputs.npm }}
+        run: |
+          # npm refuses to publish a version twice, so a re-run of the same commit has nothing to do
+          if npm view "@neverblink/ohi@$VERSION" version >/dev/null 2>&1; then
+            echo "@neverblink/ohi@$VERSION is already published"
+            exit 0
+          fi
+          npm publish ohi-npm/neverblink-ohi-*.tgz --tag snapshot
