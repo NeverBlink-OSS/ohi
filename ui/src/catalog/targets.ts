@@ -49,8 +49,8 @@ export const TARGETS: Target[] = [
     lang: "text",
     view: "page",
     options: [
-      // Defaults to `schema`, like the ER diagram: documentation is for the whole model.
-      { key: "pruning_mode", type: "select", label: "Pruning", choices: ["tree_root", "schema", "skip"], default: "schema" },
+      // Defaults to `skip`: documentation is for the whole model, imported schemas included.
+      { key: "pruning_mode", type: "select", label: "Pruning", choices: ["tree_root", "schema", "skip"], default: "skip" },
       TREE_ROOT,
       { key: "metadata_language", type: "text", label: "Language", placeholder: "en", title: "Language of titles and descriptions given in more than one language" },
     ],
