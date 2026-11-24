@@ -2,7 +2,7 @@
 
 Search ontologies on [ohi.dev](https://ohi.dev), inspect their metadata, download selected files and save file selections.
 
-Works with Node 22 or later and browsers with Fetch. Browsers need CORS access to the catalog, publication and artifact endpoints.
+Works with Node 20 or later and browsers with Fetch. Browsers need CORS access to the catalog, publication and artifact endpoints.
 
 ```sh
 npm install @neverblink/ohi
