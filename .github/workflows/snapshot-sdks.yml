@@ -1,10 +1,11 @@
 name: Publish ohi SDK snapshots
 
 # Runs after "Build & test" passes on a push to main, so the ohi SDKs get a snapshot at the same
-# points as the Maven snapshot, which test.yml publishes. Versions come from
-# cli/ohi-snapshot-version.py: 0.18.8.dev7 on PyPI, 0.18.8-snapshot.7.g249e1f3b on npm under the
-# `snapshot` dist-tag. `pip install` and `npm install` keep picking the latest release, unless
-# asked for `--pre` or `@neverblink/ohi@snapshot`.
+# points as the Maven snapshot, which test.yml publishes. Versions come from the Mill tasks
+# `ohi.pythonSnapshotVersion` and `ohi.npmSnapshotVersion` (mill-build/src/OhiSdk.scala):
+# 0.18.8.dev7 on PyPI, 0.18.8-snapshot.7.g249e1f3b on npm under the `snapshot` dist-tag.
+# `pip install` and `npm install` keep picking the latest release, unless asked for `--pre` or
+# `@neverblink/ohi@snapshot`.
 on:
   workflow_run:
     workflows: ["Build & test"]
@@ -36,6 +37,21 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0 # The version counts the commits since the last tag
 
+      # Keeps extracted JDKs out of the cached coursier dir. See checks.yml
+      - name: Relocate the coursier archive cache
+        run: echo "COURSIER_ARCHIVE_CACHE=${{ runner.temp }}/cs-arc" >> "$GITHUB_ENV"
+
+      - name: Cache dependencies
+        uses: coursier/cache-action@v8
+        with:
+          extraFiles: '["**/package.mill", "mill-build/src/**/*.scala", "!out/**", "!.bsp/**"]'
+
+      - name: Setup JVM
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
       - uses: actions/setup-python@v6
         with:
           python-version: '3.10'
@@ -47,7 +63,11 @@ jobs:
       - name: Compute snapshot versions
         id: version
         run: |
-          python cli/ohi-snapshot-version.py | tee -a "$GITHUB_OUTPUT"
+          # Each prints a JSON string, or null on a release, which leaves the output empty
+          for sdk in python npm; do
+            version=$(./mill --no-server --ticker false show "ohi.${sdk}SnapshotVersion" | jq -r '. // empty')
+            echo "$sdk=$version" | tee -a "$GITHUB_OUTPUT"
+          done
 
       - name: Build Python distributions
         if: steps.version.outputs.python
