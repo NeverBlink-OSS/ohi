@@ -9,7 +9,7 @@ inspect their metadata, download files and save file selections.
 
 ```sh
 python -m pip install ohi-sdk   # Python 3.10 or later
-npm install @neverblink/ohi     # Node 22+ or browsers
+npm install @neverblink/ohi     # Node 20+ or browsers
 ```
 
 For Java 17 or later, add `eu.neverblink.ohi:ohi-sdk` from Maven Central. Its only dependency is
