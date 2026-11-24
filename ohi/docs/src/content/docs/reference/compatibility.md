@@ -1,10 +1,15 @@
 ---
-title: Compatibility
-description: Compatibility between ohi versions and ohi.dev.
+title: API Stability and Compatibility
+description: Long-term API stability and compatibility for ohi SDKs and the CLI.
 ---
 
-ohi 0.18.7 and later keep working as [ohi.dev](https://ohi.dev) changes. You upgrade when you want
-something new.
+## API stability
+
+From version 0.18.7 onward, you can pin your ohi SDK or CLI release. We maintain compatibility with
+those releases for a long time, so changes to [ohi.dev](https://ohi.dev) do not require an SDK upgrade.
+
+If we need to make a breaking API change, we will introduce a new API version alongside the one
+your installed release uses.
 
 ## Published files
 
@@ -13,10 +18,12 @@ A file on ohi.dev does not change after it is published. So a project with a com
 
 ## New formats and details
 
-ohi.dev adds file formats and details about ontologies over time. An older version of ohi ignores
-what it does not know and keeps working as before.
+Non-breaking API changes preserve compatibility with existing clients. They include adding new
+[file formats](/docs/reference/cli/#ontology-references-and-formats) or optional metadata fields
+while keeping existing formats and fields available.
 
-For example, if ohi.dev adds a new format, ohi 0.18.7 does not list those files, and
+When reading responses from ohi.dev, older clients ignore additional metadata fields and skip files
+in formats they do not recognize. For example, if ohi.dev adds a new format, ohi 0.18.7 does not list those files, and
 `ohi get w3c/dcat@3 --format owl-turtle` still downloads the OWL Turtle file.
 
 ## Upgrading ohi
