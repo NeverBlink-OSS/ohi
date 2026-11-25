@@ -1,0 +1,4 @@
+# LF everywhere, also on Windows. Scala keeps the line endings of multi-line string literals, so
+# a CRLF checkout puts CRLF in generated code.
+* text=auto eol=lf
+*.bat text eol=crlf
