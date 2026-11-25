@@ -51,3 +51,20 @@ with TemporaryDirectory(prefix="ohi-check-") as directory:
     saved = json.loads((project / "ohi.lock.json").read_text(encoding="utf-8"))
     assert saved == {"format_version": 2, "selections": [], "files": []}, saved
     print("ohi initialized a project and wrote its empty lock.")
+
+# Generated code uses LF on every platform. See .gitattributes.
+with TemporaryDirectory(prefix="ohi-check-") as directory:
+    schema = Path(directory) / "schema.yaml"
+    schema.write_text(
+        "id: https://example.org/check\nname: check\nimports:\n  - linkml:types\n"
+        "classes:\n  Sensor:\n    attributes:\n      name:\n",
+        encoding="utf-8",
+    )
+    out = Path(directory) / "out"
+    subprocess.run(
+        [binary, "linkml", "to", "scala", str(schema), "--to", str(out), "--package", "example"],
+        check=True, timeout=60,
+    )
+    code = (out / "Sensor.scala").read_bytes()
+    assert b"\r" not in code, code
+    print("ohi generated Scala with LF line endings.")
