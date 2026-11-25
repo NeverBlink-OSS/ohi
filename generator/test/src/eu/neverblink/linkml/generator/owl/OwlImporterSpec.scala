@@ -94,6 +94,38 @@ class OwlImporterSpec extends AnyWordSpec, Matchers, OwlFixtures {
     }
   }
 
+  "importing a property without a range" should {
+    "give it `Any`, not the default range `string`" in {
+      val result = importing(
+        """:Book a owl:Class .
+          |:relatedTo a owl:ObjectProperty .
+          |:siblingOf a owl:ObjectProperty ; rdfs:subPropertyOf :relatedTo .
+          |:brotherOf a owl:ObjectProperty ; rdfs:subPropertyOf :siblingOf .
+          |:note a owl:AnnotationProperty .
+          |:comment a owl:AnnotationProperty ; rdfs:range rdfs:Literal .
+          |:title a owl:AnnotationProperty ; rdfs:range xsd:string .""",
+      )
+      val slots = result.schema.slotDefinitions
+      def rangeOf(name: String) = slots(name).range.map(_.value)
+      rangeOf("related_to") shouldBe Some("Any")
+      rangeOf("sibling_of") shouldBe Some("Any")
+      rangeOf("brother_of") shouldBe Some("Any")
+      rangeOf("comment") shouldBe Some("Any")
+      rangeOf("title") shouldBe Some("string")
+    }
+
+    "leave it empty when a parent has a range to inherit" in {
+      val result = importing(
+        """:Book a owl:Class .
+          |:about a owl:ObjectProperty ; rdfs:range :Book .
+          |:mainlyAbout a owl:ObjectProperty ; rdfs:subPropertyOf :about .""",
+      )
+      val slot = result.schema.slotDefinitions("mainly_about")
+      slot.range shouldBe None
+      slot.isA.map(_.value) shouldBe Some("about")
+    }
+  }
+
   "importing a class axiom" should {
     "make the named conjunct of a defining intersection the parent" in {
       val result = importing(

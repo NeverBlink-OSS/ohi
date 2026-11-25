@@ -1187,6 +1187,25 @@ object OwlImporter {
       out
     }
 
+    /** Whether any ancestor of the property gives it a range other than `Any`. All parents count,
+      * not only the first, so the answer doesn't depend on the order of the axioms.
+      */
+    private def inheritsRange(p: String): Boolean = {
+      val seen = mutable.HashSet(p)
+      val todo = mutable.Stack(p)
+      while (todo.nonEmpty) {
+        entriesOf(superProperties, todo.pop()).foreach { e =>
+          if (propertyKinds.contains(e.sup) && seen.add(e.sup)) {
+            val imported = importedRanges.getOrElse(e.sup, null)
+            val own = if (imported ne null) imported else slotRanges(e.sup)
+            if (own.anyOf.nonEmpty || own.range.exists(_ != anyClass)) return true
+            if (own.range.isEmpty) todo.push(e.sup)
+          }
+        }
+      }
+      false
+    }
+
     private def hasKnownParent(p: String): Boolean =
       entriesOf(superProperties, p).exists(e => propertyKinds.contains(e.sup))
 
@@ -1352,15 +1371,18 @@ object OwlImporter {
       val slotUri = explicitIri(p, NameGroup.Slot)
       val declaredRange =
         if (kind == EntityKind.AnnotationProperty) {
-          // A vacuous range such as `rdfs:Literal` maps to `Any`. Don't set it explicitly
-          // because it only adds noise.
+          // No range, or a vacuous one such as `rdfs:Literal`, maps to `Any`. It has to be set
+          // explicitly, as a missing range means the schema's `default_range`, `string`.
           val stated = ranges.getOrElse(p, null)
           val r = if ((stated ne null) && stated.nonEmpty) slotRange(stated.head.range) else null
-          if ((r ne null) && r.range.isDefined && r.range.get != anyClass) {
-            Some(Reference(r.range.get))
-          } else None
+          if ((r ne null) && r.range.isDefined) Some(Reference(r.range.get))
+          else Some(Reference(anyClass))
         } else if (range.range.isDefined) Some(Reference(range.range.get))
-        else None
+        else if (range.anyOf.isEmpty && !inheritsRange(p)) {
+          // A subproperty is left without a range only to inherit a real one from a parent.
+          // Otherwise it would get the schema's `default_range`, `string`, so say `Any`.
+          Some(Reference(anyClass))
+        } else None
       val anyOf = Vector.newBuilder[AnonymousSlotExpression]
       range.anyOf.foreach(r => anyOf.addOne(AnonymousSlotExpression(range = Some(Reference(r)))))
       val inverse = inverseOf.getOrElse(p, null)
