@@ -143,9 +143,4 @@ jobs:
         env:
           VERSION: ${{ needs.build.outputs.npm }}
         run: |
-          # npm refuses to publish a version twice, so a re-run of the same commit has nothing to do
-          if npm view "@neverblink/ohi@$VERSION" version >/dev/null 2>&1; then
-            echo "@neverblink/ohi@$VERSION is already published"
-            exit 0
-          fi
           npm publish ohi-npm/neverblink-ohi-*.tgz --tag snapshot
