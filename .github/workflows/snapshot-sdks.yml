@@ -143,4 +143,5 @@ jobs:
         env:
           VERSION: ${{ needs.build.outputs.npm }}
         run: |
-          npm publish ohi-npm/neverblink-ohi-*.tgz --tag snapshot
+          # The ./ makes npm read it as a file. Without it, `ohi-npm/...` looks like a GitHub repo
+          npm publish ./ohi-npm/neverblink-ohi-*.tgz --tag snapshot
