@@ -30,5 +30,33 @@ class EnumViewSpec extends AnyWordSpec, Matchers {
       val subject = sv.enums("relational_role_enum").derivedValues.find(_.pv.text == "SUBJECT").get
       subject.meaning should be theSameInstanceAs subject.pv.meaning.get
     }
+    "tell whether the values come from elsewhere than its permissible values" in {
+      val sv = SchemaIssues.orThrow(SchemaView.loadSchemaViewFromString("""
+        |id: https://example.org/test/
+        |name: test
+        |prefixes:
+        |  test: https://example.org/test/
+        |default_prefix: test
+        |enums:
+        |  Listed:
+        |    permissible_values:
+        |      a:
+        |  Empty: {}
+        |  Reachable:
+        |    reachable_from:
+        |      source_nodes:
+        |        - test:Vehicle
+        |  Inherited:
+        |    inherits:
+        |      - Listed
+        |  Both:
+        |    inherits:
+        |      - Listed
+        |    permissible_values:
+        |      b:
+        |""".stripMargin))
+      sv.enums.values.filter(_.hasExternalValues).map(_.name).toSet shouldBe
+        Set("Reachable", "Inherited")
+    }
   }
 }

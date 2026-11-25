@@ -847,6 +847,14 @@ final case class EnumView(_enum: EnumDefinition, definingSchema: SchemaDefinitio
       UriOrCurie.asUri,
     )
 
+  /** Whether the enum has no permissible values of its own, but takes its values from elsewhere:
+    * from other enums, an ontology or a code set.
+    */
+  def hasExternalValues: Boolean =
+    _enum.permissibleValues.isEmpty && (_enum.inherits.nonEmpty || _enum.include.nonEmpty ||
+      _enum.concepts.nonEmpty || _enum.codeSet.isDefined || _enum.reachableFrom.isDefined ||
+      _enum.matches.isDefined)
+
   /** Permissible values of this enum and their (possibly synthetic) meanings */
   lazy val derivedValues: Seq[PermissibleValueView] = {
     val values = Vector.newBuilder[PermissibleValueView]
