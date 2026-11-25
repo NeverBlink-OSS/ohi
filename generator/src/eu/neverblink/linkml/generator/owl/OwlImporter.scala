@@ -1380,7 +1380,7 @@ object OwlImporter {
         } else if (range.range.isDefined) Some(Reference(range.range.get))
         else if (range.anyOf.isEmpty && !inheritsRange(p)) {
           // A subproperty is left without a range only to inherit a real one from a parent.
-          // Otherwise it would get the schema's `default_range`, `string`, so say `Any`.
+          // Otherwise it would get the schema's `default_range`, `string`, so state `Any`.
           Some(Reference(anyClass))
         } else None
       val anyOf = Vector.newBuilder[AnonymousSlotExpression]
