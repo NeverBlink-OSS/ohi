@@ -54,7 +54,8 @@ class GraphQlGenerator(using sv: SchemaView)
 
     val enumDefs: Iterable[GraphQlDefinition] = reachableEnums
       .map(ev => {
-        if hasExternalValues(ev) then GraphQlEnumScalarDefinition(ev)
+        // A GraphQL enum lists its values, so an enum with values from elsewhere is a scalar
+        if ev.hasExternalValues then GraphQlEnumScalarDefinition(ev)
         else
           val pvs = ev.derivedValues.map(value => GraphQlEnumValueDefinition(value.pv))
           GraphQlEnumDefinition(
@@ -238,16 +239,6 @@ object GraphQlGenerator extends GraphQlRenamer {
 
   /** The scalars that GraphQL defines. */
   val builtInScalars: Set[String] = Set("Int", "Float", "String", "Boolean", "ID")
-
-  /** Whether the enum takes its values from elsewhere than its own permissible values, such as an
-    * ontology. A GraphQL enum lists its values, so such an enum is a custom scalar.
-    */
-  def hasExternalValues(ev: EnumView): Boolean = {
-    val e = ev._enum
-    e.permissibleValues.isEmpty && (e.inherits.nonEmpty || e.include.nonEmpty ||
-      e.concepts.nonEmpty || e.codeSet.isDefined || e.reachableFrom.isDefined ||
-      e.matches.isDefined)
-  }
 
   /** Remap a runtime type to a GraphQL built-in scalar, if possible.
     */
