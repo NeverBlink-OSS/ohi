@@ -38,6 +38,7 @@ class App protected[cli] (
     TypeScript,
     Pydantic,
     Java,
+    Rust,
     ErDiagram,
     Docs,
     Translation,

@@ -17,6 +17,7 @@ imports:
   - generator/typescript
   - generator/pydantic
   - generator/java
+  - generator/rust
   - generator/er-diagram
   - generator/docs
   - generator/ossie

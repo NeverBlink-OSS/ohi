@@ -101,6 +101,7 @@ generators, their options and the defaults are the functions of
 | `typescript(options?)` | `string` | TypeScript types for the JSON data (no runtime code) |
 | `pydantic(options?)` | `string` | Python classes (pydantic) that load and dump the JSON data |
 | `java(options?)` | `Files` | filename → Java classes (Jackson) that load and dump the JSON data |
+| `rust(options?)` | `Files` | path → the files of a Rust crate, with serde and PyO3 support |
 | `erDiagram(options?)` | `string` | Mermaid entity relationship diagram |
 | `docs(options?)` | `Files` | filename → Markdown documentation (`index.md` and a page per element) |
 | `ossie(options?)` | `string` | Apache Ossie ontology, `yaml` (default) or `json` |
@@ -136,8 +137,9 @@ See [`index.d.ts`](./index.d.ts) for full type signatures. The validation report
 `loadFromString`/`loadFromPath` return is fully typed: each issue's `issue_type` names its kind
 (e.g. `"UnknownReference"`), and checking it narrows the issue to that kind's fields. For how to use the generated TypeScript,
 see [the TypeScript guide](https://linkml.ohi.dev/docs/generators/typescript/), for `pydantic`
-[the Pydantic guide](https://linkml.ohi.dev/docs/generators/pydantic/), and for `java`
-[the Java guide](https://linkml.ohi.dev/docs/generators/java/). For `owl` and `loadFromOwl`, see
+[the Pydantic guide](https://linkml.ohi.dev/docs/generators/pydantic/), for `java`
+[the Java guide](https://linkml.ohi.dev/docs/generators/java/), and for `rust`
+[the Rust guide](https://linkml.ohi.dev/docs/generators/rust/). For `owl` and `loadFromOwl`, see
 [the OWL generator](https://linkml.ohi.dev/docs/generators/owl/) and [the OWL importer](https://linkml.ohi.dev/docs/importers/owl/).
 
 ### Errors

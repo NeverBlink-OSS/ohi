@@ -25,6 +25,7 @@ import { turtle } from "@codemirror/legacy-modes/mode/turtle";
 import { java, scala } from "@codemirror/legacy-modes/mode/clike";
 import { typescript } from "@codemirror/legacy-modes/mode/javascript";
 import { python } from "@codemirror/legacy-modes/mode/python";
+import { rust } from "@codemirror/legacy-modes/mode/rust";
 import { tags as t } from "@lezer/highlight";
 
 export type OutputLang =
@@ -36,6 +37,7 @@ export type OutputLang =
   | "graphql"
   | "typescript"
   | "python"
+  | "rust"
   | "text";
 
 // Minimal GraphQL SDL mode
@@ -102,6 +104,7 @@ const LANGS: Record<OutputLang, unknown[]> = {
   graphql: [StreamLanguage.define(graphql)],
   typescript: [StreamLanguage.define(typescript)],
   python: [StreamLanguage.define(python)],
+  rust: [StreamLanguage.define(rust)],
   text: [],
 };
 

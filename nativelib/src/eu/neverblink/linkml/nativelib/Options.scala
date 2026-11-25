@@ -80,6 +80,9 @@ private object Options {
   def java(json: String): JavaGeneratorOptions =
     model(json, JavaGeneratorOptions())(using LinkmlYamlCodec.derived)
 
+  def rust(json: String): RustGeneratorOptions =
+    model(json, RustGeneratorOptions())(using LinkmlYamlCodec.derived)
+
   def translation(json: String): TranslationGeneratorOptions =
     model(json, TranslationGeneratorOptions())(using LinkmlYamlCodec.derived)
 

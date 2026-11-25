@@ -803,6 +803,12 @@ class GeneratorTest(unittest.TestCase):
         self.assertIn("package com.example.model;", files["Person.java"])
         self.assertIn("LinkMLJson.string(name)", self.schema.java(strict=True)["Person.java"])
 
+    def test_rust(self):
+        files = self.schema.rust(crate_name="people", serde=True)
+        self.assertIn("pub struct Person {", files["src/lib.rs"])
+        self.assertIn('default = ["serde"]', files["Cargo.toml"])
+        self.assertNotIn("src/bin/stub_gen.rs", self.schema.rust(stubgen=False))
+
     def test_an_unexported_function_cannot_be_called(self):
         # Each generator is its own exported symbol now, so a name that does not exist fails at the
         # ctypes layer rather than being dispatched and rejected by the library.

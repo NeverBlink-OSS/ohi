@@ -7,6 +7,7 @@ import eu.neverblink.linkml.generator.docs.{DocsGenerator, DocsSite}
 import eu.neverblink.linkml.generator.erdiagram.ErDiagramGenerator
 import eu.neverblink.linkml.generator.graphql.GraphQlGenerator
 import eu.neverblink.linkml.generator.javagen.JavaGenerator
+import eu.neverblink.linkml.generator.rust.RustGenerator
 import eu.neverblink.linkml.generator.jsonschema.JsonSchemaGenerator
 import eu.neverblink.linkml.generator.linkml.LinkMlGenerator
 import eu.neverblink.linkml.generator.ossie.OssieGenerator
@@ -327,6 +328,41 @@ object Java extends ManyFilesGenerate[JavaOptions] {
       options: JavaOptions,
   )(using SchemaView): Iterable[(String, String)] =
     JavaGenerator().generate(options.generator.toOptions)
+}
+
+// Rust
+
+@HelpMessage(
+  "Generate a Rust crate\n" +
+    "Each class becomes a struct, and each enum an enum, with serde and PyO3 support behind Cargo " +
+    "features. If --to is a .rs file, or there is no --to, the crate is written as one .rs " +
+    "file, without the traits of the classes. Otherwise --to is the directory of the crate.",
+)
+@ArgsName("<input-file>")
+final case class RustOptions(
+    @Recurse
+    common: GenerateOptions,
+    @Recurse
+    generator: RustCliOptions = RustCliOptions(),
+) extends HasGenerateOptions
+
+object Rust extends SplitGenerate[RustOptions] {
+  override protected def generatorName: String = "rust"
+
+  override protected def singleFileExtension: String = ".rs"
+
+  override protected[cli] def writtenOnce(options: RustOptions): Set[String] =
+    if options.generator.handwrittenLib then Set("src/lib.rs") else Set.empty
+
+  override protected[cli] def generateSingle(options: RustOptions, out: OutputStream)(using
+      SchemaView,
+  ): Unit =
+    RustGenerator().writeTo(out, options.generator.toOptions)
+
+  override protected[cli] def generateFiles(options: RustOptions)(using
+      SchemaView,
+  ): Iterable[(String, String)] =
+    RustGenerator().generateFiles(options.generator.toOptions)
 }
 
 // Apache Ossie ontology

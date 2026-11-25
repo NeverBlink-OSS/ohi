@@ -126,6 +126,15 @@ import { LinkML } from "@neverblink/linkml";
   if (!output) throw new Error("rdfs gave nothing");
 }
 
+// rust
+{
+  const yaml = readFileSync("prov-o.linkml.yaml", "utf8");
+  const { view, report } = LinkML.loadFromString(yaml, {});
+  if (!view) throw new Error(JSON.stringify(report));
+  const files = view.rust({ crate_name: "prov" });
+  if (!files) throw new Error("rust gave nothing");
+}
+
 // scala
 {
   const yaml = readFileSync("prov-o.linkml.yaml", "utf8");
