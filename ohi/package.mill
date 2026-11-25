@@ -1,5 +1,22 @@
 package build.ohi
 
 import mill.*
+import millbuild.*
 
-object `package` extends Module
+object `package` extends Module {
+
+  /** The Python SDK snapshot version for this commit, like `0.18.8.dev7`, or `null` on a release.
+    * Used by snapshot-sdks.yml. Made from the same git tags as the Java SDK's version.
+    */
+  def pythonSnapshotVersion = Task {
+    OhiSdk.pythonSnapshotVersion(build.ohi.java.gitVersion())
+  }
+
+  /** The TypeScript SDK snapshot version for this commit, like `0.18.8-snapshot.7.g249e1f3b`, or
+    * `null` on a release. Used by snapshot-sdks.yml. Made from the same git tags as the Java SDK's
+    * version.
+    */
+  def npmSnapshotVersion = Task {
+    OhiSdk.npmSnapshotVersion(build.ohi.java.gitVersion())
+  }
+}

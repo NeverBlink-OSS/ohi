@@ -7,7 +7,7 @@ object PyPackage {
   private val Snapshot = """(.+?)-(\d+)-([0-9a-fA-F]+)-SNAPSHOT""".r
   // `0.13.2-SNAPSHOT`, when there is no commit hash
   private val PlainSnapshot = """(.+?)-SNAPSHOT""".r
-  private val PreRelease = """(.+?)-(a|alpha|b|beta|rc|RC)\.?(\d+)""".r
+  private[millbuild] val PreRelease = """(.+?)-(a|alpha|b|beta|rc|RC)\.?(\d+)""".r
   private val Release = """\d+(?:\.\d+)*""".r
 
   /** Rewrite a Mill publish version into something compliant with PEP 440.
@@ -26,7 +26,7 @@ object PyPackage {
     case _ => "0.0.0"
   }
 
-  private def marker(kind: String): String = kind.toLowerCase match {
+  private[millbuild] def marker(kind: String): String = kind.toLowerCase match {
     case "a" | "alpha" => "a"
     case "b" | "beta" => "b"
     case _ => "rc"
