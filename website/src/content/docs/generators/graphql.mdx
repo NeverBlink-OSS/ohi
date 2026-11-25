@@ -21,3 +21,15 @@ import { Description, Options, Usage } from '../../../components/converter';
 ## Inherited fields
 
 A type implements the interfaces of its parent classes and mixins, so it has all their fields, with the same types or subtypes of them. A field keeps its parent's type when a `slot_usage` gives it a type with another scalar, such as `uri` for a `uriorcurie` slot, as GraphQL scalars have no subtypes. See [Slots changed by a class](/docs/slot-usage-inheritance/#slots-changed-by-a-class).
+
+## Query root
+
+The output has no `Query` type, as GraphQL servers usually define their own. Add one, or another root operation type, before you serve the schema.
+
+## Enums
+
+An enum without its own permissible values, which takes its values from elsewhere, such as `reachable_from`, `concepts` or `include`, becomes a custom scalar (any value is allowed).
+
+## Names
+
+All GraphQL types share one namespace. If two classes, enums or types, or the interface of a class, get the same GraphQL name, or one gets the name of a built-in scalar (`Int`, `Float`, `String`, `Boolean` or `ID`), generation fails. Rename one of them.

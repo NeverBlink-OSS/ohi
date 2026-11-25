@@ -12,6 +12,8 @@ import eu.neverblink.linkml.metamodel.{CommonMetadata, PermissibleValue}
 import eu.neverblink.linkml.schemaview
 import eu.neverblink.linkml.schemaview.*
 
+import scala.collection.mutable
+
 class GraphQlGenerator(using sv: SchemaView)
     extends CharDocumentGenerator[GraphQlGeneratorOptions],
       GraphQlRenamer {
@@ -48,28 +50,59 @@ class GraphQlGenerator(using sv: SchemaView)
       )
     else None
 
-    val enumDefs: Iterable[GraphQlDefinition] = sv.enums.values
-      .filter(query.reachable)
-      .map(ev => {
-        val pvs = ev.derivedValues.map(value => GraphQlEnumValueDefinition(value.pv))
-        GraphQlEnumDefinition(
-          ev,
-          pvs,
-        )
-      })
+    val reachableEnums = sv.enums.values.filter(query.reachable)
 
-    val typeDefs: Iterable[GraphQlDefinition] = sv.types.values
-      .filter(query.reachable)
-      .flatMap(tv => {
-        if remapToBuiltin(tv).isDefined
-        then None // if already using the builtin, no need to define scalars
+    val enumDefs: Iterable[GraphQlDefinition] = reachableEnums
+      .map(ev => {
+        if hasExternalValues(ev) then GraphQlEnumScalarDefinition(ev)
         else
-          Some(
-            GraphQlScalarDefinition(tv),
+          val pvs = ev.derivedValues.map(value => GraphQlEnumValueDefinition(value.pv))
+          GraphQlEnumDefinition(
+            ev,
+            pvs,
           )
       })
 
+    // if already using the builtin, no need to define scalars
+    val scalarTypes = sv.types.values
+      .filter(tv => query.reachable(tv) && remapToBuiltin(tv).isEmpty)
+
+    val typeDefs: Iterable[GraphQlDefinition] = scalarTypes.map(GraphQlScalarDefinition(_))
+
+    checkNames(reachableClasses, reachableEnums, scalarTypes)
+
     classDefs ++ anyDef ++ enumDefs ++ typeDefs
+  }
+
+  /** Fails if two definitions have the same name, or one has the name of a built-in scalar, as all
+    * GraphQL types share one namespace.
+    */
+  private def checkNames(
+      classes: Iterable[ClassView],
+      enums: Iterable[EnumView],
+      types: Iterable[TypeView],
+  ): Unit = {
+    val seen = mutable.HashMap.empty[String, String]
+    def claim(name: String, owner: String): Unit = {
+      if builtInScalars.contains(name) then
+        throw new IllegalArgumentException(
+          s"$owner maps to '$name', a built-in GraphQL scalar. Rename it to generate GraphQL.",
+        )
+      seen.put(name, owner).foreach { other =>
+        throw new IllegalArgumentException(
+          s"$owner and $other both map to the GraphQL name '$name'. " +
+            "Rename one of them to generate GraphQL.",
+        )
+      }
+    }
+    if classes.exists(_.isAny) then claim("Any", "the scalar of linkml:Any")
+    classes.foreach { cls =>
+      if !cls.isAny then
+        claim(className(cls), s"class '${cls.name}'")
+        if isSplit(cls) then claim(splitInterfaceName(cls), s"the interface of class '${cls.name}'")
+    }
+    enums.foreach(ev => claim(enumName(ev), s"enum '${ev.name}'"))
+    types.foreach(tv => claim(typeName(tv), s"type '${tv.name}'"))
   }
 
   /** The GraphQL type of a slot's range, without the list and non-null marks. */
@@ -202,6 +235,19 @@ class GraphQlGenerator(using sv: SchemaView)
 }
 
 object GraphQlGenerator extends GraphQlRenamer {
+
+  /** The scalars that GraphQL defines. */
+  val builtInScalars: Set[String] = Set("Int", "Float", "String", "Boolean", "ID")
+
+  /** Whether the enum takes its values from elsewhere than its own permissible values, such as an
+    * ontology. A GraphQL enum lists its values, so such an enum is a custom scalar.
+    */
+  def hasExternalValues(ev: EnumView): Boolean = {
+    val e = ev._enum
+    e.permissibleValues.isEmpty && (e.inherits.nonEmpty || e.include.nonEmpty ||
+      e.concepts.nonEmpty || e.codeSet.isDefined || e.reachableFrom.isDefined ||
+      e.matches.isDefined)
+  }
 
   /** Remap a runtime type to a GraphQL built-in scalar, if possible.
     */
@@ -374,6 +420,22 @@ case class GraphQlScalarDefinition(
   val name: String = GraphQlRenamer.typeName(typeView)
   override def print: String = {
     indent"""${descriptionFor(typeView._type)}
+            |scalar $name
+            |""".stripMargin
+  }
+
+/** Container for information needed to generate the scalar of an enum whose values are not listed
+  *
+  * @param enumView
+  *   EnumView this definition is generated for
+  */
+case class GraphQlEnumScalarDefinition(
+    enumView: EnumView,
+)(using GraphQlGeneratorOptions)
+    extends GraphQlDefinition:
+  val name: String = GraphQlRenamer.enumName(enumView)
+  override def print: String = {
+    indent"""${descriptionFor(enumView._enum)}
             |scalar $name
             |""".stripMargin
   }
