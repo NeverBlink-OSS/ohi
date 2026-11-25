@@ -124,6 +124,29 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
       files.keys.filter(_.endsWith("Functions.scala")) shouldBe empty
     }
 
+    "reject an invalid package name" in {
+      given SchemaView = ModelCatalogue.basic.model
+      ScalaGenerator().generate(ScalaGeneratorOptions(`package` = "org.int._x.é1"))
+      val quoted = "org.`type`.`my-schema`"
+      ScalaGenerator().generate(ScalaGeneratorOptions(`package` = quoted))
+        .foreach((_, code) => code should include(s"\npackage $quoted\n"))
+      Seq(
+        "" -> "it is empty",
+        "org..example" -> "parts between dots can't be empty",
+        "org.example." -> "parts between dots can't be empty",
+        "org.my-schema" -> "'my-schema' must start with a letter",
+        "org.1st" -> "'1st' must start with a letter",
+        "org.type" -> "'type' is a Scala keyword. Write it in backticks: `type`.",
+        "org.`a`b`" -> "`a`b` can't contain backticks or line breaks",
+        "org.``" -> "'``' must start with a letter",
+        "org._" -> "'_' is a Scala keyword",
+      ).foreach { (pkg, reason) =>
+        val ex = the[IllegalArgumentException] thrownBy
+          ScalaGenerator().generate(ScalaGeneratorOptions(`package` = pkg))
+        ex.getMessage should startWith(s"Invalid Scala package name '$pkg': $reason")
+      }
+    }
+
     "generate a document type for a tree root that is not one object" when {
       def withTreeRootAs(form: String, options: ScalaGeneratorOptions): Map[String, String] = {
         given SchemaView = decode(

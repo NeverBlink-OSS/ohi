@@ -1,7 +1,12 @@
 package eu.neverblink.linkml.generator.javagen
 
 import eu.neverblink.linkml.generator.options.{JavaGeneratorOptions, JavaStyle}
-import eu.neverblink.linkml.generator.util.{DocLines, GeneratedHeader, TreeRootDocument}
+import eu.neverblink.linkml.generator.util.{
+  DocLines,
+  GeneratedHeader,
+  PackageName,
+  TreeRootDocument,
+}
 import eu.neverblink.linkml.generator.util.Pruning.pruning
 import eu.neverblink.linkml.generator.util.metadataLanguage
 import eu.neverblink.linkml.runtime.FastUtils.*
@@ -23,6 +28,7 @@ final class JavaGenerator(using sv: SchemaView) extends JavaRenamer {
   /** The generated files, by file name. */
   def generate(options: JavaGeneratorOptions = JavaGeneratorOptions()): Seq[(String, String)] = {
     given JavaGeneratorOptions = options
+    options.`package`.foreachFast(PackageName.check(_, PackageName.Language.Java))
     val writer: StyleWriter = options.style match {
       case JavaStyle.Jackson => JacksonWriter(options.strict)
     }

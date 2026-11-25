@@ -604,6 +604,20 @@ class JavaGeneratorSpec extends AnyWordSpec, Matchers {
       files("List_.java") should include("public class List_ {")
     }
 
+    "reject an invalid package name" in {
+      generate("classes:\n  A:\n", JavaGeneratorOptions(`package` = Some("org.type._x.é1")))
+      Seq(
+        "org..example" -> "parts between dots can't be empty",
+        "org.my-schema" -> "'my-schema' must start with a letter",
+        "org.int" -> "'int' is a Java keyword",
+        "org._" -> "'_' is a Java keyword",
+      ).foreach { (pkg, reason) =>
+        val ex = the[IllegalArgumentException] thrownBy
+          generate("classes:\n  A:\n", JavaGeneratorOptions(`package` = Some(pkg)))
+        ex.getMessage should startWith(s"Invalid Java package name '$pkg': $reason")
+      }
+    }
+
     "fail on clashing names" when {
       "two classes" in {
         val ignoringCase = the[IllegalArgumentException] thrownBy generate(
