@@ -70,6 +70,13 @@ class ScalaGeneratorCompileSpec extends AnyWordSpec, Matchers, ModelCatalogueSpe
         )
       }
 
+    "generate compilable code in a package with backticked parts" in {
+      compileModel(
+        ModelCatalogue.kitchenSink.model,
+        ScalaGeneratorOptions(`package` = "generated.`type`.`my-schema`"),
+      )
+    }
+
     // A subclass, a mixin, cardinality, and an inlined class range
     for skipLeafInterfaces <- Seq(true, false) do
       val variant = if skipLeafInterfaces then "" else " with leaf interfaces"

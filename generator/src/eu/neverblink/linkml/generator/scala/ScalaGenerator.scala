@@ -86,6 +86,7 @@ final class ScalaGenerator(using sv: SchemaView) extends ScalaRenamer {
   def generate(
       options: ScalaGeneratorOptions = ScalaGeneratorOptions(),
   ): Iterable[(String, String)] = {
+    PackageName.check(options.`package`, PackageName.Language.Scala)
     val header = GeneratedHeader("//") + "\n"
     val files = Vector.newBuilder[(String, String)]
     val fileNames = mutable.HashSet.empty[String]
