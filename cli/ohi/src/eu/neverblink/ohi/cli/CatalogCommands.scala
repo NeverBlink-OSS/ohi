@@ -33,8 +33,8 @@ trait HasCatalogOptions {
   val common: CatalogOptions
 }
 
-/** Runs a catalog command with at most one argument, printing its result to stdout. Reports
-  * catalog and delivery failures to stderr with exit status 1.
+/** Runs a catalog command with at most one argument, printing its result to stdout. Reports catalog
+  * and delivery failures to stderr with exit status 1.
   */
 abstract class CatalogCommand[T <: HasCatalogOptions: {Parser, Help}] extends OhiCommand[T] {
   protected def commandName: String

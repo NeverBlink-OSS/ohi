@@ -187,10 +187,10 @@ private[cli] object CatalogOutput {
     }
 
   /** Render JSON or the groups and their tags, in the list's order. Tags in no group, or in an
-    * unknown group, come last under Other. By default, each group has its title, and each
-    * tag a line with its id and title, marked if it is deprecated. Verbose output also has the
-    * ids and descriptions of the groups, the descriptions of the tags and why a tag is retired,
-    * with each tag's id on a line of its own and the rest wrapped at 80 columns below it.
+    * unknown group, come last under Other. By default, each group has its title, and each tag a
+    * line with its id and title, marked if it is deprecated. Verbose output also has the ids and
+    * descriptions of the groups, the descriptions of the tags and why a tag is retired, with each
+    * tag's id on a line of its own and the rest wrapped at 80 columns below it.
     */
   def tags(
       result: TagList,
