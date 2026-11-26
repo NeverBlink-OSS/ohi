@@ -7,6 +7,7 @@ import type {
   SearchHit,
   SearchRequest,
   SearchResult,
+  TagList,
 } from "./generated.js";
 import { decodePublication, formats as knownFormats, isNew } from "./publication.js";
 import { parseVersionTag } from "./version-tag.js";
@@ -223,6 +224,25 @@ export class CatalogClient {
 
   async get(url: string): Promise<Uint8Array> {
     return this.request(httpUrl(url, "GET"), "GET", url);
+  }
+
+  /**
+   * Fetch the Hub's tag list, with the metadata of the tag ids that publications and search hits hold. Fetch it
+   * again to see new tags. Fields that the model doesn't have are kept. Field values are not validated.
+   */
+  async tags(): Promise<TagList> {
+    const url = `${this.base}/files/tags_v1.json`;
+    const bytes = await this.request(httpUrl(url, "TAGS"), "TAGS", url);
+    try {
+      const data: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+      if (!object(data) || !Array.isArray(data.tags) || !Array.isArray(data.groups)) {
+        throw new Error("The tag list must be an object with tags and groups lists.");
+      }
+      return data as unknown as TagList;
+    } catch (cause) {
+      throw new CatalogException({ code: "INVALID_RESPONSE", operation: "TAGS", url, status: 200,
+        message: "The tag list is invalid." }, { cause });
+    }
   }
 
   private async request(target: URL, operation: CatalogOperation, url: string): Promise<Uint8Array> {

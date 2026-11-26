@@ -10,6 +10,10 @@
     "sensors",
     "observations"
   ],
+  "tags": [
+    "internet-of-things",
+    "units-and-measurement"
+  ],
   "published_at": "2026-10-13T12:30:00Z",
   "hub_version": "v0.2.0",
   "publisher": "Example Project",

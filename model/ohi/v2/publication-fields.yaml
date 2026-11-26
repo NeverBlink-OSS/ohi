@@ -62,6 +62,16 @@ slots:
     range: string
     required: true
     multivalued: true
+  tags:
+    description: Thematic areas of the ontology, as ids of tags in the Hub.
+    comments:
+    - Absent when none were given, including every publication from before tags existed.
+    - The tags are described in the Hub in the tag list, see the tags contract.
+    - An id is never removed or edited in the list.
+    - Consumers should accept ids they don't know, as the list grows.
+    range: string
+    pattern: ^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])
+    multivalued: true
   published_at:
     description: First successful Hub publication time for this immutable release. Backend emits UTC
       date-time text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime

@@ -596,6 +596,34 @@ class CatalogClientTest {
                 CatalogOperation.INSPECT, url, 200);
     }
 
+    // Tags
+
+    @Test
+    void getsTheTagListNextToTheSearchUrl() {
+        route("/files/tags_v1.json", example("tags.json"));
+        TagList result = searchClient().tags();
+        assertEquals(List.of("technology", "cross-domain"),
+                result.getGroups().stream().map(TagGroup::getId).collect(Collectors.toList()));
+        assertEquals(List.of("internet-of-things", "units-and-measurement", "sensor-networks"),
+                result.getTags().stream().map(Tag::getId).collect(Collectors.toList()));
+        Tag first = result.getTags().get(0);
+        assertEquals("Internet of things", first.getTitle());
+        assertEquals("technology", first.getGroup());
+        assertNull(first.getDeprecated());
+        Tag third = result.getTags().get(2);
+        assertEquals("Use internet-of-things", third.getDeprecated());
+        assertNull(third.getDescription());
+        assertNull(third.getGroup());
+        assertEquals(List.of(new Request("/files/tags_v1.json", "identity")), requests);
+    }
+
+    @Test
+    void anInvalidTagListIsAnInvalidResponse() {
+        String url = route("/files/tags_v1.json", "{\"groups\": [], \"tags\": [{\"id\": \"energy\"}]}", 200);
+        assertFailure(() -> searchClient().tags(), CatalogErrorCode.INVALID_RESPONSE, CatalogOperation.TAGS,
+                url, 200);
+    }
+
     // Get
 
     @Test

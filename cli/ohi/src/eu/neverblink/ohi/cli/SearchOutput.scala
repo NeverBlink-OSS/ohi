@@ -63,7 +63,8 @@ private[cli] object SearchOutput {
         field("Elements", _, "0"),
       )
       if hit.licenses.nonEmpty then field("License", hit.licenses.mkString(", "), "2")
-      if hit.keywords.nonEmpty then field("Tags", hit.keywords.mkString(", "), "2")
+      if hit.keywords.nonEmpty then field("Keywords", hit.keywords.mkString(", "), "2")
+      if hit.tags.nonEmpty then field("Tags", hit.tags.mkString(", "), "2")
       output += styled("  URL: ", "2", colored) + styled(
         clean(CliFormatting.releaseLink(hit.baseUrl.original)),
         "36",

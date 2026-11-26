@@ -15,6 +15,7 @@ from .generated import (
     SearchHit,
     SearchRequest,
     SearchResult,
+    TagList,
 )
 from ._version_tag import parse_version_tag
 from .publication import _is_new, decode_publication
@@ -113,6 +114,7 @@ class CatalogClient:
         self._latest_url = base + "/search/collections/packages_latest/documents/search"
         self._latest_revision_url = base + "/search/collections/packages_latest_revision/documents/search"
         self._files_url = base + "/files/packages/"
+        self._tags_url = base + "/files/tags_v1.json"
         self._query_by = data.get("query_by", "title,name,description,namespace")
         self._timeout = data.get("timeout_ms", 30000) / 1000
         self._opener = build_opener(_NoRedirect())
@@ -211,6 +213,15 @@ class CatalogClient:
     def get(self, url: str) -> bytes:
         _validate_url(url, "GET")
         return self._get(url, "GET", url)
+
+    def tags(self) -> TagList:
+        """Return the Hub's tag list, with the metadata of the tag ids that publications and search
+        hits hold. Fetch it again to see new tags. Fields that the model doesn't have are discarded."""
+        body = self._get(self._tags_url, "TAGS", self._tags_url)
+        try:
+            return TagList.model_validate(json.loads(body.decode("utf-8")), extra="ignore")
+        except ValueError as error:
+            raise _failure("INVALID_RESPONSE", "TAGS", str(error), self._tags_url, 200) from error
 
     def _get(self, url, operation, error_url):
         status = None

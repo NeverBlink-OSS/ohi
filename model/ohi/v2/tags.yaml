@@ -1,0 +1,81 @@
+id: https://ohi.neverblink.eu/contracts/tags
+name: ohi_tags
+title: Tag list
+description: The tags a publication can have, with their groups, as the Hub serves them.
+status: draft
+prefixes:
+  ohi: https://ohi.neverblink.eu/contracts/
+  linkml: https://w3id.org/linkml/
+default_prefix: ohi
+imports:
+- linkml:types
+classes:
+  TagList:
+    description: Every tag and tag group of the Hub. Publications and search hits hold only tag ids; their metadata is here.
+    comments:
+    - A tag or group is never removed and its id never changes, so every id is always resolved. Other tag metadata can change.
+    - The order of each list is the Hub's display order.
+    - Fields can be added. Breaking changes are versioned.
+    tree_root: true
+    extra_slots:
+      allowed: true
+    attributes:
+      groups:
+        description: The groups of tags.
+        range: TagGroup
+        required: true
+        multivalued: true
+        inlined_as_list: true
+      tags:
+        description: The tags.
+        range: Tag
+        required: true
+        multivalued: true
+        inlined_as_list: true
+  Tag:
+    description: A thematic area of an ontology.
+    extra_slots:
+      allowed: true
+    attributes:
+      id:
+        description: Permanent identifier of the tag, such as health-and-medicine.
+        range: string
+        required: true
+        pattern: ^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])
+      title:
+        description: Display name of the tag.
+        range: string
+        required: true
+        pattern: ^[\s\S]*\S
+      description:
+        description: What the tag covers.
+        range: string
+        pattern: ^[\s\S]*\S
+      group:
+        description: Id of the group the tag belongs to. Absent on a tag in no group.
+        range: string
+        pattern: ^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])
+      deprecated:
+        description: Why the tag is retired, such as "Use health-and-medicine". New publications can't
+          use it; old publications that use it keep it. Absent on nondeprecated tags.
+        range: string
+        pattern: ^[\s\S]*\S
+  TagGroup:
+    description: A group of tags.
+    extra_slots:
+      allowed: true
+    attributes:
+      id:
+        description: Permanent identifier of the group, such as life-sciences.
+        range: string
+        required: true
+        pattern: ^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])
+      title:
+        description: Display name of the group.
+        range: string
+        required: true
+        pattern: ^[\s\S]*\S
+      description:
+        description: What the group covers.
+        range: string
+        pattern: ^[\s\S]*\S

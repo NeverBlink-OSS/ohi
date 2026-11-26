@@ -38,6 +38,7 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
     preferredPrefix = Some("ex"),
     licenses = Seq("MIT"),
     keywords = Seq("sensors"),
+    tags = Seq("internet-of-things", "units-and-measurement"),
     authors = Seq(
       Agent(
         name = "Ada Example",
@@ -82,7 +83,8 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
     |  RDF namespace: https://example.org/terms#
     |  Preferred prefix: ex
     |  License: MIT
-    |  Tags: sensors""".stripMargin
+    |  Keywords: sensors
+    |  Tags: internet-of-things, units-and-measurement""".stripMargin
 
   private def release(version: String): SearchHit =
     SearchHit(
@@ -226,7 +228,8 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
         json = false,
       )
       output should include("\nFiles\n  None\n\nDependencies\n  None\n")
-      output should endWith("  License: Not supplied\n  Tags: Not supplied")
+      output should endWith("  License: Not supplied\n  Keywords: Not supplied")
+      output should not include "Tags:"
       output should include(
         "\n  Authors: Example author\n  Publishers: Example publisher\n" +
           "  Original sources: https://example.org/source/\n",
