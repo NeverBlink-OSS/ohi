@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "linkml-scala",
-  "description": "ohi and LinkML agent skills by NeverBlink.",
+  "name": "ohi",
+  "description": "ohi agent skills by NeverBlink.",
   "owner": {
     "name": "NeverBlink",
     "email": "contact@neverblink.eu"
@@ -10,31 +10,27 @@
   "repository": "https://github.com/NeverBlink-OSS/ohi",
   "plugins": [
     {
-      "name": "linkml",
-      "description": "Author, validate, review and release LinkML schemas with the ohi CLI (ohi linkml). Covers schema authoring, bootstrapping from RDFS/OWL/SHACL/JSON Schema/XSD or sample data, modelling-quality review, instance-data validation, and GitHub Actions setup. Auto-load for any task involving a LinkML schema.",
+      "name": "ohi",
+      "description": "Find, download and pin ontologies from ohi.dev, and author, validate, import and generate LinkML schemas, all with the ohi CLI.",
       "author": {
         "name": "NeverBlink",
         "url": "https://neverblink.eu"
       },
-      "homepage": "https://github.com/NeverBlink-OSS/ohi/tree/main/.agents/skills/linkml",
+      "homepage": "https://github.com/NeverBlink-OSS/ohi/tree/main/.agents",
       "repository": "https://github.com/NeverBlink-OSS/ohi",
       "license": "Apache-2.0",
       "keywords": [
+        "ohi",
+        "ontology",
         "linkml",
         "schema",
-        "json-schema",
-        "shacl",
+        "owl",
         "rdf",
-        "data-modelling",
+        "shacl",
+        "json-schema",
         "validation",
         "code-generation"
       ],
-      "source": "./.agents/skills",
-      "category": "data"
-    },
-    {
-      "name": "ohi",
-      "description": "ohi + LinkML: ontology discovery, file acquisition, project selections and schema authoring.",
       "source": "./.agents",
       "category": "data"
     }

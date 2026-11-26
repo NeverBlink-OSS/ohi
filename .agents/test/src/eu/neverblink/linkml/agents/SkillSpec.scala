@@ -55,6 +55,26 @@ class SkillSpec extends AnyWordSpec, Matchers {
         }
     }
 
+    // A skill that no plugin ships is missing for everyone who installs through a marketplace.
+    "be shipped by the same plugins in the Claude Code and Codex marketplaces" in {
+      def plugins(marketplace: os.Path) = ujson.read(os.read(marketplace))("plugins").arr.toSeq
+      def root(source: String) = repo / os.RelPath(source.stripPrefix("./"))
+      val claude = plugins(repo / ".claude-plugin" / "marketplace.json")
+        .map(p => p("name").str -> root(p("source").str))
+      val codex = plugins(agents / "plugins" / "marketplace.json")
+        .map(p => p("name").str -> root(p("source")("path").str))
+      codex shouldBe claude
+      for app <- Seq(".claude-plugin", ".codex-plugin") do
+        val shipped = for
+          (name, dir) <- claude
+          manifest = ujson.read(os.read(dir / app / "plugin.json"))
+          _ = manifest("name").str shouldBe name
+          skill <- os.list(dir / os.RelPath(manifest("skills").str.stripPrefix("./")))
+          if os.isFile(skill / "SKILL.md")
+        yield skill
+        withClue(s"$app:")(shipped.distinct.sorted shouldBe skillDirs)
+    }
+
     // A broken template fails only once a user copies it into their own repository.
     for
       dir <- skillDirs.map(_ / "assets") if os.isDir(dir)

@@ -6,7 +6,7 @@ on one version.
 
 `ohi` is the CLI. It carries the LinkML engine, which it exposes under `ohi linkml`.
 
-Requirement: **0.17.1 or newer**.
+Requirement: **0.18.7 or newer**.
 
 ```shell
 ohi version     # already installed?

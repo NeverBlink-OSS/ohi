@@ -1,84 +1,87 @@
 # Agent skills
 
-These skills help agents acquire ontologies and maintain project selections with ohi, and author and validate schemas with ohi LinkML.
+The **ohi** plugin teaches coding agents to use the `ohi` CLI. It has two skills, and the agent loads
+each one only when a task needs it:
 
-## Choose a plugin
+- [ohi](skills/ohi/SKILL.md) finds, inspects and downloads ontologies from ohi.dev, and records them
+  in a project's `ohi.yaml` and `ohi.lock.json`.
+- [linkml](skills/linkml/SKILL.md) authors, validates, imports and generates LinkML schemas with
+  `ohi linkml`.
 
-Install **ohi** (`ohi`) for ontology acquisition, project selections and LinkML schema work.
-Choose **LinkML** (`linkml`) for schema work alone. Install one plugin, since ohi already includes LinkML.
-
-Plugins provide instructions. [Install the ohi CLI](https://ohi.dev/docs/getting-started/install/) separately from
-the same release or checkout. The standalone LinkML skill requires `ohi` 0.17.1 or newer.
+The plugin contains only instructions. [Install the ohi CLI](https://ohi.dev/docs/getting-started/install/)
+separately. The skills require `ohi` 0.18.7 or newer.
 
 ## Install
 
-These commands install ohi. For LinkML alone, replace `ohi@linkml-scala` with `linkml@linkml-scala`.
-To install from a local checkout, replace the repository argument with its absolute path.
-
-### Codex
-
-```sh
-codex plugin marketplace add NeverBlink-OSS/ohi
-codex plugin add ohi@linkml-scala
-```
+To install from a local checkout, replace `NeverBlink-OSS/ohi` with the checkout's absolute path.
 
 ### Claude Code
 
 ```sh
 claude plugin marketplace add NeverBlink-OSS/ohi
-claude plugin install ohi@linkml-scala
+claude plugin install ohi@ohi
 ```
 
-### Updates and switching
+### Codex
+
+```sh
+codex plugin marketplace add NeverBlink-OSS/ohi
+codex plugin add ohi@ohi
+```
+
+### Updates
 
 | Application | Refresh the marketplace | Update the installed plugin |
 | --- | --- | --- |
-| Codex | `codex plugin marketplace upgrade linkml-scala` | Included in the marketplace upgrade |
-| Claude Code | `claude plugin marketplace update linkml-scala` | `claude plugin update ohi@linkml-scala` |
+| Claude Code | `claude plugin marketplace update ohi` | `claude plugin update ohi@ohi` |
+| Codex | `codex plugin marketplace upgrade ohi` | Included in the marketplace upgrade |
 
 Start a new session after updating. For a local checkout marketplace, remove and reinstall the
 plugin after editing its files.
 
-When switching choices, remove the installed plugin first, then install the other choice. For example, to switch from LinkML to ohi + LinkML:
+### Moving from the `linkml-scala` marketplace
+
+Earlier releases published the marketplace as `linkml-scala`, with separate `ohi` and `linkml`
+plugins. Both skills are now in the `ohi` plugin. Remove the old marketplace with the plugin you
+installed from it, then install as above. For example, in Claude Code:
 
 ```sh
-codex plugin remove linkml@linkml-scala
-codex plugin add ohi@linkml-scala
+claude plugin uninstall linkml@linkml-scala
+claude plugin marketplace remove linkml-scala
 ```
 
-In Claude Code, use `claude plugin uninstall linkml@linkml-scala` followed by `claude plugin install ohi@linkml-scala`. Reverse the plugin names to switch back.
+In Codex, use `codex plugin remove linkml@linkml-scala` and `codex plugin marketplace remove linkml-scala`.
+If you installed `ohi@linkml-scala`, use that name instead.
 
 ### Manual installation
 
-Without a plugin, copy complete skill folders, including their references, to the host's skills directory.
-For ohi, copy both `linkml` and `ohi`. For example, install both for all Codex projects:
+Without a plugin, copy both skill folders, including their reference files, to the application's
+skills directory. The ohi skill links to the LinkML skill's installation guide. For example, for all
+Codex projects:
 
 ```sh
-git clone --depth=1 https://github.com/NeverBlink-OSS/ohi ~/src/linkml-scala
+git clone --depth=1 https://github.com/NeverBlink-OSS/ohi ~/src/ohi
 mkdir -p ~/.agents/skills
-cp -r ~/src/linkml-scala/.agents/skills/{linkml,ohi} ~/.agents/skills/
+cp -r ~/src/ohi/.agents/skills/{linkml,ohi} ~/.agents/skills/
 ```
 
-For Claude Code, use `~/.claude/skills/`. For project-only installation, use `.agents/skills/`
-for Codex or `.claude/skills/` for Claude Code in that project. Replace whole folders when updating.
-Use either manual installation or the plugin to avoid duplicate skills.
+For Claude Code, use `~/.claude/skills/`. For a single project, use `.agents/skills/` for Codex or
+`.claude/skills/` for Claude Code in that project. Replace whole folders when updating. Use either
+manual installation or the plugin, not both, to avoid duplicate skills.
 
 ### Other applications
 
-For other applications supporting [Agent Skills](https://agentskills.io/specification), use their
-documented skills directory.
+For other applications supporting [Agent Skills](https://agentskills.io/specification), copy the
+folders to their documented skills directory.
 
-## ohi
+## Using the skills
 
-Give the agent search terms or a publication URL, the required format and a download destination.
-For example, ask it to find a provenance ontology and download its `owl-turtle` artifact.
-Search uses ohi.dev by default. For project changes, identify the project directory.
-The [ohi skill](skills/ohi/SKILL.md) and its [CLI reference](skills/ohi/references/cli.md) cover
-selection, downloads and recovery.
+For ontologies, give the agent search terms, an ontology name or a URL, the format you need and,
+for project changes, the project directory. For example, ask it to find a provenance ontology and
+download it as `owl-turtle`, or to add DCAT to the project in `./catalog`.
 
-## LinkML
-
-The [LinkML skill](skills/linkml/SKILL.md) covers schema authoring, validation, importing and generation. Its topic files provide detailed guidance when needed. [Installation options](skills/linkml/990-install.md) cover the `ohi` CLI, which runs every LinkML command as `ohi linkml <command>`.
+For schemas, describe the model or point the agent at a schema, sample data or an ontology to
+import. The LinkML skill's topic files hold detailed guidance that the agent reads when needed.
 
 ## Maintenance
 
@@ -99,4 +102,7 @@ Edit skills in `.agents/skills/`. Regenerate these LinkML references from their 
 ./mill agents.test
 ```
 
-`./mill regenerate` also runs `agents.generate`. The tests check that the generated files are up to date, the skills' structure and links, and that every schema example validates. Review nested ohi reference links separately.
+`./mill regenerate` also runs `agents.generate`. The tests check that the generated files are up to date, the skills' structure and links, and that every schema example validates. They also check that both marketplaces ship every skill. Review nested ohi reference links separately.
+
+The ohi skill is written by hand. When ohi commands, options or JSON output change, update it along with
+`ohi/docs/src/content/docs/reference/cli.md`.
