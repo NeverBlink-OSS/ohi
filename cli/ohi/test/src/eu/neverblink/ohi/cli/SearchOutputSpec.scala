@@ -17,6 +17,7 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
       Format.RdfsTurtle,
     ),
     keywords = Seq("collections"),
+    tags = Seq("knowledge-representation"),
     licenses = Seq("MIT"),
     name = "collections",
     namespace = "commons",
@@ -44,6 +45,7 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
                 |  Description: Collections, bags, lists and their members.
                 |  License: MIT
                 |  Keywords: collections
+                |  Tags: knowledge-representation
                 |  URL: https://ohi.dev/o/commons/collections@20221101""".stripMargin,
         60 -> """1 matching ontology
                 |
@@ -52,6 +54,7 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
                 |  Description: Collections, bags, lists and their members.
                 |  License: MIT
                 |  Keywords: collections
+                |  Tags: knowledge-representation
                 |  URL: https://ohi.dev/o/commons/collections@20221101""".stripMargin,
         40 -> """1 matching ontology
                 |
@@ -62,6 +65,7 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
                 |    and their members.
                 |  License: MIT
                 |  Keywords: collections
+                |  Tags: knowledge-representation
                 |  URL: https://ohi.dev/o/commons/collections@20221101""".stripMargin,
       )
     do
