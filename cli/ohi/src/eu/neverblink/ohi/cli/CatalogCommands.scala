@@ -33,12 +33,15 @@ trait HasCatalogOptions {
   val common: CatalogOptions
 }
 
-/** Runs a one-argument catalog command, printing its result to stdout. Reports catalog and delivery
-  * failures to stderr with exit status 1.
+/** Runs a catalog command with at most one argument, printing its result to stdout. Reports
+  * catalog and delivery failures to stderr with exit status 1.
   */
 abstract class CatalogCommand[T <: HasCatalogOptions: {Parser, Help}] extends OhiCommand[T] {
   protected def commandName: String
   protected def argumentName: String
+
+  /** Whether the command takes its argument. */
+  protected def takesArgument: Boolean = true
 
   override final def names: List[List[String]] = List(List(commandName))
 
@@ -52,8 +55,12 @@ abstract class CatalogCommand[T <: HasCatalogOptions: {Parser, Help}] extends Oh
 
   override def run(options: T, remainingArgs: RemainingArgs): Unit = {
     val inputs = remainingArgs.all
-    if inputs.isEmpty then shortHelp()
-    if inputs.size != 1 then
+    if !takesArgument && inputs.nonEmpty then
+      correction(
+        s"$commandName accepts no arguments. Received ${inputs.size}: ${inputs.mkString(", ")}.",
+      )
+    if takesArgument && inputs.isEmpty then shortHelp()
+    if takesArgument && inputs.size != 1 then
       correction(
         if commandName == "search" then
           s"Search accepts one query. Received ${inputs.size} arguments: ${inputs.mkString(", ")}."
@@ -66,8 +73,10 @@ abstract class CatalogCommand[T <: HasCatalogOptions: {Parser, Help}] extends Oh
           )
         else "",
       )
-    try printLine(execute(options, inputs.head, new CatalogClient(config(options))))
-    catch {
+    try {
+      val input = inputs.headOption.getOrElse("")
+      printLine(execute(options, input, new CatalogClient(config(options))))
+    } catch {
       case failure: CatalogException =>
         val error = failure.error
         if !options.common.json && error.code == CatalogErrorCode.InvalidInput then
@@ -208,6 +217,40 @@ object Search extends CatalogCommand[SearchOptions] {
     )
   }
 }
+
+@HelpMessage("List the tags that ontologies can have")
+final case class TagsOptions(
+    @Recurse
+    common: CatalogOptions,
+    @HelpMessage("Show all tags information, like their descriptions")
+    @Name("v")
+    verbose: Boolean = false,
+    @HelpMessage("Complete HTTP search endpoint")
+    @ValueDescription("<url>")
+    searchUrl: Option[String] = None,
+) extends HasCatalogOptions
+
+private[cli] class TagsCommand extends CatalogCommand[TagsOptions] {
+  override protected def commandName: String = "tags"
+  override protected def argumentName: String = ""
+  override protected def takesArgument: Boolean = false
+
+  // The client takes query_by with search_url. The tag list doesn't use it, so it is the default.
+  override protected def config(options: TagsOptions): CatalogConfig =
+    CatalogConfig(
+      searchUrl = options.searchUrl.map(Uri(_)),
+      queryBy = options.searchUrl.map(_ => "title,name,description,namespace"),
+      timeoutMs = options.common.timeoutMs,
+    )
+
+  override protected def execute(
+      options: TagsOptions,
+      input: String,
+      client: CatalogClient,
+  ): String = CatalogOutput.tags(client.tags(), options.common.json, colored, options.verbose)
+}
+
+object Tags extends TagsCommand
 
 @HelpMessage("Show a release's files and dependencies")
 @ArgsName("<ontology-or-release-url>")

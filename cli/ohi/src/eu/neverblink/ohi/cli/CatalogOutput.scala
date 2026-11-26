@@ -11,6 +11,8 @@ import eu.neverblink.ohi.model.generated.{
   Publication,
   SearchHit,
   SearchResult,
+  Tag,
+  TagList,
 }
 
 import java.net.URI
@@ -23,6 +25,7 @@ private[cli] object CatalogOutput {
   private val publicationCodec: LinkmlYamlCodec[Publication] = LinkmlYamlCodec.derived
   private val deliveryCodec: LinkmlYamlCodec[DeliveryResultImpl] = LinkmlYamlCodec.derived
   private val fileErrorCodec: LinkmlYamlCodec[CliFileError] = LinkmlYamlCodec.derived
+  private val tagListCodec: LinkmlYamlCodec[TagList] = LinkmlYamlCodec.derived
 
   def search(
       result: SearchResult,
@@ -181,6 +184,58 @@ private[cli] object CatalogOutput {
       field("Keywords", reported(result.keywords))
       if result.tags.nonEmpty then field("Tags", result.tags.mkString(", "))
       output.mkString("\n")
+    }
+
+  /** Render JSON or the groups and their tags, in the list's order. Tags in no group, or in an
+    * unknown group, come last under Other. By default, each group has its title, and each
+    * tag a line with its id and title, marked if it is deprecated. Verbose output also has the
+    * ids and descriptions of the groups, the descriptions of the tags and why a tag is retired,
+    * with each tag's id on a line of its own and the rest wrapped at 80 columns below it.
+    */
+  def tags(
+      result: TagList,
+      json: Boolean,
+      colored: Boolean = false,
+      verbose: Boolean = false,
+  ): String =
+    if json then JsonUtil.yamlToJson(tagListCodec.encode(result))
+    else if result.tags.isEmpty then "No tags."
+    else {
+      def wrapped(text: String, indent: String): Seq[String] =
+        SearchOutput.wrap(text, 80, indent, indent)
+
+      val width = result.tags.map(tag => clean(tag.id).length).max
+      def tag(value: Tag): Seq[String] =
+        if verbose then
+          Seq("  " + styled(clean(value.id), "36", colored)) ++
+            wrapped(value.title, "    ") ++
+            value.description.toSeq.flatMap(wrapped(_, "    ")) ++
+            value.deprecated.toSeq.flatMap(reason =>
+              wrapped(s"Deprecated: $reason", "    ").map(styled(_, "2", colored)),
+            )
+        else
+          Seq(
+            "  " + styled(clean(value.id).padTo(width, ' '), "36", colored) + "  " +
+              clean(value.title) +
+              (if value.deprecated.isDefined then styled(" (deprecated)", "2", colored) else ""),
+          )
+
+      val groupIds = result.groups.map(_.id).toSet
+      val sections = result.groups.map(group =>
+        (
+          styled(clean(group.title), "1", colored) +
+            (if verbose then styled(s" (${clean(group.id)})", "2", colored) else ""),
+          group.description.filter(_ => verbose),
+          result.tags.filter(_.group.contains(group.id)),
+        ),
+      ) :+ (styled("Other", "1", colored), None, result.tags.filterNot(_.group.exists(groupIds)))
+      val groups = sections.filter(_._3.nonEmpty).map { (heading, description, tags) =>
+        val about = description.toSeq.flatMap(wrapped(_, "  "))
+        ((heading +: about) ++ (if about.nonEmpty then Seq("") else Seq()) ++ tags.flatMap(tag))
+          .mkString("\n")
+      }
+      (groups :+ (styled("Search by a tag: ", "2", colored) +
+        styled("ohi search \"*\" --filter-by tags:=<id>", "36", colored))).mkString("\n\n")
     }
 
   def delivery(result: DeliveryResultImpl): String =

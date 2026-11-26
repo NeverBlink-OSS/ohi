@@ -25,6 +25,7 @@ private[cli] object HelpOutput {
       "Find and download",
       s"  ${code("search", colored)}     Find ontologies by name or topic\n" +
         s"  ${code("inspect", colored)}    Show a release's files and dependencies\n" +
+        s"  ${code("tags", colored)}       List the tags that ontologies can have\n" +
         s"  ${code("get", colored)}        Download an ontology file",
       colored,
     ),
@@ -62,6 +63,7 @@ private[cli] object HelpOutput {
       case "search" =>
         "Find ontologies by name or topic." + (if full then " Returns one page of matches." else "")
       case "inspect" => "Show one ontology release, its files and dependencies."
+      case "tags" => "List the tags that ontologies can have, by group."
       case "get" => "Download an ontology file."
       case "init" =>
         "Create ohi.yaml with a default format, download directory and empty dependency list."
@@ -89,7 +91,7 @@ private[cli] object HelpOutput {
           "<namespace>/<name>[@version] [--format <format>] [options]",
           "<release-url> --artifact <file-url> [options]",
         )
-      case "lock" | "sync" => Seq("[options]")
+      case "tags" | "lock" | "sync" => Seq("[options]")
     }
     val input = name match {
       case "inspect" if full =>
@@ -100,6 +102,9 @@ private[cli] object HelpOutput {
           colored,
         )
       case "inspect" => "A release URL is the base URL of a release on a hub."
+      case "tags" if full =>
+        "Releases hold the ids of their tags. Find the releases with a tag by its id:\n  " +
+          code("ohi search \"*\" --filter-by tags:=<id>", colored)
       case "get" | "add" if full =>
         "Without @version, selects the latest version.\n" +
           "Without --format, tries default_format from ohi.yaml, then linkml-yaml.\n" +
@@ -131,6 +136,7 @@ private[cli] object HelpOutput {
           "ohi inspect w3c/prov-o@2013",
           "ohi inspect https://hub.example/files/packages/w3c/prov-o/2013/",
         )
+      case "tags" => Seq("ohi tags", "ohi tags --verbose", "ohi tags --json")
       case "get" =>
         Seq(
           "ohi get w3c/prov-o --format owl-turtle",
@@ -192,6 +198,7 @@ private[cli] object HelpOutput {
           "color",
         )
       case "inspect" => Seq("timeoutMs", "json")
+      case "tags" => Seq("verbose", "searchUrl", "timeoutMs", "json")
       case "get" => Seq("format", "to", "timeoutMs", "json")
       case "init" => Seq("defaultFormat", "to", "json")
       case "add" => Seq("format", "artifact", "project", "json")

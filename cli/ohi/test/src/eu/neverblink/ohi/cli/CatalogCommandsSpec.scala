@@ -1250,6 +1250,87 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
     }
   }
 
+  "catalog tags" should {
+    // Synthetic tags: one deprecated, one in no group and one in an unknown group.
+    val tags = """{
+      "groups":[
+        {"id":"technology","title":"Technology","description":"Computing and devices."},
+        {"id":"empty","title":"Empty"}
+      ],
+      "tags":[
+        {"id":"internet-of-things","title":"Internet of things","group":"technology",
+          "description":"Connected devices and their observations."},
+        {"id":"sensor-networks","title":"Sensor networks","group":"technology",
+          "deprecated":"Use internet-of-things"},
+        {"id":"units","title":"Units",
+          "description":"Units of measure, quantities, observations and the methods used to measure them in practice."},
+        {"id":"energy","title":"Energy","group":"no-such-group"}
+      ]
+    }"""
+
+    "list the tags by group from the hub of the search URL" in {
+      withServer(tags) { (url, requests) =>
+        successful(Tags, "tags", "--search-url", url + searchPath) shouldBe
+          """Technology
+            |  internet-of-things  Internet of things
+            |  sensor-networks     Sensor networks (deprecated)
+            |
+            |Other
+            |  units               Units
+            |  energy              Energy
+            |
+            |Search by a tag: ohi search "*" --filter-by tags:=<id>
+            |""".stripMargin
+        requests.asScala.toSeq shouldBe Seq("/files/tags_v1.json")
+      }
+    }
+
+    "list every group and tag in full with --verbose or -v" in {
+      withServer(tags) { (url, _) =>
+        val verbose = successful(Tags, "tags", "--verbose", "--search-url", url + searchPath)
+        successful(Tags, "tags", "-v", "--search-url", url + searchPath) shouldBe verbose
+        verbose shouldBe
+          """Technology (technology)
+            |  Computing and devices.
+            |
+            |  internet-of-things
+            |    Internet of things
+            |    Connected devices and their observations.
+            |  sensor-networks
+            |    Sensor networks
+            |    Deprecated: Use internet-of-things
+            |
+            |Other
+            |  units
+            |    Units
+            |    Units of measure, quantities, observations and the methods used to measure
+            |    them in practice.
+            |  energy
+            |    Energy
+            |
+            |Search by a tag: ohi search "*" --filter-by tags:=<id>
+            |""".stripMargin
+      }
+    }
+
+    "write the tag list as JSON" in {
+      withServer(tags) { (url, _) =>
+        json(successful(Tags, "tags", "--search-url", url + searchPath, "--json")) shouldBe
+          json(tags)
+      }
+    }
+
+    "report a hub without a tag list" in {
+      withServer("", status = 404) { (url, requests) =>
+        val err = failed(Tags, "tags", "--search-url", url + searchPath)
+        err should include("Tag list not found.")
+        err should include(url + "/files/tags_v1.json")
+        err should include("--search-url")
+        requests.asScala.toSeq shouldBe Seq("/files/tags_v1.json")
+      }
+    }
+  }
+
   "catalog command errors" should {
     "preserve SDK status, operation and nested server JSON on stderr without a success result" in {
       withServer("""{"error":{"reason":"missing","retry":false},"status":404}""", status = 404) {
@@ -1326,6 +1407,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           "format",
         ),
         ("missing file URL", Get, List("get", "--to", "."), "ohi get <namespace>/<name>"),
+        ("argument to tags", Tags, List("tags", "energy"), "tags accepts no arguments"),
         (
           "search setting on inspect",
           Inspect,

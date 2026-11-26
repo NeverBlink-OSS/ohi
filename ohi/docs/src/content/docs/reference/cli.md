@@ -9,6 +9,7 @@ Run `ohi --help` for the command overview, or `ohi <command> --help` for a comma
 | --- | --- |
 | [`search`](#search) | Find ontologies by name or topic. |
 | [`inspect`](#inspect) | Show a release's files and dependencies. |
+| [`tags`](#tags) | List the tags that ontologies can have. |
 | [`get`](#get) | Download one ontology file. |
 | [`init`](#init) | Create `ohi.yaml`. |
 | [`add`](#add) | Add an ontology to a project and download its dependencies. |
@@ -22,8 +23,8 @@ Run `ohi --help` for the command overview, or `ohi <command> --help` for a comma
 | Option | Available on | Effect |
 | --- | --- | --- |
 | `-h`, `--help` | All commands | Show help. |
-| `--json` | `search`, `inspect`, `get`, `init`, `add`, `sync`, `lock` | Write JSON output. |
-| `--timeout-ms <number>` | `search`, `inspect`, `get`, `sync` | Positive request timeout in milliseconds. Default `30000`. |
+| `--json` | `search`, `inspect`, `tags`, `get`, `init`, `add`, `sync`, `lock` | Write JSON output. |
+| `--timeout-ms <number>` | `search`, `inspect`, `tags`, `get`, `sync` | Positive request timeout in milliseconds. Default `30000`. |
 
 ## Ontology references and formats
 
@@ -92,6 +93,27 @@ output also lists the ontology's versions, latest first.
 ohi inspect w3c/prov-o@2013
 ohi inspect https://api.ohi.dev/files/packages/w3c/prov-o/2013/
 ```
+
+## tags
+
+`ohi tags [options]`
+
+Lists the tags that ontologies can have, by group, each with its id and title, marked if it is
+deprecated. `--verbose` shows all tags information, like their descriptions and why a deprecated
+tag is retired.
+
+Releases hold the ids of their tags. Find the releases with a tag by its id:
+
+```sh
+ohi search '*' --filter-by 'tags:=health-and-medicine'
+```
+
+`--json` writes the tag list as the hub serves it.
+
+| Option | Effect |
+| --- | --- |
+| `-v`, `--verbose` | Show all tags information, like their descriptions. |
+| `--search-url <url>` | Complete search endpoint of another catalog, as for `search`. The tag list is read from the same hub. |
 
 ## get
 

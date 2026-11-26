@@ -41,6 +41,8 @@ private[cli] object ErrorOutput {
               "Check the reference or URL, or find the release with 'ohi search'."
           case Some(404) if operation == "GET" =>
             "File not found." -> "Check the file URL or inspect the release to choose an available file."
+          case Some(404) if operation == "TAGS" =>
+            "Tag list not found." -> "Check --search-url, or omit it to use ohi.dev."
           case Some(404) =>
             "Search endpoint not found." -> "Check --search-url or omit it and --query-by to use ohi.dev."
           case Some(401 | 403) =>
@@ -58,6 +60,7 @@ private[cli] object ErrorOutput {
         val summary = operation match {
           case "SEARCH" => "Search timed out."
           case "GET" => "Download timed out."
+          case "TAGS" => "Tag list request timed out."
           case _ => "Release inspection timed out."
         }
         summary -> ("Check connectivity and try again." +
@@ -66,6 +69,7 @@ private[cli] object ErrorOutput {
         "Could not complete the connection." -> "Check connectivity and try again."
       case "INVALID_RESPONSE" =>
         (if operation == "INSPECT" then "Cannot read the release metadata."
+         else if operation == "TAGS" then "Cannot read the tag list."
          else "Cannot read the service response.") ->
           "Try again, or report the response problem to the catalog operator."
       case _ => "Invalid request." -> "Correct the supplied value and try again."
