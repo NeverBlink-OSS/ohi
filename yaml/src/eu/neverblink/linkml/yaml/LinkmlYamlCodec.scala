@@ -409,6 +409,23 @@ private class LinkmlYamlCodecImpl(extraSlotsAllowed: Boolean)(using Quotes) exte
         }
       }
     }
+    else if (tpe =:= doubleTpe) withDecoderFor(tpe, node, id, prefixes) { (node, _, _) =>
+      '{
+        $node match {
+          case n: Node.ScalarNode if (Tag.int eq n.tag) || (Tag.float eq n.tag) =>
+            try {
+              val value = java.lang.Double.parseDouble(n.value)
+              if (!java.lang.Double.isFinite(value))
+                LinkmlYamlCodec.decodeError("finite double number value", n)
+              value
+            } catch {
+              case _: NumberFormatException =>
+                LinkmlYamlCodec.decodeError("double number value", n)
+            }
+          case n => LinkmlYamlCodec.decodeError("double number value", n)
+        }
+      }
+    }
     else if (tpe =:= booleanTpe) withDecoderFor(tpe, node, id, prefixes) { (node, _, _) =>
       '{
         $node match {
@@ -514,6 +531,13 @@ private class LinkmlYamlCodecImpl(extraSlotsAllowed: Boolean)(using Quotes) exte
     }
     else if (tpe =:= stringTpe) withEncoderFor(tpe, x, skipId, prefixes) { (x, _, _) =>
       '{ StringNode(${ x.asInstanceOf[Expr[String]] }) }
+    }
+    else if (tpe =:= doubleTpe) withEncoderFor(tpe, x, skipId, prefixes) { (x, _, _) =>
+      '{
+        val value = ${ x.asInstanceOf[Expr[Double]] }
+        require(java.lang.Double.isFinite(value), "Expected finite double number value")
+        Node.ScalarNode(value.toString)
+      }
     }
     else if (tpe =:= intTpe || tpe =:= booleanTpe) withEncoderFor(tpe, x, skipId, prefixes) {
       (x, _, _) =>
@@ -1336,6 +1360,7 @@ private class LinkmlYamlCodecImpl(extraSlotsAllowed: Boolean)(using Quotes) exte
   private val defs = new mutable.ListBuffer[Definition]
   private val enumMaps = new mutable.HashMap[TypeRepr, Ref]
   private val reverseEnumMaps = new mutable.HashMap[TypeRepr, Ref]
+  private val doubleTpe = defn.DoubleClass.typeRef
   private val nodeTpe = Symbol.requiredClass("org.virtuslab.yaml.Node").typeRef
   private val prefixMapTpe = Symbol.requiredClass("eu.neverblink.linkml.runtime.PrefixMap").typeRef
   private val linkmlYamlCodecTpe =

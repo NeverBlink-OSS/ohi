@@ -1,0 +1,22 @@
+id: https://ohi.neverblink.eu/contracts/quality-fields
+name: ohi_quality_fields
+description: Quality information for search results.
+prefixes:
+  ohi: https://ohi.neverblink.eu/contracts/
+default_prefix: ohi
+imports:
+  - linkml:types
+types:
+  SignalDigest:
+    description: SHA-256 hash of canonical JSON.
+    typeof: string
+    pattern: '^[0-9a-f]{64}(?![\s\S])'
+slots:
+  quality_score:
+    description: Unrounded score for term descriptions, metadata and use as a dependency, weighted by the assessment's policy. Omitted when unavailable.
+    range: double
+    minimum_value: 0
+    maximum_value: 100
+  quality_assessment_sha256:
+    description: Identifies the saved assessment, even when it has no score.
+    range: SignalDigest

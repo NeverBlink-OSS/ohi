@@ -13,6 +13,7 @@ from pydantic import (
     ConfigDict,
     Field,
     StrictBool,
+    StrictFloat,
     StrictInt,
     model_serializer,
 )
@@ -444,6 +445,10 @@ class SearchHit(LinkMLModel):
     """First successful Hub publication time for this immutable release. Backend emits UTC date-time text with Z. Consumers accept timezone-bearing RFC 3339 text. Fixed for the lifetime of this publication. Not an upstream release date."""
     publishers: list[Agent] = Field(min_length=1)
     """The people or organizations that publish the ontology upstream."""
+    quality_assessment_sha256: Annotated[str, Field(pattern=r"^[0-9a-f]{64}(?![\s\S])")] | None = None
+    """Identifies the saved assessment, even when it has no score."""
+    quality_score: Annotated[StrictFloat, Field(ge=0, le=100)] | None = None
+    """Unrounded score for term descriptions, metadata and use as a dependency, weighted by the assessment's policy. Omitted when unavailable."""
     revision_id: str | None = None
     """The id of the revision, only for a revision. The latest revision of a version is its document in packages_latest_revision."""
     tags: list[Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])")]] | None = None

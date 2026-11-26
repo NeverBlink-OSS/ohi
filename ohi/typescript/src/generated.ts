@@ -298,6 +298,10 @@ export interface SearchHit {
   published_at: string;
   /** The people or organizations that publish the ontology upstream. */
   publishers: Agent[];
+  /** Identifies the saved assessment, even when it has no score. */
+  quality_assessment_sha256?: string;
+  /** Unrounded score for term descriptions, metadata and use as a dependency, weighted by the assessment's policy. Omitted when unavailable. */
+  quality_score?: number;
   /** The id of the revision, only for a revision. The latest revision of a version is its document in packages_latest_revision. */
   revision_id?: string;
   /** Thematic areas of the ontology, as ids of tags in the Hub. */
