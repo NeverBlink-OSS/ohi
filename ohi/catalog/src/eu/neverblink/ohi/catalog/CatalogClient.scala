@@ -161,8 +161,8 @@ final class CatalogClient(config: CatalogConfig = CatalogConfig()) {
 
   def get(url: String): Array[Byte] = retrieve(url, CatalogOperation.Get, url)
 
-  /** Fetches the Hub's tag list, with the metadata of the tag ids that publications and search
-    * hits hold. Fetch it again to see new tags.
+  /** Fetches the Hub's tag list, with the metadata of the tag ids that publications and search hits
+    * hold. Fetch it again to see new tags.
     */
   def tags(): TagList = {
     val bytes = retrieve(tagsUrl, CatalogOperation.Tags, tagsUrl)
