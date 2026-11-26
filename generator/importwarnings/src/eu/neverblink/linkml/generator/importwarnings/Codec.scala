@@ -1,7 +1,7 @@
 package eu.neverblink.linkml.generator.importwarnings
 
 import eu.neverblink.linkml.runtime.LinkmlAny
-import eu.neverblink.linkml.yaml.{LinkmlYamlCodec, NodeJson}
+import eu.neverblink.linkml.yaml.{LinkmlYamlCodec, LinkmlYamlEncoder, NodeJson}
 
 /** Codec for serializing and deserializing an [[ImportReport]].
   *
@@ -9,10 +9,15 @@ import eu.neverblink.linkml.yaml.{LinkmlYamlCodec, NodeJson}
   * with the `@typeDesignator` annotation on [[ImportWarning]].
   */
 object Codec {
-  implicit val codec: LinkmlYamlCodec[ImportReport] = LinkmlYamlCodec.derived
+
+  /** Lazy, to keep the decoder out of code that only uses [[encoder]]. */
+  implicit lazy val codec: LinkmlYamlCodec[ImportReport] = LinkmlYamlCodec.derived
+
+  /** For code that only writes reports. */
+  val encoder: LinkmlYamlEncoder[ImportReport] = LinkmlYamlCodec.derivedEncoder
 
   /** The report as pretty-printed JSON. */
-  def toJson(report: ImportReport): String = NodeJson.write(codec.encode(report))
+  def toJson(report: ImportReport): String = NodeJson.write(encoder.encode(report))
 
   /** The report as a `linkml:Any` value, for the `report` of an `ImportResult`.
     *
