@@ -1,0 +1,25 @@
+---
+import OhiLogo from '../assets/ohi-logo.svg';
+import OhiLogoDark from '../assets/ohi-logo-dark.svg';
+
+const { siteTitleHref } = Astro.locals.starlightRoute;
+---
+
+<a href={siteTitleHref} class="site-title sl-flex">
+  <OhiLogoDark class="light:sl-hidden" />
+  <OhiLogo class="dark:sl-hidden" />
+</a>
+
+<style>
+  .site-title {
+    align-items: center;
+    min-width: 0;
+    color: var(--sl-color-white);
+    text-decoration: none;
+  }
+  .site-title :global(svg) {
+    height: calc(var(--sl-nav-height) - 2 * var(--sl-nav-pad-y));
+    width: auto;
+    max-width: 100%;
+  }
+</style>

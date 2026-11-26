@@ -34,12 +34,12 @@ export default defineConfig({
     starlight({
       title: 'ohi.dev',
       description: 'Find, download and manage ontologies.',
-      logo: { src: './src/assets/logo.svg' },
       favicon: '/favicon.svg',
       customCss: ['./src/styles/theme.css'],
       components: {
         EditLink: './src/components/EditLink.astro',
         Head: './src/components/Head.astro',
+        SiteTitle: './src/components/SiteTitle.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',
       },
       social: [
