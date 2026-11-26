@@ -82,7 +82,7 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
     |  RDF namespace: https://example.org/terms#
     |  Preferred prefix: ex
     |  License: MIT
-    |  Tags: sensors""".stripMargin
+    |  Keywords: sensors""".stripMargin
 
   private def release(version: String): SearchHit =
     SearchHit(
@@ -226,7 +226,7 @@ class CatalogOutputSpec extends AnyWordSpec, Matchers {
         json = false,
       )
       output should include("\nFiles\n  None\n\nDependencies\n  None\n")
-      output should endWith("  License: Not supplied\n  Tags: Not supplied")
+      output should endWith("  License: Not supplied\n  Keywords: Not supplied")
       output should include(
         "\n  Authors: Example author\n  Publishers: Example publisher\n" +
           "  Original sources: https://example.org/source/\n",

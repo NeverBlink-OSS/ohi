@@ -388,7 +388,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
         ).foreach(value => compact should include(value.filterNot(_.isWhitespace)))
         out.linesIterator.count(_.startsWith("  License:")) shouldBe 1
         out.linesIterator.count(_.startsWith("  Elements:")) shouldBe 1
-        out should not include "Tags:"
+        out should not include "Keywords:"
         out should not include "Formats:"
         out should not include "Published:"
         out should not include "Not supplied"
@@ -699,7 +699,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           "2026-10-13T12:30:00Z",
           "Example publisher",
           "License: Not supplied",
-          "Tags: Not supplied",
+          "Keywords: Not supplied",
           "https://example.org/terms#",
           "Preferred prefix: ex",
           "https://example.org/file.ttl?revision=2",

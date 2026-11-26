@@ -43,7 +43,7 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
                 |  Ontology: commons/collections | Version: 20221101
                 |  Description: Collections, bags, lists and their members.
                 |  License: MIT
-                |  Tags: collections
+                |  Keywords: collections
                 |  URL: https://ohi.dev/o/commons/collections@20221101""".stripMargin,
         60 -> """1 matching ontology
                 |
@@ -51,7 +51,7 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
                 |  Ontology: commons/collections | Version: 20221101
                 |  Description: Collections, bags, lists and their members.
                 |  License: MIT
-                |  Tags: collections
+                |  Keywords: collections
                 |  URL: https://ohi.dev/o/commons/collections@20221101""".stripMargin,
         40 -> """1 matching ontology
                 |
@@ -61,7 +61,7 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
                 |  Description: Collections, bags, lists
                 |    and their members.
                 |  License: MIT
-                |  Tags: collections
+                |  Keywords: collections
                 |  URL: https://ohi.dev/o/commons/collections@20221101""".stripMargin,
       )
     do

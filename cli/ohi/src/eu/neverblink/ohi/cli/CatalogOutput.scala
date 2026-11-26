@@ -178,7 +178,7 @@ private[cli] object CatalogOutput {
       field("License", reported(result.licenses))
       if result.licenseFiles.nonEmpty then
         field("License files", result.licenseFiles.map(_.original).mkString(", "), code = "36")
-      field("Tags", reported(result.keywords))
+      field("Keywords", reported(result.keywords))
       output.mkString("\n")
     }
 
