@@ -229,6 +229,8 @@ export interface Publication {
   revision?: RevisionInfo;
   /** Metadata contract revision, independent of the ontology's version. */
   schema_version: number;
+  /** Thematic areas of the ontology, as ids of tags in the Hub. */
+  tags?: string[];
   /** Display title of the ontology. */
   title: string;
   /** Complete publication version label, including the revision id if present. */
@@ -298,6 +300,8 @@ export interface SearchHit {
   publishers: Agent[];
   /** The id of the revision, only for a revision. The latest revision of a version is its document in packages_latest_revision. */
   revision_id?: string;
+  /** Thematic areas of the ontology, as ids of tags in the Hub. */
+  tags?: string[];
   /** Display title of the ontology. */
   title: string;
   /** Complete publication version label, including the revision id if present. */
@@ -342,6 +346,41 @@ export interface SearchResult {
   [key: string]: unknown;
 }
 
+/** A thematic area of an ontology. */
+export interface Tag {
+  /** Why the tag is retired, such as "Use health-and-medicine". New publications can't use it; old publications that use it keep it. Absent on nondeprecated tags. */
+  deprecated?: string;
+  /** What the tag covers. */
+  description?: string;
+  /** Id of the group the tag belongs to. Absent on a tag in no group. */
+  group?: string;
+  /** Permanent identifier of the tag, such as health-and-medicine. */
+  id: string;
+  /** Display name of the tag. */
+  title: string;
+  [key: string]: unknown;
+}
+
+/** A group of tags. */
+export interface TagGroup {
+  /** What the group covers. */
+  description?: string;
+  /** Permanent identifier of the group, such as life-sciences. */
+  id: string;
+  /** Display name of the group. */
+  title: string;
+  [key: string]: unknown;
+}
+
+/** Every tag and tag group of the Hub. Publications and search hits hold only tag ids; their metadata is here. */
+export interface TagList {
+  /** The groups of tags. */
+  groups: TagGroup[];
+  /** The tags. */
+  tags: Tag[];
+  [key: string]: unknown;
+}
+
 /** Origin of published artifact content. */
 export type ArtifactOrigin =
   | "UPSTREAM"
@@ -358,7 +397,8 @@ export type CatalogOperation =
   | "CONFIGURE"
   | "SEARCH"
   | "INSPECT"
-  | "GET";
+  | "GET"
+  | "TAGS";
 
 /** A combination of ontology language and syntax. */
 export type Format =

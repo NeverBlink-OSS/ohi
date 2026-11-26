@@ -1,0 +1,33 @@
+{
+  "groups": [
+    {
+      "id": "technology",
+      "title": "Technology",
+      "description": "Computing, artificial intelligence, connected devices and security."
+    },
+    {
+      "id": "cross-domain",
+      "title": "Cross-domain",
+      "description": "General building blocks used across domains."
+    }
+  ],
+  "tags": [
+    {
+      "id": "internet-of-things",
+      "title": "Internet of things",
+      "description": "Sensors, devices, actuators, their observations and the web of things.",
+      "group": "technology"
+    },
+    {
+      "id": "units-and-measurement",
+      "title": "Units and measurement",
+      "description": "Units of measure, quantities, observations and measurement methods.",
+      "group": "cross-domain"
+    },
+    {
+      "id": "sensor-networks",
+      "title": "Sensor networks",
+      "deprecated": "Use internet-of-things"
+    }
+  ]
+}

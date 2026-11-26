@@ -226,6 +226,25 @@ test("inspect fetches the exact supplied path and query without following metada
   assert.deepEqual(fixture.requests.map((req) => req.url), ["/opaque?signature=a%2Bb"]);
 });
 
+test("tags fetches the tag list next to the search_url", async (t) => {
+  const tags = readFileSync(new URL("../../examples/tags.json", import.meta.url));
+  const fixture = await server(t, (_, res) => res.end(tags));
+  const result = await catalog(fixture).tags();
+  assert.deepEqual(result.groups.map(({ id }) => id), ["technology", "cross-domain"]);
+  assert.deepEqual(result.tags.map(({ id }) => id), ["internet-of-things", "units-and-measurement", "sensor-networks"]);
+  assert.equal(result.tags[0].group, "technology");
+  assert.equal(result.tags[2].deprecated, "Use internet-of-things");
+  assert.equal(result.tags[2].description, undefined);
+  assert.equal(result.tags[2].group, undefined);
+  assert.deepEqual(fixture.requests.map((req) => req.url), ["/files/tags_v1.json"]);
+});
+
+test("tags without tag and group lists is an invalid response", async (t) => {
+  const fixture = await server(t, (_, res) => res.end(JSON.stringify({ tags: [] })));
+  await assert.rejects(catalog(fixture).tags(),
+    failure("INVALID_RESPONSE", "TAGS", `${fixture.url}/files/tags_v1.json`, 200));
+});
+
 test("inspect of a versioned reference without a hit sends one GET of the percent-encoded release URL", async (t) => {
   const fixture = await server(t, (req, res) =>
     res.end(req.url.startsWith("/search/") ? JSON.stringify(page([], 1, 10, 0)) : publication));

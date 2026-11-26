@@ -53,6 +53,7 @@ import java.util.Objects;
     "publishers",
     "revision",
     "schema_version",
+    "tags",
     "title",
     "version",
 })
@@ -130,6 +131,9 @@ public class Publication {
 
     @JsonProperty("schema_version")
     private Long schemaVersion;
+
+    @JsonProperty("tags")
+    private List<String> tags;
 
     @JsonProperty("title")
     private String title;
@@ -384,6 +388,15 @@ public class Publication {
         this.schemaVersion = schemaVersion;
     }
 
+    /** Thematic areas of the ontology, as ids of tags in the Hub. */
+    public List<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<String> tags) {
+        this.tags = tags;
+    }
+
     /** Display title of the ontology. */
     public String getTitle() {
         return title;
@@ -441,6 +454,7 @@ public class Publication {
             && Objects.equals(publishers, other.publishers)
             && Objects.equals(revision, other.revision)
             && Objects.equals(schemaVersion, other.schemaVersion)
+            && Objects.equals(tags, other.tags)
             && Objects.equals(title, other.title)
             && Objects.equals(version, other.version)
             && Objects.equals(extraProperties, other.extraProperties);
@@ -448,7 +462,7 @@ public class Publication {
 
     @Override
     public int hashCode() {
-        return Objects.hash(artifacts, authors, baseUrl, contributors, dependencies, description, elementCount, hubVersion, keywords, licenseFiles, licenses, maintainers, name, namespace, namespaceIri, nativeElementCount, originalSources, preferredPrefix, provenance, publications, publishedAt, publisher, publishers, revision, schemaVersion, title, version, extraProperties);
+        return Objects.hash(artifacts, authors, baseUrl, contributors, dependencies, description, elementCount, hubVersion, keywords, licenseFiles, licenses, maintainers, name, namespace, namespaceIri, nativeElementCount, originalSources, preferredPrefix, provenance, publications, publishedAt, publisher, publishers, revision, schemaVersion, tags, title, version, extraProperties);
     }
 
     @Override
@@ -479,6 +493,7 @@ public class Publication {
             + ", publishers=" + getPublishers()
             + ", revision=" + getRevision()
             + ", schemaVersion=" + getSchemaVersion()
+            + ", tags=" + getTags()
             + ", title=" + getTitle()
             + ", version=" + getVersion()
             + ", extraProperties=" + getExtraProperties()
@@ -514,6 +529,7 @@ public class Publication {
             @JsonProperty(value = "publishers", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> publishers,
             @JsonProperty("revision") RevisionInfo revision,
             @JsonProperty(value = "schema_version", required = true) Long schemaVersion,
+            @JsonProperty("tags") @JsonSetter(contentNulls = Nulls.FAIL) List<String> tags,
             @JsonProperty(value = "title", required = true) String title,
             @JsonProperty(value = "version", required = true) String version) {
         Publication json$item = new Publication();
@@ -542,6 +558,7 @@ public class Publication {
         json$item.setPublishers(publishers);
         json$item.setRevision(revision);
         json$item.setSchemaVersion(schemaVersion);
+        json$item.setTags(tags);
         json$item.setTitle(title);
         json$item.setVersion(version);
         return json$item;

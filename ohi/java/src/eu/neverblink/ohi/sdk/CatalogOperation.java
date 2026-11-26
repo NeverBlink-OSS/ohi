@@ -9,7 +9,8 @@ public enum CatalogOperation {
     CONFIGURE("CONFIGURE"),
     SEARCH("SEARCH"),
     INSPECT("INSPECT"),
-    GET("GET");
+    GET("GET"),
+    TAGS("TAGS");
 
     private final String value;
 

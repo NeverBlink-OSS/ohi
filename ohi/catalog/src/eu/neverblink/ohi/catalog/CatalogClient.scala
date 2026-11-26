@@ -43,6 +43,7 @@ final class CatalogClient(config: CatalogConfig = CatalogConfig()) {
   private val latestUrl = s"$base/search/collections/packages_latest/documents/search"
   private val latestRevisionUrl =
     s"$base/search/collections/packages_latest_revision/documents/search"
+  private val tagsUrl = s"$base/files/tags_v1.json"
   private val timeoutMs = settings.timeoutMs.get
 
   def search(request: SearchRequest): SearchResult =
@@ -159,6 +160,16 @@ final class CatalogClient(config: CatalogConfig = CatalogConfig()) {
   }
 
   def get(url: String): Array[Byte] = retrieve(url, CatalogOperation.Get, url)
+
+  /** Fetches the Hub's tag list, with the metadata of the tag ids that publications and search
+    * hits hold. Fetch it again to see new tags.
+    */
+  def tags(): TagList = {
+    val bytes = retrieve(tagsUrl, CatalogOperation.Tags, tagsUrl)
+    decode(CatalogOperation.Tags, tagsUrl, CatalogErrorCode.InvalidResponse) {
+      ModelJson.decode(CatalogClient.tagListCodec, utf8(bytes))
+    }
+  }
 
   private def transportUri(value: String): URI = {
     val uri = new URI(value)
@@ -311,6 +322,7 @@ final class CatalogClient(config: CatalogConfig = CatalogConfig()) {
 private[catalog] object CatalogClient {
   private val searchCodec: LinkmlYamlCodec[TypesenseResponse] = LinkmlYamlCodec.derived
   private val formatCodec: LinkmlYamlCodec[Format] = LinkmlYamlCodec.derived
+  private val tagListCodec: LinkmlYamlCodec[TagList] = LinkmlYamlCodec.derived
   private val SearchPath = "/search/collections/packages/documents/search"
 
   def decodeSearch(text: String, page: Int, perPage: Int): SearchResult = {

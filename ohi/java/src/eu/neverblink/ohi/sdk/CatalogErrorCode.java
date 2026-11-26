@@ -18,7 +18,9 @@ public enum CatalogErrorCode {
     /** A configured native timeout interrupted the request or body transfer. */
     TIMEOUT("TIMEOUT"),
 
-    /** A successful search or publication response, or HTTP content coding, cannot be decoded. */
+    /**
+     * A successful search, publication or tag list response, or HTTP content coding, cannot be decoded.
+     */
     INVALID_RESPONSE("INVALID_RESPONSE");
 
     private final String value;

@@ -320,6 +320,37 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
     }
   }
 
+  "CatalogClient.tags" should {
+    "get the tag list next to the search_url" in {
+      val tags = Files.readAllBytes(
+        Path.of(sys.env("MILL_WORKSPACE_ROOT"), "ohi", "examples", "tags.json"),
+      )
+      withServer(exchange => reply(exchange, 200, tags)) { (url, requests) =>
+        val result = configured(url + searchPath).tags()
+        result.groups.map(_.id) shouldBe Seq("technology", "cross-domain")
+        result.tags.map(_.id) shouldBe
+          Seq("internet-of-things", "units-and-measurement", "sensor-networks")
+        result.tags.head.title shouldBe "Internet of things"
+        result.tags.head.group shouldBe Some("technology")
+        result.tags.head.deprecated shouldBe None
+        result.tags(2).deprecated shouldBe Some("Use internet-of-things")
+        result.tags(2).description shouldBe None
+        result.tags(2).group shouldBe None
+        requests.asScala.toSeq shouldBe Seq("/files/tags_v1.json" -> "identity")
+      }
+    }
+
+    "fail with an invalid response on an invalid list" in {
+      val body = """{"groups": [], "tags": [{"id": "energy"}]}""".getBytes(UTF_8)
+      withServer(exchange => reply(exchange, 200, body)) { (url, _) =>
+        val target = url + "/files/tags_v1.json"
+        error(CatalogErrorCode.InvalidResponse, CatalogOperation.Tags, Some(target), Some(200))(
+          configured(url + searchPath).tags(),
+        )
+      }
+    }
+  }
+
   "CatalogClient.latest and inspect with references" should {
     "derive the latest endpoint and release URLs from a search_url below a path" in {
       withServer { exchange =>

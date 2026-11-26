@@ -70,6 +70,8 @@ import eu.neverblink.linkml.runtime.*
   *   Revision information about this Publication, if it has any
   * @param schemaVersion
   *   Metadata contract revision, independent of the ontology's version.
+  * @param tags
+  *   Thematic areas of the ontology, as ids of tags in the Hub.
   * @param title
   *   Display title of the ontology.
   * @param version
@@ -114,6 +116,7 @@ final case class Publication(
     revision: Option[RevisionInfo] = None,
     @named("schema_version")
     schemaVersion: Int,
+    tags: Seq[String] = Seq(),
     title: String,
     version: String,
 ) {

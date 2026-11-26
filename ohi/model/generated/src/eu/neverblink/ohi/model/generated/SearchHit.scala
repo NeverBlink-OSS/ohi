@@ -54,6 +54,8 @@ import eu.neverblink.linkml.runtime.*
   * @param revisionId
   *   The id of the revision, only for a revision. The latest revision of a version is its document
   *   in packages_latest_revision.
+  * @param tags
+  *   Thematic areas of the ontology, as ids of tags in the Hub.
   * @param title
   *   Display title of the ontology.
   * @param version
@@ -90,6 +92,7 @@ final case class SearchHit(
     publishers: Seq[Agent],
     @named("revision_id")
     revisionId: Option[String] = None,
+    tags: Seq[String] = Seq(),
     title: String,
     version: String,
 ) {

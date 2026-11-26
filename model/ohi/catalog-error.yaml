@@ -46,10 +46,11 @@ enums:
       TIMEOUT:
         description: A configured native timeout interrupted the request or body transfer.
       INVALID_RESPONSE:
-        description: A successful search or publication response, or HTTP content coding, cannot be decoded.
+        description: A successful search, publication or tag list response, or HTTP content coding, cannot be decoded.
   CatalogOperation:
     permissible_values:
       CONFIGURE:
       SEARCH:
       INSPECT:
       GET:
+      TAGS:
