@@ -43,4 +43,6 @@ final case class InexpressibleDatatypeFacet(
       detail = inferOptional("detail", detail, datatype + ": " + facet),
       kind = inferOptional("kind", kind, "Datatype facet inexpressible in LinkML"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

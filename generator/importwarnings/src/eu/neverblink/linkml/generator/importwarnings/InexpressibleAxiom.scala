@@ -44,4 +44,6 @@ final case class InexpressibleAxiom(
       detail = inferOptional("detail", detail, axiom),
       kind = inferOptional("kind", kind, axiomType + " axiom inexpressible in LinkML"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

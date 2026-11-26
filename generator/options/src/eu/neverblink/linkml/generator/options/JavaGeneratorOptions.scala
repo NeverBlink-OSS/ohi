@@ -59,4 +59,6 @@ final case class JavaGeneratorOptions(
     */
   override def infer(): JavaGeneratorOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -58,4 +58,6 @@ final case class InvalidKeyOrIdSlotType(
         "Invalid type of key / identifier slot in class '" + className + "': '" + elementName + "'. Expected a basic, scalar data type (e.g., string, integer, float, uri).",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -51,4 +51,6 @@ final case class UnexpectedError(
       message =
         inferOptional("message", message, "Unexpected error while loading the schema: " + reason),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

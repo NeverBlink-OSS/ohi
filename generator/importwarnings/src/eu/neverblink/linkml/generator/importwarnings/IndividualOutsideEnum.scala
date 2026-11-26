@@ -43,4 +43,6 @@ final case class IndividualOutsideEnum(
       detail = inferOptional("detail", detail, individual + ": " + classExpression),
       kind = inferOptional("kind", kind, "Individual, which is not part of an enum"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

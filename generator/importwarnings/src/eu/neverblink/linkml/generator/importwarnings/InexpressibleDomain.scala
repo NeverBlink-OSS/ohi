@@ -44,4 +44,6 @@ final case class InexpressibleDomain(
       detail = inferOptional("detail", detail, property + ": " + domainExpression),
       kind = inferOptional("kind", kind, "Domain inexpressible in LinkML"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

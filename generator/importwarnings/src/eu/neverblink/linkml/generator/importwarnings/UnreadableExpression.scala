@@ -42,4 +42,6 @@ final case class UnreadableExpression(
       detail = inferOptional("detail", detail, owner + ": " + expression),
       kind = inferOptional("kind", kind, "Expression that cannot be read"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -46,4 +46,6 @@ final case class ExtraValueTypeParent(
         "Parent of a value type after the first, inexpressible in LinkML as a type has only one",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

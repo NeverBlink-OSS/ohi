@@ -44,4 +44,6 @@ final case class StatementAboutImportedTerm(
         "Statement about a term of an imported schema, which keeps its own",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -38,4 +38,6 @@ final case class ErDiagramGeneratorOptions(
     */
   override def infer(): ErDiagramGeneratorOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

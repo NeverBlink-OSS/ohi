@@ -45,4 +45,6 @@ final case class InexpressibleQualifiedCardinality(
       detail = inferOptional("detail", detail, className + ": " + expression),
       kind = inferOptional("kind", kind, "Qualified cardinality inexpressible in LinkML"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

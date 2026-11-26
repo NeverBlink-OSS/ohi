@@ -68,4 +68,6 @@ final case class UnexpandedCurie(
         ) + " isn't expanded",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

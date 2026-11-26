@@ -929,7 +929,10 @@ object ScalaGenerator {
           if extraSlotsAllowed then "@extraSlotsAllowed\nfinal" else "final"
         } case class $caseClassName("
 
-    /** The body of the case class: slot combining (if enabled) and `infer()`.
+    /** The body of the case class: slot combining (if enabled), `infer()` and `hashCode`.
+      *
+      * `hashCode` calls `caseClassHash`. The compiler's own `hashCode` hashes each field inline, so
+      * its code is much larger.
       *
       * @param caseClassName
       *   Name of the case class, used as the parameter and return types
@@ -989,6 +992,8 @@ object ScalaGenerator {
       |{
       |  $combining
       |  $inferMethod
+      |
+      |  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
       |}
       |""".stripMargin
     }

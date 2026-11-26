@@ -173,4 +173,6 @@ final case class UniqueKey(
     */
   override def infer(): UniqueKey =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

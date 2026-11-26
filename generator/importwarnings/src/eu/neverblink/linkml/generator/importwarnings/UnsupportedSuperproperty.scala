@@ -42,4 +42,6 @@ final case class UnsupportedSuperproperty(
       detail = inferOptional("detail", detail, property + ": " + superproperty),
       kind = inferOptional("kind", kind, "Subproperty of an annotation or built-in property"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

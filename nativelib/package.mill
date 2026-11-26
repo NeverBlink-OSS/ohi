@@ -106,7 +106,27 @@ object `package` extends Module, NativeOptional {
         if _root_.scala.util.Properties.isMac then
           Seq(s"-Wl,-install_name,@rpath/${NativeLib.name}$platformLibraryExtension")
         else Seq.empty
-      super.nativeLinkingOptions() ++ rpath ++ macosTarget :+ "-O3"
+      super.nativeLinkingOptions() ++ rpath ++ macosTarget ++ exportsAndStrip(Task.dest) :+ "-O3"
+    }
+
+    /** Exports only the C API, instead of every Scala Native function, and drops the static
+      * symbol table. On Windows, only the `@exported` functions are exported already.
+      */
+    private def exportsAndStrip(dest: os.Path): Seq[String] = {
+      val exported = Seq("linkml_*", "ScalaNativeInit")
+      if _root_.scala.util.Properties.isWin then Seq.empty
+      else if _root_.scala.util.Properties.isMac then {
+        val list = dest / "exports.txt"
+        os.write.over(list, exported.map("_" + _).mkString("", "\n", "\n"))
+        Seq(s"-Wl,-exported_symbols_list,$list", "-Wl,-x")
+      } else {
+        val script = dest / "exports.map"
+        os.write.over(
+          script,
+          exported.mkString("{\n  global:\n    ", ";\n    ", ";\n  local:\n    *;\n};\n"),
+        )
+        Seq(s"-Wl,--version-script=$script", "-Wl,--strip-all")
+      }
     }
 
     /** `libohi_linkml.so` and the header, named the way the Python bindings and `package.sh`

@@ -35,4 +35,6 @@ final case class Naming(
     */
   def infer(): Naming =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

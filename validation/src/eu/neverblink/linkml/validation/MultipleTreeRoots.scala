@@ -52,4 +52,6 @@ final case class MultipleTreeRoots(
         "Multiple classes are defined as a 'tree_root': " + stringify(classNames),
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

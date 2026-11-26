@@ -27,4 +27,6 @@ final case class DatatypeMapping(
     */
   def infer(): DatatypeMapping =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

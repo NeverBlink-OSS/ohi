@@ -69,4 +69,6 @@ final case class UnquotedStringDefault(
         ) + " has no quotes around the string",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

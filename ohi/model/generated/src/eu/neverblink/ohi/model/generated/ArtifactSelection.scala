@@ -17,6 +17,8 @@ final case class ArtifactSelectionImpl(
 
   override def infer(): ArtifactSelectionImpl =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }
 
 /** Exact publication identity and artifact download URL, compared without normalization.

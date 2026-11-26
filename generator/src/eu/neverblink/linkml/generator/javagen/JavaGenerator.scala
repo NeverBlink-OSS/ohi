@@ -4,18 +4,16 @@ import eu.neverblink.linkml.generator.options.{JavaGeneratorOptions, JavaStyle}
 import eu.neverblink.linkml.generator.util.{
   DocLines,
   GeneratedHeader,
+  Literals,
   PackageName,
   TreeRootDocument,
 }
 import eu.neverblink.linkml.generator.util.Pruning.pruning
 import eu.neverblink.linkml.generator.util.metadataLanguage
 import eu.neverblink.linkml.runtime.FastUtils.*
-import eu.neverblink.linkml.runtime.LinkmlAny
-import eu.neverblink.linkml.runtime.StringUtils.hexDigit
 import eu.neverblink.linkml.schemaview.*
 
 import scala.collection.mutable
-import scala.util.control.NonFatal
 
 /** Generates Java classes that load and dump the same JSON as the JSON Schema generator describes,
   * one file per class, enum and document type. How they read and write JSON depends on the
@@ -160,7 +158,7 @@ final class JavaGenerator(using sv: SchemaView) extends JavaRenamer {
   private def field(attribute: AttributeView, owner: ClassView, ctx: Context): JavaField = {
     val key = slotName(attribute.slotView)
     val doc = DocLines(attribute.slotView.slot)(using metadataLanguage(using ctx.options)) ++
-      referenceDoc(attribute)
+      DocLines.reference(attribute, className)
     val tpe = fieldType(attribute, ctx)
     JavaField(key, fieldNames(owner, ctx)(key), tpe, tpe, checks(attribute), doc)
   }
@@ -188,7 +186,10 @@ final class JavaGenerator(using sv: SchemaView) extends JavaRenamer {
             pattern = tav.pattern,
           )
         case Right(Scalar.Int | Scalar.Num) | Left("BigDecimal") =>
-          counts.copy(minValue = number(tav.minimumValue), maxValue = number(tav.maximumValue))
+          counts.copy(
+            minValue = Literals.decimal(tav.minimumValue),
+            maxValue = Literals.decimal(tav.maximumValue),
+          )
         case _ => counts
       }
     }
@@ -367,14 +368,6 @@ final class JavaGenerator(using sv: SchemaView) extends JavaRenamer {
       case InlineType.dict(form) => dictType(root, form, ctx)
       case _ => FieldType.NativeList(className(root))
     }
-
-  private def referenceDoc(attribute: AttributeView): Option[String] = {
-    val alternatives = attribute.rangeAlternatives
-    val classes = (if alternatives.isEmpty then Seq(attribute) else alternatives).collect {
-      case ref: ClassReferenceAttributeView => className(ref.classView)
-    }
-    Option.when(classes.nonEmpty)(classes.mkString("Reference to ", " or ", ""))
-  }
 
   private def writeClass(cls: JavaClass, ctx: Context): String = {
     val out = Code()
@@ -698,13 +691,6 @@ object JavaGenerator {
 
   private def indent(level: Int): String = "    " * level
 
-  /** A bound as a decimal number, or None if it is not a number. */
-  private def number(value: Option[LinkmlAny]): Option[String] =
-    try value.mapFast(v => BigDecimal(v.value.trim).bigDecimal.toPlainString)
-    catch {
-      case ex if NonFatal(ex) => None
-    }
-
   /** A whole file, with the imports that [[body]] needs. */
   private def file(header: String, pkg: String, body: String): String = {
     val used = imports.filter((name, _) => body.contains(name) && usesName(body, name))
@@ -803,20 +789,5 @@ object JavaGenerator {
   }
 
   /** A Java string literal, with everything outside printable ASCII escaped. */
-  def javaString(value: String): String = {
-    val sb = new java.lang.StringBuilder(value.length + 2)
-    sb.append('"')
-    value.foreach {
-      case '"' => sb.append("\\\"")
-      case '\\' => sb.append("\\\\")
-      case '\n' => sb.append("\\n")
-      case '\r' => sb.append("\\r")
-      case '\t' => sb.append("\\t")
-      case c if c < ' ' || c > '~' =>
-        sb.append('\\').append('u').append(hexDigit(c >> 12)).append(hexDigit(c >> 8))
-          .append(hexDigit(c >> 4)).append(hexDigit(c))
-      case c => sb.append(c)
-    }
-    sb.append('"').toString
-  }
+  def javaString(value: String): String = Literals.string(value, cp => cp < ' ' || cp > '~')
 }

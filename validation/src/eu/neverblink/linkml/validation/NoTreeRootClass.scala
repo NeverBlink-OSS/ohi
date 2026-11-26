@@ -46,4 +46,6 @@ final case class NoTreeRootClass(
     copy(
       message = inferOptional("message", message, "No 'tree_root' class is defined in the schema"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

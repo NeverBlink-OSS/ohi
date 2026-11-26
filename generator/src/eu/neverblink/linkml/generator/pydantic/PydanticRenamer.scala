@@ -1,6 +1,7 @@
 package eu.neverblink.linkml.generator.pydantic
 
 import eu.neverblink.linkml.generator.jsonschema.JsonRenamer
+import eu.neverblink.linkml.generator.util.Renamer
 import eu.neverblink.linkml.schemaview.{
   Case,
   ClassView,
@@ -162,12 +163,8 @@ object PydanticRenamer extends PydanticRenamer {
   /** Turn a base name into a `PascalCase` Python identifier. A leading digit or a reserved name
     * gets an underscore in front.
     */
-  def identifier(baseName: String): String = {
-    val name = ascii(Case.baseToPascal(baseName))
-    if name.isEmpty then "__"
-    else if Case.isNumeric(name.head) then "_".concat(name)
-    else unreserved(name)
-  }
+  def identifier(baseName: String): String =
+    unreserved(Renamer.validStart(ascii(Case.baseToPascal(baseName)), "__"))
 
   /** A name that the generated module already uses gets an underscore in front. */
   def unreserved(name: String): String =

@@ -64,4 +64,6 @@ final case class AnonymousEnumExpression(
     */
   override def infer(): AnonymousEnumExpression =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

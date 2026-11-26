@@ -2,17 +2,14 @@ package eu.neverblink.linkml.generator.pydantic
 
 import eu.neverblink.linkml.generator.options.PydanticGeneratorOptions
 import eu.neverblink.linkml.generator.CharDocumentGenerator
-import eu.neverblink.linkml.generator.util.{DocLines, GeneratedHeader, TreeRootDocument}
+import eu.neverblink.linkml.generator.util.{DocLines, GeneratedHeader, Literals, TreeRootDocument}
 import eu.neverblink.linkml.generator.util.Pruning.pruning
 import eu.neverblink.linkml.generator.util.metadataLanguage
 import eu.neverblink.linkml.rdf.io.{CharSink, StringSink}
 import eu.neverblink.linkml.runtime.FastUtils.*
-import eu.neverblink.linkml.runtime.LinkmlAny
-import eu.neverblink.linkml.runtime.StringUtils.hexDigit
 import eu.neverblink.linkml.schemaview.*
 
 import scala.collection.mutable
-import scala.util.control.NonFatal
 
 /** Generates Python classes based on pydantic v2 that load and dump the JSON form of the data 1:1,
   * the same JSON as described by the JSON Schema generator. Data is loaded with
@@ -137,8 +134,8 @@ final class PydanticGenerator(using sv: SchemaView)
       tav.maximumLength.foreachFast(n => constraints.addOne("max_length=" + n))
     }
     if numericTypes(base) then {
-      number(tav.minimumValue).foreachFast(v => constraints.addOne("ge=".concat(v)))
-      number(tav.maximumValue).foreachFast(v => constraints.addOne("le=".concat(v)))
+      Literals.decimal(tav.minimumValue).foreachFast(v => constraints.addOne("ge=".concat(v)))
+      Literals.decimal(tav.maximumValue).foreachFast(v => constraints.addOne("le=".concat(v)))
     }
     val text =
       if constraints.isEmpty then base
@@ -283,7 +280,7 @@ final class PydanticGenerator(using sv: SchemaView)
       }
     }
     sink.append('\n')
-    val doc = DocLines(slot) ++ referenceDoc(attribute)
+    val doc = DocLines(slot) ++ DocLines.reference(attribute, className)
     writeDoc(sink, doc, "    ")
   }
 
@@ -742,14 +739,6 @@ final class PydanticGenerator(using sv: SchemaView)
       )
   }
 
-  private def referenceDoc(attribute: AttributeView): Option[String] = {
-    val alternatives = attribute.rangeAlternatives
-    val classes = (if alternatives.isEmpty then Seq(attribute) else alternatives).collect {
-      case ref: ClassReferenceAttributeView => className(ref.classView)
-    }
-    Option.when(classes.nonEmpty)(classes.mkString("Reference to ", " or ", ""))
-  }
-
   private def writeDoc(sink: CharSink, lines: Seq[String], indent: String): Unit =
     if lines.nonEmpty then {
       val escaped = lines.map(docText)
@@ -840,13 +829,6 @@ object PydanticGenerator {
 
   private val numericTypes = Set("StrictInt", "StrictFloat", "JsonDecimal")
 
-  /** A bound as a Python number literal, or None if it is not a number. */
-  private def number(value: Option[LinkmlAny]): Option[String] =
-    try value.mapFast(v => BigDecimal(v.value.trim).bigDecimal.toPlainString)
-    catch {
-      case ex if NonFatal(ex) => None
-    }
-
   private def listIf(condition: Boolean, tpe: String): String =
     if condition then s"list[$tpe]" else tpe
 
@@ -859,36 +841,12 @@ object PydanticGenerator {
   }
 
   /** A double-quoted Python string literal. */
-  def pyString(value: String): String = {
-    val sb = new java.lang.StringBuilder(value.length + 2)
-    sb.append('"')
-    val len = value.length
-    var i = 0
-    while (i < len) {
-      value.charAt(i) match {
-        case '"' => sb.append("\\\"")
-        case '\\' => sb.append("\\\\")
-        case '\n' => sb.append("\\n")
-        case '\r' => sb.append("\\r")
-        case '\t' => sb.append("\\t")
-        case c
-            if c < ' ' || c == '\u007f' || Character.isSurrogate(c) ||
-              Character.getType(c) == Character.LINE_SEPARATOR ||
-              Character.getType(c) == Character.PARAGRAPH_SEPARATOR =>
-          if Character.isHighSurrogate(c) && i + 1 < len &&
-            Character.isLowSurrogate(value.charAt(i + 1))
-          then {
-            sb.append(c).append(value.charAt(i + 1))
-            i += 1
-          } else
-            sb.append('\\').append('u').append(hexDigit(c >> 12)).append(hexDigit(c >> 8))
-              .append(hexDigit(c >> 4)).append(hexDigit(c))
-        case c => sb.append(c)
-      }
-      i += 1
-    }
-    sb.append('"').toString
-  }
+  def pyString(value: String): String = Literals.string(
+    value,
+    cp =>
+      cp < ' ' || cp == '\u007f' || cp == '\u2028' || cp == '\u2029' ||
+        Character.getType(cp) == Character.SURROGATE,
+  )
 
   /** A line of docstring text, with what would end the docstring or start an escape escaped. */
   private def docText(line: String): String =

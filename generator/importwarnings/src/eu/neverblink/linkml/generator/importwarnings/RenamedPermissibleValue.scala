@@ -43,4 +43,6 @@ final case class RenamedPermissibleValue(
       detail = inferOptional("detail", detail, iri + " is the permissible value '" + text + "'"),
       kind = inferOptional("kind", kind, "Renamed to avoid a clash"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

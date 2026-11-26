@@ -10,11 +10,7 @@ trait GraphQlRenamer extends Renamer {
     * @note
     *   Empty base names are a LinkML error, but this prevents a generator throw
     */
-  private def fix(value: String): String = {
-    if value.isEmpty then "_"
-    else if Case.isNumeric(value.head) then "_" + value
-    else value
-  }
+  private def fix(value: String): String = Renamer.validStart(value, "_")
 
   private def graphQlPascal(baseName: String): String = fix(Case.baseToPascal(baseName))
 

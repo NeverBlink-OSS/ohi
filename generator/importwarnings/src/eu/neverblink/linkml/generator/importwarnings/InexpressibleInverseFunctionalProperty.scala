@@ -44,4 +44,6 @@ final case class InexpressibleInverseFunctionalProperty(
         "Multivalued inverse functional property inexpressible in LinkML",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

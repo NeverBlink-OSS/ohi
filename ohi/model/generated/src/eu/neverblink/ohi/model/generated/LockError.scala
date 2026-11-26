@@ -26,4 +26,6 @@ final case class LockError(
     */
   def infer(): LockError =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

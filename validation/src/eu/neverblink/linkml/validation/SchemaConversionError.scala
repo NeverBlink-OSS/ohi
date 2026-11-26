@@ -52,4 +52,6 @@ final case class SchemaConversionError(
     copy(
       message = inferOptional("message", message, reason),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

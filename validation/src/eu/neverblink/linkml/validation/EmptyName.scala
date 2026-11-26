@@ -58,4 +58,6 @@ final case class EmptyName(
         "Element '" + elementName + "' has an empty name after internal renaming: '" + transformedName + "'",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

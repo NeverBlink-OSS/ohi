@@ -32,6 +32,8 @@ final case class EnumExpressionImpl(
 
   override def infer(): EnumExpressionImpl =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }
 
 /** An expression that constrains the range of a slot

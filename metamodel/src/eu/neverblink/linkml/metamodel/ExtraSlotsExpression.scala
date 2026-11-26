@@ -30,4 +30,6 @@ final case class ExtraSlotsExpression(
     */
   override def infer(): ExtraSlotsExpression =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

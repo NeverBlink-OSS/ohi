@@ -73,4 +73,6 @@ final case class WiderSlotCardinality(
         "Class '" + className + "' allows " + slotCardinality + " values for slot '" + slotName + "', which is wider than the " + parentCardinality + " of its parent '" + parentName + "'",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -45,4 +45,6 @@ final case class FrictionlessGeneratorOptions(
     */
   override def infer(): FrictionlessGeneratorOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

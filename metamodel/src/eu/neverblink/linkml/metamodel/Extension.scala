@@ -22,6 +22,8 @@ final case class ExtensionImpl(
 
   override def infer(): ExtensionImpl =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }
 
 /** A tag/value pair used to add non-model information to an entry

@@ -42,4 +42,6 @@ final case class ValueTypeRelationship(
       detail = inferOptional("detail", detail, concept + "." + relationship),
       kind = inferOptional("kind", kind, "Relationship of a value type"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

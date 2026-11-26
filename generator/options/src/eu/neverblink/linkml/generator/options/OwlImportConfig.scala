@@ -79,4 +79,6 @@ final case class OwlImportConfig(
     */
   def infer(): OwlImportConfig =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

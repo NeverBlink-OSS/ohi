@@ -49,4 +49,6 @@ final case class UnimplementedAxiom(
       kind =
         inferOptional("kind", kind, axiomType + " axiom that is not supported by the importer yet"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

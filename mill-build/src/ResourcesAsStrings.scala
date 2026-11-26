@@ -1,6 +1,7 @@
 package millbuild
 
 import mill.javalib.JavaModule
+import mill.scalanativelib.ScalaNativeModule
 import mill.*
 
 import java.nio.ByteBuffer
@@ -24,12 +25,17 @@ import scala.collection.mutable
   * So `Resources.dir.`file.txt`` is completed by an IDE, and going to its definition shows the text
   * of the file. Texts are embedded as multi-line string literals when possible, and as escaped
   * string literals otherwise. Only UTF-8 text files are supported.
+  *
+  * Scala Native keeps string literals in UTF-16, so in its modules the texts are UTF-8 C string
+  * literals, which take about half the space, decoded when `Resources` is first used.
   */
 trait ResourcesAsStrings(module: String) extends JavaModule {
   override def generatedSources = Task {
     val pkg = s"eu.neverblink.linkml.$module"
     val pkgDir = Task.dest / "eu" / "neverblink" / "linkml" / module
-    val generated = ResourcesAsStrings.generate(pkg, ResourcesAsStrings.files(resources()))
+    val cStrings = this.isInstanceOf[ScalaNativeModule]
+    val generated =
+      ResourcesAsStrings.generate(pkg, ResourcesAsStrings.files(resources()), cStrings)
     generated.map { case (relPath, content) =>
       val dest = pkgDir / relPath
       os.write.over(dest, content, createFolders = true)
@@ -131,10 +137,16 @@ object ResourcesAsStrings {
     val dirs = mutable.ArrayBuffer.empty[Dir]
   }
 
-  /** @return
+  /** @param cStrings
+    *   whether to embed the texts as C string literals, for Scala Native
+    * @return
     *   paths of the generated sources, relative to the directory of the package, with their content
     */
-  def generate(pkg: String, files: Seq[(Seq[String], os.Path)]): Seq[(os.SubPath, String)] = {
+  def generate(
+      pkg: String,
+      files: Seq[(Seq[String], os.Path)],
+      cStrings: Boolean = false,
+  ): Seq[(os.SubPath, String)] = {
     val root = Dir(Nil)
     val dirs = mutable.LinkedHashMap[Seq[String], Dir](Nil -> root)
     def dirOf(segments: Seq[String]): Dir = dirs.getOrElseUpdate(
@@ -181,7 +193,7 @@ object ResourcesAsStrings {
       dir.files.foreach { case (name, file) =>
         val path = (dir.segments :+ name).mkString("/", "/", "")
         sb.append(s"\n  /** $path */\n")
-        sb.append(s"  val ${ident(name)}: String =\n    ").append(textExpr(readText(file)))
+        sb.append(s"  val ${ident(name)}: String =\n    ").append(textExpr(readText(file), cStrings))
         sb.append("\n")
       }
       sb.toString
@@ -269,26 +281,35 @@ object ResourcesAsStrings {
   /** @return
     *   an expression with the value of the text, split into literals that fit in class files
     */
-  private def textExpr(text: String): String = chunks(text) match {
-    case Seq() => "\"\""
-    case Seq(chunk) => literal(chunk)
-    case chunks =>
-      chunks.map(chunk => s"      .append(${literal(chunk)})\n")
-        .mkString(s"new _root_.java.lang.StringBuilder(${text.length})\n", "", "      .toString")
+  private def textExpr(text: String, cStrings: Boolean): String = {
+    val (expr, bytes) =
+      if (cStrings && text.forall(c => c >= ' ' && c != 0x7f || c == '\n' || c == '\r' || c == '\t'))
+        (fromCString, (c: Char) => cEscaped(c).map(utf8Len).sum)
+      else (literal, utf8Len)
+    chunks(text, bytes) match {
+      case Seq() => "\"\""
+      case Seq(chunk) => expr(chunk)
+      case chunks =>
+        chunks.map(chunk => s"      .append(${expr(chunk)})\n")
+          .mkString(s"new _root_.java.lang.StringBuilder(${text.length})\n", "", "      .toString")
+    }
   }
 
-  /** Splits the text into chunks of up to [[maxLiteralBytes]] bytes in the modified UTF-8 used by
-    * class files, after the ends of lines when possible
+  /** Splits the text into chunks whose literals take up to [[maxLiteralBytes]] bytes in the
+    * modified UTF-8 used by class files, after the ends of lines when possible
+    *
+    * @param bytes
+    *   the number of bytes that a character takes in a literal
     */
-  private def chunks(text: String): Seq[String] = {
+  private def chunks(text: String, bytes: Char => Int): Seq[String] = {
     val result = Seq.newBuilder[String]
     var start = 0
     while (start < text.length) {
-      var bytes = 0
+      var total = 0
       var end = start
       var lastLineEnd = -1
-      while (end < text.length && bytes + utf8Len(text.charAt(end)) <= maxLiteralBytes) {
-        bytes += utf8Len(text.charAt(end))
+      while (end < text.length && total + bytes(text.charAt(end)) <= maxLiteralBytes) {
+        total += bytes(text.charAt(end))
         if (text.charAt(end) == '\n') lastLineEnd = end + 1
         end += 1
       }
@@ -304,6 +325,27 @@ object ResourcesAsStrings {
 
   private def utf8Len(c: Char): Int =
     if (c != 0 && c < 0x80) 1 else if (c < 0x800) 2 else 3
+
+  /** The text decoded from a C string literal, which Scala Native keeps in UTF-8. */
+  private def fromCString(text: String): String =
+    "_root_.scala.scalanative.unsafe.fromCString(" +
+      s"_root_.scala.scalanative.unsafe.CQuote(${cLiteral(text)}).c(), " +
+      "_root_.java.nio.charset.StandardCharsets.UTF_8)"
+
+  /** A `StringContext` with the text as its only part. `c` processes escapes in it, so the text is
+    * escaped twice: for `c`, and for the Scala literal.
+    */
+  private def cLiteral(text: String): String =
+    text.map(cEscaped).mkString("_root_.scala.StringContext(\"", "", "\")")
+
+  private def cEscaped(c: Char): String = c match {
+    case '"' => "\\\""
+    case '\\' => "\\\\\\\\"
+    case '\n' => "\\\\n"
+    case '\r' => "\\\\r"
+    case '\t' => "\\\\t"
+    case c => c.toString
+  }
 
   /** @return
     *   a multi-line literal, which shows the text as it is, if the text can be put in one, or an

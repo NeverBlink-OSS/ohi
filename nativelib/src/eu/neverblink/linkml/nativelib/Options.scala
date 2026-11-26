@@ -4,7 +4,8 @@ import com.github.plokhotnyuk.jsoniter_scala.core.*
 import com.github.plokhotnyuk.jsoniter_scala.macros.{CodecMakerConfig, JsonCodecMaker}
 import eu.neverblink.linkml.generator.SchemaImporter
 import eu.neverblink.linkml.generator.options.*
-import eu.neverblink.linkml.yaml.LinkmlYamlCodec
+import eu.neverblink.linkml.generator.options.Codec.given
+import eu.neverblink.linkml.yaml.LinkmlYamlDecoder
 import org.virtuslab.yaml.{Node, parseYaml}
 
 import scala.util.control.NonFatal
@@ -22,12 +23,12 @@ private final case class BadRequest(reason: String) extends RuntimeException(rea
 private object Options {
 
   /** Parse an options JSON, or return [[defaults]] when there is nothing to parse. */
-  private def model[T](json: String, defaults: T)(using codec: LinkmlYamlCodec[T]): T =
+  private def model[T](json: String, defaults: T)(using decoder: LinkmlYamlDecoder[T]): T =
     if (json eq null) || json.isEmpty then defaults
     else
       try
         parseYaml(json) match {
-          case Right(node) => codec.decode(node)
+          case Right(node) => decoder.decode(node)
           case Left(error) => throw BadRequest(s"malformed options: ${error.msg}")
         }
       catch {
@@ -36,68 +37,52 @@ private object Options {
       }
 
   def jsonSchema(json: String): JsonSchemaGeneratorOptions =
-    model(json, JsonSchemaGeneratorOptions())(using LinkmlYamlCodec.derived)
+    model(json, JsonSchemaGeneratorOptions())
 
-  def shacl(json: String): ShaclGeneratorOptions =
-    model(json, ShaclGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def shacl(json: String): ShaclGeneratorOptions = model(json, ShaclGeneratorOptions())
 
-  def rdfs(json: String): RdfsGeneratorOptions =
-    model(json, RdfsGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def rdfs(json: String): RdfsGeneratorOptions = model(json, RdfsGeneratorOptions())
 
-  def linkml(json: String): LinkMlGeneratorOptions =
-    model(json, LinkMlGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def linkml(json: String): LinkMlGeneratorOptions = model(json, LinkMlGeneratorOptions())
 
   def frictionless(json: String): FrictionlessGeneratorOptions =
-    model(json, FrictionlessGeneratorOptions())(using LinkmlYamlCodec.derived)
+    model(json, FrictionlessGeneratorOptions())
 
-  def graphQl(json: String): GraphQlGeneratorOptions =
-    model(json, GraphQlGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def graphQl(json: String): GraphQlGeneratorOptions = model(json, GraphQlGeneratorOptions())
 
   def typeScript(json: String): TypeScriptGeneratorOptions =
-    model(json, TypeScriptGeneratorOptions())(using LinkmlYamlCodec.derived)
+    model(json, TypeScriptGeneratorOptions())
 
-  def pydantic(json: String): PydanticGeneratorOptions =
-    model(json, PydanticGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def pydantic(json: String): PydanticGeneratorOptions = model(json, PydanticGeneratorOptions())
 
-  def erDiagram(json: String): ErDiagramGeneratorOptions =
-    model(json, ErDiagramGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def erDiagram(json: String): ErDiagramGeneratorOptions = model(json, ErDiagramGeneratorOptions())
 
-  def docs(json: String): DocsGeneratorOptions =
-    model(json, DocsGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def docs(json: String): DocsGeneratorOptions = model(json, DocsGeneratorOptions())
 
-  def ossie(json: String): OssieGeneratorOptions =
-    model(json, OssieGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def ossie(json: String): OssieGeneratorOptions = model(json, OssieGeneratorOptions())
 
-  def stats(json: String): StatsGeneratorOptions =
-    model(json, StatsGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def stats(json: String): StatsGeneratorOptions = model(json, StatsGeneratorOptions())
 
-  def owl(json: String): OwlGeneratorOptions =
-    model(json, OwlGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def owl(json: String): OwlGeneratorOptions = model(json, OwlGeneratorOptions())
 
-  def scala(json: String): ScalaGeneratorOptions =
-    model(json, ScalaGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def scala(json: String): ScalaGeneratorOptions = model(json, ScalaGeneratorOptions())
 
-  def java(json: String): JavaGeneratorOptions =
-    model(json, JavaGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def java(json: String): JavaGeneratorOptions = model(json, JavaGeneratorOptions())
 
-  def rust(json: String): RustGeneratorOptions =
-    model(json, RustGeneratorOptions())(using LinkmlYamlCodec.derived)
+  def rust(json: String): RustGeneratorOptions = model(json, RustGeneratorOptions())
 
   def translation(json: String): TranslationGeneratorOptions =
-    model(json, TranslationGeneratorOptions())(using LinkmlYamlCodec.derived)
+    model(json, TranslationGeneratorOptions())
 
-  def fromOssie(json: String): OssieImporterOptions =
-    model(json, OssieImporterOptions())(using LinkmlYamlCodec.derived)
+  def fromOssie(json: String): OssieImporterOptions = model(json, OssieImporterOptions())
 
-  def fromOwl(json: String): OwlImporterOptions =
-    model(json, OwlImporterOptions())(using LinkmlYamlCodec.derived)
+  def fromOwl(json: String): OwlImporterOptions = model(json, OwlImporterOptions())
 
   def loadOssie(json: String): OssieImporterOptions = withoutText(json, fromOssie)
 
   def loadOwl(json: String): OwlImporterOptions = withoutText(json, fromOwl)
 
-  def serialize(json: String): SerializeOptions =
-    model(json, SerializeOptions())(using LinkmlYamlCodec.derived)
+  def serialize(json: String): SerializeOptions = model(json, SerializeOptions())
 
   /** The options of an importer, for loading what it imports. Those that only shape the schema's
     * text are refused, since loading writes none.

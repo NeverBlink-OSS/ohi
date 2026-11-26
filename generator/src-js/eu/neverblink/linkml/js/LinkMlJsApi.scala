@@ -17,6 +17,7 @@ import eu.neverblink.linkml.generator.rdfs.RdfsGenerator
 import eu.neverblink.linkml.generator.translation.TranslationGenerator
 import eu.neverblink.linkml.generator.linkml.LinkMlGenerator
 import eu.neverblink.linkml.generator.options.*
+import eu.neverblink.linkml.generator.options.Codec.given
 import eu.neverblink.linkml.generator.util.JsonUtil
 import eu.neverblink.linkml.generator.frictionless.FrictionlessGenerator
 import eu.neverblink.linkml.generator.SchemaImporter
@@ -33,7 +34,7 @@ import eu.neverblink.linkml.schemaview.buildinfo.CurrentBuild
 import eu.neverblink.linkml.rdf.RdfParseException
 import eu.neverblink.linkml.runtime.SchemaConversionException
 import eu.neverblink.linkml.validation.{Codec, SchemaFatal, SchemaIssue, SchemaValidationReport}
-import eu.neverblink.linkml.yaml.LinkmlYamlCodec
+import eu.neverblink.linkml.yaml.{LinkmlYamlCodec, LinkmlYamlDecoder}
 import org.virtuslab.yaml.parseYaml
 
 import scala.scalajs.js
@@ -52,7 +53,7 @@ import scala.scalajs.js.annotation.{JSExportAll, JSExportTopLevel}
   */
 @JSExportAll
 final class SchemaViewJs private[js] (private[js] val underlying: SchemaView) {
-  import SchemaViewJs.{*, given}
+  import SchemaViewJs.*
   private given SchemaView = underlying
 
   def jsonSchema(params: Params = js.undefined): String =
@@ -128,34 +129,13 @@ private[js] object SchemaViewJs {
   type Params = js.UndefOr[js.Object]
 
   /** The options of a generator or importer, from the plain JS object the caller passed. */
-  def decode[T](params: Params)(using codec: LinkmlYamlCodec[T]): T =
+  def decode[T](params: Params)(using decoder: LinkmlYamlDecoder[T]): T =
     parseYaml(params.fold("{}")(js.JSON.stringify(_))) match {
       case Right(node) =>
-        try codec.decode(node)
+        try decoder.decode(node)
         catch { case e: Exception => throw RuntimeException(s"Invalid options: ${e.getMessage}") }
       case Left(error) => throw RuntimeException(s"Invalid options: ${error.msg}")
     }
-
-  given LinkmlYamlCodec[JsonSchemaGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[ShaclGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[ScalaGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[RdfsGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[OwlGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[LinkMlGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[FrictionlessGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[GraphQlGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[TypeScriptGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[PydanticGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[JavaGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[RustGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[ErDiagramGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[StatsGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[DocsGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[TranslationGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[OssieGeneratorOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[OssieImporterOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[OwlImporterOptions] = LinkmlYamlCodec.derived
-  given LinkmlYamlCodec[SerializeOptions] = LinkmlYamlCodec.derived
 }
 
 /** A `SchemaValidationReport` (model/validation-report.yaml) as a plain JS object. Only a name for
@@ -181,7 +161,7 @@ final class LoadResult private[js] (
 @JSExportTopLevel("LinkML")
 @JSExportAll
 object LinkMlJsApi {
-  import SchemaViewJs.{*, given}
+  import SchemaViewJs.*
 
   private case class JsImporter(map: js.Dictionary[String]) extends StringImporter {
     private val lookup = Importer.normalizedMap(map)
@@ -324,7 +304,7 @@ object LinkMlJsApi {
       issues = if inferMessages then issues.map(_.infer()) else issues,
       validationRunId = runId,
     )
-    js.JSON.parse(JsonUtil.yamlToJson(Codec.codec.encode(report)))
+    js.JSON.parse(JsonUtil.yamlToJson(Codec.encoder.encode(report)))
   }
 
   /** Run a generator or importer. A problem with the input that the user can fix, a
@@ -360,7 +340,7 @@ object LinkMlJsApi {
   def loadFromOssie(document: String, params: Params = js.undefined): LoadResult =
     loadImported(OssieImporter(), document, params)
 
-  private def loadImported[O <: SchemaOutputOptions: LinkmlYamlCodec](
+  private def loadImported[O <: SchemaOutputOptions: LinkmlYamlDecoder](
       importer: SchemaImporter[O],
       document: String,
       params: Params,
@@ -377,14 +357,14 @@ object LinkMlJsApi {
       java.io.ByteArrayInputStream(document.getBytes(java.nio.charset.StandardCharsets.UTF_8))
     val result = converting(importer.importWithWarnings(in, options))
     val notImported = js.JSON.parse(
-      JsonUtil.yamlToJson(LinkmlYamlCodec.derived[NotImported].encode(result.notImported)),
+      JsonUtil.yamlToJson(LinkmlYamlCodec.derivedEncoder[NotImported].encode(result.notImported)),
     )
     val loaded =
       loadResult(importer.load(result.schema, options), runId = None, inferMessages = true)
     new LoadResult(loaded.view, loaded.report, notImported)
   }
 
-  private def imported[O <: SchemaOutputOptions: LinkmlYamlCodec](
+  private def imported[O <: SchemaOutputOptions: LinkmlYamlDecoder](
       importer: SchemaImporter[O],
       document: String,
       params: Params,
@@ -392,7 +372,7 @@ object LinkMlJsApi {
     val in =
       java.io.ByteArrayInputStream(document.getBytes(java.nio.charset.StandardCharsets.UTF_8))
     val result = converting(importer.importResult(in, decode[O](params)))
-    js.JSON.parse(JsonUtil.yamlToJson(LinkmlYamlCodec.derived[ImportResult].encode(result)))
+    js.JSON.parse(JsonUtil.yamlToJson(LinkmlYamlCodec.derivedEncoder[ImportResult].encode(result)))
   }
 
   /** Lint a loaded LinkML schema, finding problems that may cause issues when using the model. This

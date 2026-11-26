@@ -73,4 +73,6 @@ final case class UnwritableUri(
         ) + "' is a declared prefix of the root schema",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

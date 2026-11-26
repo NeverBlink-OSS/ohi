@@ -293,4 +293,6 @@ final case class SchemaDefinition(
     */
   override def infer(): SchemaDefinition =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -61,4 +61,6 @@ final case class MissingRecommendedSlot(
         elementType + " '" + elementName + "' has no value for the recommended slot '" + slotName + "'",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

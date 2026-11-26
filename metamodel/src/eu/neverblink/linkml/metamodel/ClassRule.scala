@@ -180,4 +180,6 @@ final case class ClassRule(
     */
   override def infer(): ClassRule =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -1,6 +1,7 @@
 package eu.neverblink.linkml.generator.javagen
 
 import eu.neverblink.linkml.generator.jsonschema.JsonRenamer
+import eu.neverblink.linkml.generator.util.Renamer
 import eu.neverblink.linkml.schemaview.{
   Case,
   ClassView,
@@ -175,12 +176,8 @@ object JavaRenamer extends JavaRenamer {
   /** Turn a base name into a `PascalCase` Java identifier. A leading digit gets an underscore in
     * front, and a name that the generated files already use gets one at the end.
     */
-  def identifier(baseName: String): String = {
-    val name = Case.baseToPascal(baseName)
-    if name.isEmpty then "__"
-    else if Case.isNumeric(name.head) then "_".concat(name)
-    else unreserved(name)
-  }
+  def identifier(baseName: String): String =
+    unreserved(Renamer.validStart(Case.baseToPascal(baseName), "__"))
 
   private lazy val lowerTypeNames = typeNames.map(_.toLowerCase)
 
@@ -197,11 +194,10 @@ object JavaRenamer extends JavaRenamer {
   def field(key: String): String = member(Case.baseToCamel(Case.base(key)))
 
   /** A `camelCase` name, made usable as the name of a field, parameter or method. */
-  def member(name: String): String =
-    if name.isEmpty then "value"
-    else if Case.isNumeric(name.head) then "_".concat(name)
-    else if keywords(name) || memberNames(name) then name.concat("_")
-    else name
+  def member(name: String): String = {
+    val valid = Renamer.validStart(name, "value")
+    if keywords(valid) || memberNames(valid) then valid.concat("_") else valid
+  }
 
   def accessor(prefix: String, field: String): String =
     prefix.concat(field.head.toUpper.toString).concat(field.tail)
@@ -209,10 +205,6 @@ object JavaRenamer extends JavaRenamer {
   /** The Java name of an enum constant with the given value: the value in `SCREAMING_SNAKE_CASE`,
     * with an underscore in front of a leading digit.
     */
-  def constant(value: String): String = {
-    val name = Case.baseToScreamingSnake(Case.base(value))
-    if name.isEmpty then "EMPTY"
-    else if Case.isNumeric(name.head) then "_".concat(name)
-    else name
-  }
+  def constant(value: String): String =
+    Renamer.validStart(Case.baseToScreamingSnake(Case.base(value)), "EMPTY")
 }

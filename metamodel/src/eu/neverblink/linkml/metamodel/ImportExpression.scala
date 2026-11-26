@@ -169,4 +169,6 @@ final case class ImportExpression(
     */
   override def infer(): ImportExpression =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

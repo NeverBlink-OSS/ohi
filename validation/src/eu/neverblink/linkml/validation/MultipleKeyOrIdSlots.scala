@@ -56,4 +56,6 @@ final case class MultipleKeyOrIdSlots(
         "Multiple key / identifier slots in class '" + className + "': " + stringify(slotNames),
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

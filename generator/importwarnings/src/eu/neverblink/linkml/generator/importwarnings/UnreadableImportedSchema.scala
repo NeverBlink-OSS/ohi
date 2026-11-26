@@ -47,4 +47,6 @@ final case class UnreadableImportedSchema(
         "Imported LinkML schema that could not be read, so its terms are copied in",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

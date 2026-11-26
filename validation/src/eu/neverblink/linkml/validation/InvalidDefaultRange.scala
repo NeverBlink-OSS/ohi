@@ -58,4 +58,6 @@ final case class InvalidDefaultRange(
         "Undefined range at " + inferenceInput("location.json_pointer", location.jsonPointer),
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

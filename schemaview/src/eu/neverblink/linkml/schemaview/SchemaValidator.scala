@@ -8,6 +8,8 @@ import eu.neverblink.linkml.validation.*
 
 import java.{lang, util}
 import scala.collection.mutable
+import scala.compiletime.constValueTuple
+import scala.deriving.Mirror
 
 /** Performs validation for a [[SchemaView]], most importantly checking whether all references are
   * correct.
@@ -196,17 +198,14 @@ final class SchemaValidator(using sv: SchemaView) {
     // class, found from the first element of the class
     val fieldsOfType = new util.HashMap[String, Array[(slotName: String, index: Int)]]
 
-    def recommendedFields(
-        element: Product,
-        elementType: String,
-    ): Array[(slotName: String, index: Int)] = {
+    def recommendedFields(elementType: String): Array[(slotName: String, index: Int)] = {
       var fields = fieldsOfType.get(elementType)
       if (fields eq null) {
         val found = Array.newBuilder[(slotName: String, index: Int)]
         val slotNames = SchemaValidator.recommendedSlots.get(elementType)
         if (slotNames ne null) {
           slotNames.foreach { slotName =>
-            val index = SchemaValidator.fieldIndex(element, slotName)
+            val index = SchemaValidator.fieldIndex(elementType, slotName)
             if (index >= 0) found.addOne((slotName = slotName, index = index))
           }
         }
@@ -222,7 +221,7 @@ final class SchemaValidator(using sv: SchemaView) {
         elementName: String,
         location: => IssueLocation,
     ): Unit = {
-      val fields = recommendedFields(element, elementType)
+      val fields = recommendedFields(elementType)
       var i = 0
       while (i < fields.length) {
         val field = fields(i)
@@ -1041,19 +1040,30 @@ object SchemaValidator {
     slots
   }
 
-  /** The index of the field of [[element]] for the slot [[slotName]], such as `description` or
-    * `alias_predicate`, or -1 if it has none. Field names are the slot names in camel case, so the
-    * names are compared without case and without `_`.
+  /** The field names of the metamodel classes that can have recommended slots. They come from the
+    * `Mirror`, as calling `productElementName` on a `Product` needs that method in every case
+    * class, which adds to the code size.
     */
-  private def fieldIndex(element: Product, slotName: String): Int = {
-    var i = 0
-    var found = -1
-    while (found < 0 && i < element.productArity) {
-      if (isFieldOf(element.productElementName(i), slotName)) found = i
-      i += 1
-    }
-    found
-  }
+  private val fieldNames: Map[String, Array[String]] = Map(
+    "schema_definition" -> names[SchemaDefinition],
+    "class_definition" -> names[ClassDefinition],
+    "slot_definition" -> names[SlotDefinition],
+    "enum_definition" -> names[EnumDefinition],
+    "permissible_value" -> names[PermissibleValue],
+    "type_definition" -> names[TypeDefinition],
+    "subset_definition" -> names[SubsetDefinition],
+    "function_definition" -> names[FunctionDefinition],
+  )
+
+  private inline def names[T](using mirror: Mirror.ProductOf[T]): Array[String] =
+    constValueTuple[mirror.MirroredElemLabels].toArray.map(_.toString)
+
+  /** The index of the field of an element of [[elementType]] for the slot [[slotName]], such as
+    * `description` or `alias_predicate`, or -1 if it has none. Field names are the slot names in
+    * camel case, so the names are compared without case and without `_`.
+    */
+  private def fieldIndex(elementType: String, slotName: String): Int =
+    fieldNames.get(elementType).fold(-1)(_.indexWhere(isFieldOf(_, slotName)))
 
   /** Whether [[fieldName]] is the name of the field for the slot [[slotName]], as `aliasPredicate`
     * is for `alias_predicate`: the same letters and digits, in any case, without the `_`.

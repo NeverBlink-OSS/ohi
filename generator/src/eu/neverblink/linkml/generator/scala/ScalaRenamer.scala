@@ -18,24 +18,17 @@ trait ScalaRenamer extends Renamer {
     * need to check for keywords - all start with lowercase.
     */
   private def scalaPascal(baseName: String): String = {
-    val name = Case.baseToPascal(baseName)
-    if name.isEmpty then "__"
-    else if Case.isNumeric(name.head) then "_" + name
-    else if ScalaWords.reserved.contains(name) then "_" + name
-    else name
+    val name = Renamer.validStart(Case.baseToPascal(baseName), "__")
+    if ScalaWords.reserved.contains(name) then "_" + name else name
   }
 
   /** Get the scala `camelCase` name, dodge leading digits/reserved words with an underscore, and
     * quote Scala keywords in backticks.
     */
   private def scalaCamel(baseName: String): String = {
-    val name = Case.baseToCamel(baseName)
+    val name = Renamer.validStart(Case.baseToCamel(baseName), "__")
     val len = name.length
-    if (len == 0) "__"
-    else if (
-      Case.isNumeric(name.charAt(0)) ||
-      len <= ScalaWords.maxReservedLength && ScalaWords.reserved.contains(name)
-    ) "_".concat(name)
+    if (len <= ScalaWords.maxReservedLength && ScalaWords.reserved.contains(name)) "_".concat(name)
     else if (len <= ScalaWords.maxKeywordLength && ScalaWords.keywords.contains(name)) s"`$name`"
     else name
   }

@@ -42,4 +42,6 @@ final case class UnimplementedPropertyChain(
       detail = inferOptional("detail", detail, property + ": " + chain + " (LinkML: `path_rule`)"),
       kind = inferOptional("kind", kind, "Property chain that is not supported by the importer yet"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

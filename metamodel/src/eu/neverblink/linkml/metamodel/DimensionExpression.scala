@@ -172,4 +172,6 @@ final case class DimensionExpression(
     */
   override def infer(): DimensionExpression =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

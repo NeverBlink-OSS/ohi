@@ -33,4 +33,6 @@ final case class MatchQuery(
     */
   def infer(): MatchQuery =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

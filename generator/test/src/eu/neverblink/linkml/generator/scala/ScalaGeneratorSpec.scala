@@ -318,7 +318,7 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
 
       Seq(
         "Option[Int]",
-        "Int =",
+        "someOtherSlot: Int =",
         "trait",
       ).foreach { snippet =>
         code should not include snippet
@@ -337,6 +337,7 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
         "someSlot: Option[String] = None",
         // Nothing to override, as the class has no parents.
         "  def infer(): SomeClass =",
+        "  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)",
       ).foreach { snippet =>
         code should include(snippet)
       }
@@ -345,7 +346,7 @@ class ScalaGeneratorSpec extends AnyWordSpec, Matchers {
         "abstract class",
         "trait",
         "extends",
-        "override",
+        "override def infer",
       ).foreach { snippet =>
         code should not include snippet
       }

@@ -44,4 +44,6 @@ final case class UnknownIdentifierRelationships(
       kind =
         inferOptional("kind", kind, "Identifier made of relationships the concept does not have"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -44,4 +44,6 @@ final case class FunctionalSubproperty(
         "Functional subproperty of a property that is not functional, inexpressible in LinkML as slots inherit `multivalued`, so left multivalued",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

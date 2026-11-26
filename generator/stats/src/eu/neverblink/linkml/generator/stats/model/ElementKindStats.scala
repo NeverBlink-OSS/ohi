@@ -48,4 +48,6 @@ final case class ElementKindStats(
     */
   def infer(): ElementKindStats =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

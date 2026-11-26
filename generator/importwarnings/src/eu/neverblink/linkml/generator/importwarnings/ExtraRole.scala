@@ -48,4 +48,6 @@ final case class ExtraRole(
         "Role after the first, as relationships with several roles are not supported by the importer yet",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

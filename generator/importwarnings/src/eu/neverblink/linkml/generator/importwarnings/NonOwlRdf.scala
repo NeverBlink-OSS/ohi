@@ -44,4 +44,6 @@ final case class NonOwlRdf(
         inferOptional("detail", detail, stringify(tripleCount) + " triples with " + predicate),
       kind = inferOptional("kind", kind, "RDF that is not OWL"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

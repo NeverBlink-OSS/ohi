@@ -53,4 +53,6 @@ final case class SchemaImportError(
         inferOptional("details", details, "Cannot import schema '" + importUri + "': " + reason),
       message = inferOptional("message", message, "Cannot import schema '" + importUri + "'"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

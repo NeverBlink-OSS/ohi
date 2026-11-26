@@ -56,4 +56,6 @@ final case class UnitOfMeasure(
     */
   def infer(): UnitOfMeasure =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }
