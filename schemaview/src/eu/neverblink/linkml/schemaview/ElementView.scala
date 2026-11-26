@@ -701,7 +701,7 @@ final case class SlotView(slot: SlotDefinition, definingSchema: SchemaDefinition
   /** This slot as a class has it when the class and its ancestors have no `slot_usage` or
     * `attributes` for it. It is the same in all such classes, so it is built once.
     */
-  private[schemaview] lazy val unchangedDerived: SlotView =
+  lazy val unchangedDerived: SlotView =
     ClassView.derived(ClassView.emptySlotDef, name, Some(this), this)
 
   /** Test whether this slot is declared as inlined, or is implicitly inlined as its range is a

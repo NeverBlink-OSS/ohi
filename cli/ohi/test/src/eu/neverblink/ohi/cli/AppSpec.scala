@@ -26,6 +26,7 @@ class AppSpec extends AnyWordSpec, Matchers {
     ("linkml to typescript", TypeScript, "Generate TypeScript types"),
     ("linkml to pydantic", Pydantic, "Generate Python classes based on pydantic"),
     ("linkml to java", Java, "Generate Java classes"),
+    ("linkml to rust", Rust, "Generate a Rust crate"),
     ("linkml to ossie", Ossie, "Generate an Apache Ossie ontology"),
     ("linkml to er-diagram", ErDiagram, "Generate a Mermaid entity relationship diagram"),
     ("linkml to docs", Docs, "Generate Markdown documentation"),

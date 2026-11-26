@@ -623,7 +623,7 @@ class DocsGeneratorSpec extends AnyWordSpec, Matchers {
           |- **Title:** Natural person
           |- **Canonical name:** `NaturalPerson`
           |- **Other names:** human, individual
-          |- **Names in code:** `NaturalPerson` (Scala, TypeScript, Python, Java, GraphQL)
+          |- **Names in code:** `NaturalPerson` (Scala, TypeScript, Python, Java, Rust, GraphQL)
           |- **URI:**""".stripMargin,
       )
       pages("classes/natural_person.md") should include(
@@ -635,7 +635,7 @@ class DocsGeneratorSpec extends AnyWordSpec, Matchers {
           |
           |- **Canonical name:** `birth_date`
           |- **Name in data:** `birthDate`
-          |- **Names in code:** `birthDate` (Scala, TypeScript, Python, Java), `birth_date` (GraphQL)
+          |- **Names in code:** `birthDate` (Scala, TypeScript, Python, Java), `birth_date` (Rust, GraphQL)
           |""".stripMargin,
       )
       pages("enums/gender.md") should include(
@@ -698,10 +698,10 @@ class DocsGeneratorSpec extends AnyWordSpec, Matchers {
       // the field
       pages("slots/test_document.md") should include(
         "- **Names in code:** `testDocument` (Scala, Java), `TestDocument` " +
-          "(TypeScript), `TestDocument_` (Python), `test_document` (GraphQL)\n",
+          "(TypeScript, Rust), `TestDocument_` (Python), `test_document` (GraphQL)\n",
       )
       PydanticGenerator(using sv).serialize() should include("    TestDocument_: ")
-      // An enum without values is a string in Scala, Python and Java, so only TypeScript and
+      // An enum without values is a string in Scala, Python, Java and Rust, so only TypeScript and
       // GraphQL have a type with its name
       pages("enums/status_kind.md") should include(
         "- **Names in code:** `StatusKind` (TypeScript, GraphQL)\n",

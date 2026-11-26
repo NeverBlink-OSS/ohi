@@ -127,6 +127,13 @@ class DocSnippetsTest(unittest.TestCase):
             output = schema.rdfs(only_classes_from_root_schema=True)
         self.assertTrue(output)
 
+    def test_rust(self) -> None:
+        import ohi_linkml
+
+        with ohi_linkml.load_file("prov-o.linkml.yaml") as schema:
+            files = schema.rust(crate_name="prov")
+        self.assertTrue(files)
+
     def test_scala(self) -> None:
         import ohi_linkml
 

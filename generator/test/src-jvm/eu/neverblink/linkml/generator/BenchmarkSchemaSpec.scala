@@ -15,6 +15,7 @@ import eu.neverblink.linkml.generator.jsonschema.JsonSchemaGenerator
 import eu.neverblink.linkml.generator.linkml.LinkMlGenerator
 import eu.neverblink.linkml.generator.ossie.{OssieGenerator, OssieSchema}
 import eu.neverblink.linkml.generator.rdfs.RdfsGenerator
+import eu.neverblink.linkml.generator.rust.{RustGenerator, RustRenamer}
 import eu.neverblink.linkml.generator.scala.ScalaGenerator
 import eu.neverblink.linkml.generator.shacl.ShaclGenerator
 import eu.neverblink.linkml.generator.frictionless.FrictionlessGenerator
@@ -211,6 +212,14 @@ class BenchmarkSchemaSpec extends AnyWordSpec, Matchers {
             }
           }
 
+          "Rust output has the struct of each class" in {
+            assume(!skip.contains((name, "rust")), skip.getOrElse((name, "rust"), ""))
+            val lib = RustGenerator(using sv).generateFiles().toMap.apply("src/lib.rs")
+            sv.classes.values.filterNot(_.isAny).foreach { cls =>
+              lib should include(s"pub struct ${RustRenamer.className(cls)} {")
+            }
+          }
+
           "validate" in {
             assume(!skip.contains((name, "validation")), skip.getOrElse((name, "validation"), ""))
             sv.validationProblems.map(_.infer().message) shouldBe empty
@@ -287,6 +296,9 @@ object BenchmarkSchemaSpec {
       ("Bug: a subclass narrowing a slot's range to an enum breaks GraphQL " +
         "field covariance - NucleotideSequencing.analyte_category is an enum where the " +
         "DataGeneration interface declares String"),
+    "crdch" -> "rust" ->
+      ("Not valid, see the validation skip: `enum_CRDCH_Substance_role` and " +
+        "`enum_CRDCH_Substance__role` have one Rust name"),
     "sssom" -> "graphql" ->
       ("A permissible value of \"1.0\" becomes the enum " +
         "value `1_0`, and a GraphQL name may not start with a digit."),

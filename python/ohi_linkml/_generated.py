@@ -30,6 +30,7 @@ DOCUMENT_FUNCTIONS = (
     "linkml_owl",
     "linkml_pydantic",
     "linkml_rdfs",
+    "linkml_rust",
     "linkml_scala",
     "linkml_shacl",
     "linkml_stats",
@@ -375,6 +376,47 @@ class Generators:
             only_classes_from_root_schema=only_classes_from_root_schema,
         )
 
+    def rust(
+        self,
+        *,
+        crate_name: str | None = None,
+        expand_subproperty_of: bool = True,
+        handwritten_lib: bool = False,
+        pyo3: bool = False,
+        serde: bool = False,
+        stubgen: bool = True,
+    ) -> dict[str, str]:
+        """Generate a Rust crate with a struct for each class and an enum for each enum, with
+        serde and PyO3 support behind Cargo features. The files are `Cargo.toml`,
+        `pyproject.toml` and the sources in `src/`.
+
+        :param crate_name: The name of the crate and of its Python module. It must be a Rust
+            identifier. If unset, the schema's name is used, with every character that can't be
+            in an identifier replaced by `_`.
+        :param expand_subproperty_of: Whether the type of a slot with `subproperty_of: X` is an
+            enum with a variant for `X` and for each descendant of `X`. Otherwise, its type is
+            the Rust type of its range.
+        :param handwritten_lib: Whether to put the generated code in `src/generated/`, and leave
+            `src/lib.rs` for code of your own. `src/lib.rs` is only written when it doesn't
+            exist yet.
+        :param pyo3: Whether the `pyo3` feature of the crate is on by default, and the crate is
+            a Python extension module with a `#[pymodule]` function. The PyO3 code of the
+            classes is always generated.
+        :param serde: Whether the `serde` feature of the crate is on by default. The code for it
+            is always generated.
+        :param stubgen: Whether to generate the code for Python type stubs, behind the `stubgen`
+            feature, and the `stub_gen` program that writes them.
+        """
+        return self._json(
+            "linkml_rust",
+            crate_name=crate_name,
+            expand_subproperty_of=expand_subproperty_of,
+            handwritten_lib=handwritten_lib,
+            pyo3=pyo3,
+            serde=serde,
+            stubgen=stubgen,
+        )
+
     def scala(
         self,
         *,
@@ -471,7 +513,7 @@ class Generators:
             output.
         :param target: The framework of the names in the dictionaries. One of `base`, `uri`,
             `scala`, `graphql`, `frictionless`, `ossie`, `erdiagram`, `json`, `typescript`,
-            `pydantic`, `java` or `docs`.
+            `pydantic`, `java`, `rust` or `docs`.
         """
         return self._document(
             "linkml_translation",

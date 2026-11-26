@@ -10,6 +10,7 @@ import eu.neverblink.linkml.generator.ossie.{OssieGenerator, OssieImporter}
 import eu.neverblink.linkml.generator.owl.{OwlGenerator, OwlImporter}
 import eu.neverblink.linkml.generator.scala.ScalaGenerator
 import eu.neverblink.linkml.generator.javagen.JavaGenerator
+import eu.neverblink.linkml.generator.rust.RustGenerator
 import eu.neverblink.linkml.generator.shacl.ShaclGenerator
 import eu.neverblink.linkml.generator.stats.StatsGenerator
 import eu.neverblink.linkml.generator.rdfs.RdfsGenerator
@@ -101,6 +102,9 @@ final class SchemaViewJs private[js] (private[js] val underlying: SchemaView) {
   def java(params: Params = js.undefined): js.Dictionary[String] =
     JavaGenerator().generate(decode[JavaGeneratorOptions](params)).toMap.toJSDictionary
 
+  def rust(params: Params = js.undefined): js.Dictionary[String] =
+    RustGenerator().generateFiles(decode[RustGeneratorOptions](params)).toMap.toJSDictionary
+
   def stats(params: Params = js.undefined): js.Any = {
     val stats = StatsGenerator().generate(decode[StatsGeneratorOptions](params))
     js.JSON.parse(JsonUtil.yamlToJson(StatsGenerator.codec.encode(stats)))
@@ -143,6 +147,7 @@ private[js] object SchemaViewJs {
   given LinkmlYamlCodec[TypeScriptGeneratorOptions] = LinkmlYamlCodec.derived
   given LinkmlYamlCodec[PydanticGeneratorOptions] = LinkmlYamlCodec.derived
   given LinkmlYamlCodec[JavaGeneratorOptions] = LinkmlYamlCodec.derived
+  given LinkmlYamlCodec[RustGeneratorOptions] = LinkmlYamlCodec.derived
   given LinkmlYamlCodec[ErDiagramGeneratorOptions] = LinkmlYamlCodec.derived
   given LinkmlYamlCodec[StatsGeneratorOptions] = LinkmlYamlCodec.derived
   given LinkmlYamlCodec[DocsGeneratorOptions] = LinkmlYamlCodec.derived

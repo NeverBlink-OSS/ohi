@@ -21,6 +21,7 @@ Generators accept both forms:
 - TypeScript: `string | Record<string, string>`.
 - Pydantic: `str | Annotated[dict[str, str], Field(min_length=1)]`.
 - Java: `Object`, which holds a `String` or a `Map<String, String>`.
+- Rust: `LocalizedText`, an enum of a `String` and a `BTreeMap<String, String>`.
 - RDFS: `rdfs:range rdf:PlainLiteral`, as for OWL.
 - GraphQL: a custom scalar, `Langstring`, as GraphQL has no unions of scalars.
 - Frictionless: an `any` field, as a CSV cell holds a plain string or a JSON object from language tag to text. An `any` field can't have lengths or a pattern, so they are not checked.

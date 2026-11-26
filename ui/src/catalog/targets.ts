@@ -126,7 +126,7 @@ export const TARGETS: Target[] = [
     docs: "generators/translation/",
     lang: "json",
     options: [
-      { key: "target", "type": "select", label: "Target name form", choices: ["base", "uri", "scala", "graphql", "frictionless", "ossie", "erdiagram", "json", "typescript", "pydantic", "java", "docs"], default: "base" },
+      { key: "target", "type": "select", label: "Target name form", choices: ["base", "uri", "scala", "graphql", "frictionless", "ossie", "erdiagram", "json", "typescript", "pydantic", "java", "rust", "docs"], default: "base" },
       {
         key: "derived_attributes",
         type: "checkbox",
@@ -197,6 +197,19 @@ export const TARGETS: Target[] = [
       { key: "strict", type: "checkbox", label: "Strict", title: "Check the JSON types and the constraints of the schema while loading" },
     ],
     call: (_, v, o) => v.java(converterOptions(o)),
+  },
+  {
+    id: "rust",
+    label: "Rust",
+    docs: "generators/rust/",
+    lang: "rust",
+    options: [
+      { key: "crate_name", type: "text", label: "Crate name", title: "Without it, the schema's name" },
+      { key: "serde", type: "checkbox", label: "serde", title: "Turn the serde feature on by default" },
+      { key: "pyo3", type: "checkbox", label: "PyO3", title: "Turn the pyo3 feature on by default, and make a Python module" },
+      { key: "stubgen", type: "checkbox", label: "Stubs", title: "Generate the program that writes Python type stubs", default: true },
+    ],
+    call: (_, v, o) => v.rust(converterOptions(o)),
   },
   {
     id: "rdfs",

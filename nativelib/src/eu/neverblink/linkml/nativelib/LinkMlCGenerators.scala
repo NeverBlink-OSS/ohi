@@ -121,6 +121,15 @@ object LinkMlCGenerators {
   def rdfs(handle: CLongLong, options: CString, error: Ptr[CString]): CString =
     LinkMlCApi.document(handle, options, error, LinkMlNativeApi.rdfs)
 
+  /** Generate a Rust crate with a struct for each class and an enum for each enum, with serde and
+    * PyO3 support behind Cargo features. The files are `Cargo.toml`, `pyproject.toml` and the
+    * sources in `src/`. Returns JSON. Options: `crate_name`, `expand_subproperty_of`,
+    * `handwritten_lib`, `pyo3`, `serde`, `stubgen`.
+    */
+  @exported("linkml_rust")
+  def rust(handle: CLongLong, options: CString, error: Ptr[CString]): CString =
+    LinkMlCApi.document(handle, options, error, LinkMlNativeApi.rust)
+
   /** Generate Scala classes, one file per class, enum and type, and one for the type of a whole
     * document when the tree root has a `tree_root_as` other than `plain`. Returns JSON. Options:
     * `error_handling`, `generate_emit_prefixes`, `metadata_language`, `package`,

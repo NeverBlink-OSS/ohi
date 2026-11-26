@@ -35,6 +35,7 @@ class GenerateSpec extends AnyWordSpec, Matchers {
     (TypeScript, "typescript", Seq("export interface Root {", "name?: string;")),
     (Pydantic, "pydantic", Seq("class Root(LinkMLModel):", "name: str | None = None")),
     (Java, "java", Seq("public class Root {", "private String name;")),
+    (Rust, "rust", Seq("pub struct Root {", "pub name: Option<String>")),
     (ErDiagram, "er-diagram", Seq("erDiagram", "Root {", "string? name")),
     (Docs, "docs", Seq("Class: Root", "| name | [string](")),
     (Translation, "translation", Seq("\"Root\": \"root\"")),
@@ -528,6 +529,44 @@ class GenerateSpec extends AnyWordSpec, Matchers {
         val (_, err, code) = scala("--clean")
         err should include("--clean needs a --to directory")
         code shouldBe 1
+      }
+    }
+
+    "generating Rust" should {
+      def rust(args: String*): (String, String, Int) =
+        withSchemas(1) { paths =>
+          Rust.runTestCommandWithExitCode(List("generate", "rust") ++ args ++ paths)
+        }
+
+      "keep a lib.rs of your own with --handwritten-lib" in {
+        val dir = os.temp.dir(prefix = "linkml-generate-rust")
+        try {
+          os.write(dir / "src" / "lib.rs", "pub mod generated;\n", createFolders = true)
+          os.write(dir / "src" / "generated" / "mod.rs", "old\n", createFolders = true)
+          val (_, err, code) = rust("--handwritten-lib", "--to", dir.toString)
+          withClue(s"stderr was: $err\n")(code shouldBe 0)
+          os.read(dir / "src" / "lib.rs") shouldBe "pub mod generated;\n"
+          os.read(dir / "src" / "generated" / "mod.rs") should include("pub struct Root {")
+        } finally os.remove.all(dir)
+      }
+
+      "write lib.rs with --handwritten-lib if there is none" in {
+        val dir = os.temp.dir(prefix = "linkml-generate-rust")
+        try {
+          val (_, err, code) = rust("--handwritten-lib", "--to", dir.toString)
+          withClue(s"stderr was: $err\n")(code shouldBe 0)
+          os.read(dir / "src" / "lib.rs") should include("pub mod generated;")
+        } finally os.remove.all(dir)
+      }
+
+      "write one file for a .rs destination" in {
+        val dir = os.temp.dir(prefix = "linkml-generate-rust")
+        try {
+          val (_, err, code) = rust("--to", (dir / "model.rs").toString)
+          withClue(s"stderr was: $err\n")(code shouldBe 0)
+          os.list(dir).map(_.last) shouldBe Seq("model.rs")
+          os.read(dir / "model.rs") should include("pub struct Root {")
+        } finally os.remove.all(dir)
       }
     }
 

@@ -1297,6 +1297,126 @@
       "classes": []
     },
     {
+      "name": "rust",
+      "kind": "generator",
+      "page": "generators/rust",
+      "playground": "https://linkml.ohi.dev/playground/?ohi=w3c/prov-o@2013&target=rust",
+      "description": "Generate a Rust crate with a struct for each class and an enum for each enum, with serde and PyO3 support behind Cargo features. The files are `Cargo.toml`, `pyproject.toml` and the sources in `src/`.",
+      "snippets": [
+        {
+          "sdk": "Cli",
+          "label": "CLI",
+          "lang": "shell",
+          "code": "ohi get w3c/prov-o\nohi linkml to rust --crate-name prov prov-o.linkml.yaml"
+        },
+        {
+          "sdk": "Python",
+          "label": "Python",
+          "lang": "python",
+          "code": "import ohi_linkml\n\nwith ohi_linkml.load_file(\"prov-o.linkml.yaml\") as schema:\n    files = schema.rust(crate_name=\"prov\")"
+        },
+        {
+          "sdk": "JavaScript",
+          "label": "JavaScript",
+          "lang": "js",
+          "code": "import { readFileSync } from \"node:fs\";\nimport { LinkML } from \"@neverblink/linkml\";\n\nconst yaml = readFileSync(\"prov-o.linkml.yaml\", \"utf8\");\nconst { view, report } = LinkML.loadFromString(yaml, {});\nif (!view) throw new Error(JSON.stringify(report));\nconst files = view.rust({ crate_name: \"prov\" });"
+        },
+        {
+          "sdk": "Scala",
+          "label": "Scala",
+          "lang": "scala",
+          "code": "import eu.neverblink.linkml.generator.options.RustGeneratorOptions\nimport eu.neverblink.linkml.generator.rust.RustGenerator\nimport eu.neverblink.linkml.schemaview.{SchemaIssues, SchemaView}\n\nval loaded = SchemaView.loadSchemaViewFromUri(\"prov-o.linkml.yaml\")\ngiven SchemaView = SchemaIssues.orThrow(loaded)\nval files = RustGenerator().generateFiles(\n  RustGeneratorOptions(crateName = Some(\"prov\")),\n)"
+        },
+        {
+          "sdk": "C",
+          "label": "C",
+          "lang": "c",
+          "code": "#include <stddef.h>\n#include \"ohi_linkml.h\"\n\nlinkml_init_threads();\nchar *report = NULL, *error = NULL;\nlong long schema =\n    linkml_load_file(\"prov-o.linkml.yaml\", NULL, &report, &error);\nchar *files = linkml_rust(schema, \"{\\\"crate_name\\\": \\\"prov\\\"}\", &error);\nlinkml_free(files);\nlinkml_free(report);\nlinkml_free(error);\nlinkml_close(schema);"
+        }
+      ],
+      "options": [
+        {
+          "name": "crate_name",
+          "type": {
+            "kind": "type",
+            "name": "string",
+            "collection": null
+          },
+          "required": false,
+          "default": null,
+          "description": "The name of the crate and of its Python module. It must be a Rust identifier. If unset, the schema's name is used, with every character that can't be in an identifier replaced by `_`.",
+          "cli": "--crate-name",
+          "scala": "crateName"
+        },
+        {
+          "name": "expand_subproperty_of",
+          "type": {
+            "kind": "type",
+            "name": "boolean",
+            "collection": null
+          },
+          "required": false,
+          "default": "true",
+          "description": "Whether the type of a slot with `subproperty_of: X` is an enum with a variant for `X` and for each descendant of `X`. Otherwise, its type is the Rust type of its range.",
+          "cli": "--expand-subproperty-of",
+          "scala": "expandSubpropertyOf"
+        },
+        {
+          "name": "handwritten_lib",
+          "type": {
+            "kind": "type",
+            "name": "boolean",
+            "collection": null
+          },
+          "required": false,
+          "default": "false",
+          "description": "Whether to put the generated code in `src/generated/`, and leave `src/lib.rs` for code of your own. `src/lib.rs` is only written when it doesn't exist yet.",
+          "cli": "--handwritten-lib",
+          "scala": "handwrittenLib"
+        },
+        {
+          "name": "pyo3",
+          "type": {
+            "kind": "type",
+            "name": "boolean",
+            "collection": null
+          },
+          "required": false,
+          "default": "false",
+          "description": "Whether the `pyo3` feature of the crate is on by default, and the crate is a Python extension module with a `#[pymodule]` function. The PyO3 code of the classes is always generated.",
+          "cli": "--pyo3",
+          "scala": "pyo3"
+        },
+        {
+          "name": "serde",
+          "type": {
+            "kind": "type",
+            "name": "boolean",
+            "collection": null
+          },
+          "required": false,
+          "default": "false",
+          "description": "Whether the `serde` feature of the crate is on by default. The code for it is always generated.",
+          "cli": "--serde",
+          "scala": "serde"
+        },
+        {
+          "name": "stubgen",
+          "type": {
+            "kind": "type",
+            "name": "boolean",
+            "collection": null
+          },
+          "required": false,
+          "default": "true",
+          "description": "Whether to generate the code for Python type stubs, behind the `stubgen` feature, and the `stub_gen` program that writes them.",
+          "cli": "--stubgen",
+          "scala": "stubgen"
+        }
+      ],
+      "classes": []
+    },
+    {
       "name": "scala",
       "kind": "generator",
       "page": "generators/scala",
@@ -1639,7 +1759,7 @@
           },
           "required": false,
           "default": "base",
-          "description": "The framework of the names in the dictionaries. One of `base`, `uri`, `scala`, `graphql`, `frictionless`, `ossie`, `erdiagram`, `json`, `typescript`, `pydantic`, `java` or `docs`.",
+          "description": "The framework of the names in the dictionaries. One of `base`, `uri`, `scala`, `graphql`, `frictionless`, `ossie`, `erdiagram`, `json`, `typescript`, `pydantic`, `java`, `rust` or `docs`.",
           "cli": "--target",
           "scala": "target"
         }

@@ -306,6 +306,37 @@ export interface RdfsGeneratorOptions {
   only_classes_from_root_schema?: boolean;
 }
 
+/** Options of the Rust generator. */
+export interface RustGeneratorOptions {
+  /** The name of the crate and of its Python module. It must be a Rust identifier. If unset, the schema's name is used, with every character that can't be in an identifier replaced by `_`. */
+  crate_name?: string;
+  /**
+   * Whether the type of a slot with `subproperty_of: X` is an enum with a variant for `X` and for each descendant of `X`. Otherwise, its type is the Rust type of its range.
+   * @defaultValue true
+   */
+  expand_subproperty_of?: boolean;
+  /**
+   * Whether to put the generated code in `src/generated/`, and leave `src/lib.rs` for code of your own. `src/lib.rs` is only written when it doesn't exist yet.
+   * @defaultValue false
+   */
+  handwritten_lib?: boolean;
+  /**
+   * Whether the `pyo3` feature of the crate is on by default, and the crate is a Python extension module with a `#[pymodule]` function. The PyO3 code of the classes is always generated.
+   * @defaultValue false
+   */
+  pyo3?: boolean;
+  /**
+   * Whether the `serde` feature of the crate is on by default. The code for it is always generated.
+   * @defaultValue false
+   */
+  serde?: boolean;
+  /**
+   * Whether to generate the code for Python type stubs, behind the `stubgen` feature, and the `stub_gen` program that writes them.
+   * @defaultValue true
+   */
+  stubgen?: boolean;
+}
+
 /** Options of the Scala generator. */
 export interface ScalaGeneratorOptions {
   /**
@@ -411,7 +442,7 @@ export interface TranslationGeneratorOptions {
    */
   indentation_step?: number;
   /**
-   * The framework of the names in the dictionaries. One of `base`, `uri`, `scala`, `graphql`, `frictionless`, `ossie`, `erdiagram`, `json`, `typescript`, `pydantic`, `java` or `docs`.
+   * The framework of the names in the dictionaries. One of `base`, `uri`, `scala`, `graphql`, `frictionless`, `ossie`, `erdiagram`, `json`, `typescript`, `pydantic`, `java`, `rust` or `docs`.
    * @defaultValue "base"
    */
   target?: string;
@@ -527,6 +558,9 @@ export interface GeneratorFunctions {
 
   /** Generate RDFS, serialized as N-Triples or Turtle. */
   rdfs(params?: RdfsGeneratorOptions): string;
+
+  /** Generate a Rust crate with a struct for each class and an enum for each enum, with serde and PyO3 support behind Cargo features. The files are `Cargo.toml`, `pyproject.toml` and the sources in `src/`. */
+  rust(params?: RustGeneratorOptions): Files;
 
   /** Generate Scala classes, one file per class, enum and type, and one for the type of a whole document when the tree root has a `tree_root_as` other than `plain`. */
   scala(params?: ScalaGeneratorOptions): Files;

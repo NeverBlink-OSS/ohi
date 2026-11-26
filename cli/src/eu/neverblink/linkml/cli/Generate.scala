@@ -5,6 +5,7 @@ import eu.neverblink.linkml.schemaview.SchemaView
 import eu.neverblink.linkml.runtime.FastUtils.*
 
 import java.io.OutputStream
+import scala.annotation.unused
 import scala.util.control.NonFatal
 
 final case class GenerateOptions(
@@ -52,12 +53,17 @@ sealed abstract class Generate[T <: HasGenerateOptions: {Parser, Help}] extends 
           val staleFiles = g
             .staleFile(options)
             .mapFast(stale => (dir: os.Path) => os.list(dir).filter(p => os.isFile(p) && stale(p)))
-          writeManyFiles(to, g.generate(options)(using sv), staleFiles)
+          writeManyFiles(to, g.generate(options)(using sv), staleFiles, Set.empty)
         case g: StreamGenerate[T @unchecked] =>
           writeToFileOrStdout(to, out => g.generate(options, out)(using sv))
         case g: SplitGenerate[T @unchecked] =>
           if (g.writesDirectory(to))
-            writeManyFiles(to, g.generateFiles(options)(using sv), Some(g.staleFiles(options, _)))
+            writeManyFiles(
+              to,
+              g.generateFiles(options)(using sv),
+              Some(g.staleFiles(options, _)),
+              g.writtenOnce(options),
+            )
           else writeToFileOrStdout(to, out => g.generateSingle(options, out)(using sv))
       }
     catch { case NonFatal(e) => err(s"Cannot generate $generatorName from ${inputs.head}", e) }
@@ -66,6 +72,7 @@ sealed abstract class Generate[T <: HasGenerateOptions: {Parser, Help}] extends 
       to: Option[String],
       files: Iterable[(String, String)],
       staleFiles: Option[os.Path => Iterable[os.Path]],
+      writtenOnce: Set[String],
   ): Unit =
     if files.isEmpty then err("No files generated.")
     if to.isEmpty && staleFiles.isDefined then err("--clean needs a --to directory to clean.")
@@ -78,7 +85,10 @@ sealed abstract class Generate[T <: HasGenerateOptions: {Parser, Help}] extends 
       val path = os.Path(dir, os.pwd)
       os.makeDir.all(path)
       staleFiles.foreach(stale => stale(path).foreach(os.remove))
-      files.foreach((k, v) => os.write.over(path / os.SubPath(k), v, createFolders = true))
+      files.foreach { (k, v) =>
+        val file = path / os.SubPath(k)
+        if !writtenOnce(k) || !os.exists(file) then os.write.over(file, v, createFolders = true)
+      }
     }
 }
 
@@ -128,6 +138,11 @@ abstract class SplitGenerate[T <: HasGenerateOptions: {Parser, Help}] extends Ge
     * files of [[options]] are written. None by default.
     */
   protected[cli] def staleFiles(options: T, dir: os.Path): Iterable[os.Path] = Nil
+
+  /** The files of [[generateFiles]] that are meant to be changed by hand, so they are only written
+    * when the destination directory doesn't have them yet. None by default.
+    */
+  protected[cli] def writtenOnce(@unused options: T): Set[String] = Set.empty
 
   /** Whether `--to` corresponds to a directory.
     */

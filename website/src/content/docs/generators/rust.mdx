@@ -1,0 +1,302 @@
+---
+title: Rust
+description: A Rust crate for your data, from a LinkML schema.
+head:
+  - tag: title
+    content: 'Generate Rust structs from LinkML | ohi LinkML'
+---
+
+import { Options, Usage } from '../../../components/converter';
+
+The Rust generator turns a LinkML schema into a Rust crate, with a struct for each class and an
+enum for each enum. serde loads and dumps the data, and PyO3 makes the structs Python classes,
+each behind a Cargo feature.
+
+This generator started as a port of the [Rust generator of LinkML-Python](https://linkml.io/linkml/generators/rust.html),
+written by Jonny Saunders and Frank Dekervel. It generates generally the same code, so code that uses a crate
+from one generator should also work with a crate from the other, except for some names of classes, enums and
+enum variants. The ohi LinkML generator also includes many bug fixes and improvements.
+See [Differences from LinkML-Python](#differences-from-linkml-python).
+
+- The crate doesn't need a LinkML runtime.
+- It always depends on `serde-value`, and on `chrono` for dates. serde, PyO3 and their helpers
+  are optional dependencies, behind the features `serde`, `pyo3` and `stubgen`.
+- The code of all features is always generated. The `serde` and `pyo3` options only turn the
+  features on by default.
+
+## Usage
+
+<Usage name="rust" />
+
+With `--to` a directory, the generator writes a crate:
+
+| File | Content |
+| --- | --- |
+| `Cargo.toml` | The package, its dependencies and features. |
+| `pyproject.toml` | The build of the Python module with [maturin](https://www.maturin.rs/). |
+| `src/lib.rs` | The type aliases, enums and structs. |
+| `src/poly.rs` | A trait for each class, see [Traits](#traits). |
+| `src/poly_containers.rs` | The views of lists and maps that the traits return. |
+| `src/serde_utils.rs` | The helpers for the different forms of the data. |
+| `src/stub_utils.rs`, `src/bin/stub_gen.rs` | The program that writes Python type stubs, unless `--stubgen=false`. |
+
+With `--to` a `.rs` file, or no `--to`, it writes the crate as one file, without the traits.
+
+## Options
+
+<Options name="rust" />
+
+## Loading and dumping data
+
+With the `serde` feature, any serde format works, such as YAML:
+
+```rust
+let zoo: Zoo = yaml_serde::from_str(&text)?; // load
+let text = yaml_serde::to_string(&zoo)?;     // dump
+```
+
+Loading accepts each form that LinkML allows: a single value for a multivalued slot, and an inlined
+class as a list or as a dict, with or without the key in each object. Dumping always writes the same
+form.
+
+## Example
+
+This schema:
+
+```yaml
+classes:
+  Zoo:
+    tree_root: true
+    attributes:
+      name:
+        required: true
+      animals:
+        range: Animal
+        multivalued: true
+        inlined_as_list: true
+      keepers:
+        range: Keeper
+        multivalued: true
+        inlined: true
+  Animal:
+    abstract: true
+    attributes:
+      kind:
+        designates_type: true
+        required: true
+      name:
+        required: true
+      keeper:
+        range: Keeper
+  Lion:
+    is_a: Animal
+    attributes:
+      mane_length:
+        range: float
+  Parrot:
+    is_a: Animal
+    attributes:
+      words:
+        multivalued: true
+  Keeper:
+    description: A person who looks after animals.
+    attributes:
+      id:
+        identifier: true
+      name:
+      since:
+        range: date
+      shift:
+        range: Shift
+enums:
+  Shift:
+    permissible_values:
+      day:
+      night:
+```
+
+generates these structs and enums (we omit here their attributes and the code for serde and PyO3):
+
+```rust
+pub struct Zoo {
+    pub animals: Option<Vec<AnimalOrSubtype>>,
+    pub keepers: Option<HashMap<String, Keeper>>,
+    pub name: String,
+}
+
+pub struct Animal {
+    pub keeper: Option<String>,
+    pub kind: String,
+    pub name: String,
+}
+
+pub enum AnimalOrSubtype {
+    Lion(Lion),
+    Parrot(Parrot),
+}
+
+pub struct Lion {
+    pub keeper: Option<String>,
+    pub kind: String,
+    pub mane_length: Option<f64>,
+    pub name: String,
+}
+
+pub struct Parrot {
+    pub keeper: Option<String>,
+    pub kind: String,
+    pub name: String,
+    pub words: Option<Vec<String>>,
+}
+
+pub struct Keeper {
+    pub id: String,
+    pub name: Option<String>,
+    pub shift: Option<Shift>,
+    pub since: Option<NaiveDate>,
+}
+
+pub enum Shift {
+    Day,
+    Night,
+}
+```
+
+`AnimalOrSubtype` picks its variant by the `kind` of the data, so loading
+`{"name": "Z", "animals": [{"kind": "Lion", "name": "Leo"}]}` gives a `Zoo` whose first animal is
+a `Lion`.
+
+## How the schema maps to Rust
+
+### Classes
+
+Every class becomes a struct with a field for each of its slots, including the ones it inherits
+through `is_a` and mixins, ordered by `rank` and then by name. Every slot also gets a type alias, such as `pub type mane_length = f64;`,
+unless another item of the crate has its name.
+
+A class with subclasses also gets an `OrSubtype` enum, with a variant for each subclass, and for
+the class itself if it isn't abstract or a mixin. A field whose range is the class has this enum
+as its type. serde picks the variant by the type designator of the class, if it has one, and otherwise
+tries the variants in turn, and the first variant that can read the data wins. The subclasses
+come in the order of their `rank` and then their name, so `rank` decides between two subclasses that
+can read the same data. The class itself comes last.
+
+A class with the `linkml:Any` URI and no slots becomes a struct that wraps a `serde_value::Value`,
+so it reads any YAML or JSON value. If a schema has more than one such class, one of them gets the
+struct (`Anything` if the schema has it), and the others become type aliases of it.
+
+With the annotation `rust.linkml.io/generate/merge: true`, a struct derives
+[`Merge`](https://docs.rs/merge) and gets a `merge_with` method, which keeps the values that the
+other struct doesn't have.
+
+### Traits
+
+`src/poly.rs` has a trait for each class, with a getter for each slot that the class adds to its
+parents. The trait extends the traits of its `is_a` parent and its mixins, and the structs and
+`OrSubtype` enums of the class and its descendants implement it. So the same code can read a
+slot from the class and from any of its subclasses:
+
+```rust
+use zoo::poly::Animal;
+
+fn names(zoo: &zoo::Zoo) -> Vec<&str> {
+    zoo.animals.iter().flatten().map(|a| Animal::name(a)).collect()
+}
+```
+
+A getter returns a `Vec` or a `HashMap` as a borrowed view, a `Copy` value by value, and other
+values by reference. If the slot has different ranges in the descendants, the getter returns a union of
+them.
+
+### Slot types
+
+| LinkML range | Rust |
+| --- | --- |
+| `string`, `uri`, `curie`, `uriorcurie`, `ncname`, `time` and types based on them | `String`, through an alias such as `uriorcurie` |
+| `integer` | `isize` |
+| `float`, `double`, `decimal` | `f64` |
+| `boolean` | `bool` |
+| `date` | `chrono::NaiveDate` |
+| `datetime` | `chrono::NaiveDateTime` |
+| `langstring` | `LocalizedText`, a `String` or a `BTreeMap<String, String>` from language tag to text |
+| an enum | the enum, or `String` if the enum has no permissible values |
+| a class, not inlined | `String`, the identifier |
+| a class, inlined | the struct, or its `OrSubtype` enum. A value that can contain an object of its own class is in a `Box` |
+| a class, inlined as a list | `Vec<X>` |
+| a class, inlined as a dict | `HashMap<String, X>` |
+| `any_of` or `exactly_one_of` members with ranges | an enum in the module of the class, such as `measure_utl::value_range` |
+| a slot with `subproperty_of` | an enum of the slots it can hold, such as `PredicateEnum`, unless `--expand-subproperty-of=false` |
+
+An optional slot is an `Option`, and a multivalued slot a `Vec`.
+
+### Names
+
+Classes, enums and enum variants get `PascalCase` names, made the same way as in the other
+generators of ohi LinkML: `named thing` and `NamedThing` are `NamedThing`, `HTTPRequest` is
+`HttpRequest`, and `ZERO_OR_ONE` is `ZeroOrOne`. Slots and types keep their names, with `_` for
+spaces and `-`, as in LinkML-Python: `has part` is `has_part`, and `birthDate` stays `birthDate`.
+A name that is a Rust keyword gets a trailing `_`, such as `type_`, and so does a slot named after
+a Python keyword, such as `from_`, as the Python bindings use the field names. The data keeps the
+slot name, or the `alias` of the slot, if it has one.
+
+The generator reports an error for two classes or enums with the same Rust name.
+
+### Python bindings
+
+With `--pyo3`, the crate is a Python extension module, named after the crate. Build it with
+`maturin develop` or `maturin build`. Each struct is a Python class with a constructor, and
+`cargo run --bin stub_gen --features stubgen` writes its type stubs.
+
+With `--handwritten-lib`, the generated code is in `src/generated/`, and `src/lib.rs` is yours
+to change: it is only written when it doesn't exist yet. It has a `load_yaml_<tree root>`
+function, also in Python.
+
+## Differences from LinkML-Python
+
+As of 25 November 2026, ohi LinkML includes the fixes from currently open pull requests to LinkML-Python:
+
+- [linkml/linkml#3662](https://github.com/linkml/linkml/pull/3662): an `OrSubtype` enum has a
+  variant for the class itself.
+- [linkml/linkml#3919](https://github.com/linkml/linkml/pull/3919) and
+  [linkml/linkml#4092](https://github.com/linkml/linkml/pull/4092): all Rust keywords and the
+  Python keywords are escaped, and the data keeps the slot names.
+- [linkml/linkml#4075](https://github.com/linkml/linkml/pull/4075): the crate name is checked,
+  made from the schema name if unset, and names the Python module. The options `stubgen` and
+  `expand_subproperty_of`.
+
+Additionally, the following issues are fixed in ohi LinkML:
+
+- Class, enum and variant names are made as in the other generators of ohi LinkML, so two different
+  names never get the same Rust name: `a_1_2` is `A1_2` and `a_12` is `A12`, where LinkML-Python
+  makes both `A12`. Names with capitals change too: `HTTPRequest` is `HttpRequest` and `ZERO_OR_ONE`
+  is `ZeroOrOne`, where LinkML-Python keeps `HTTPRequest` and makes `ZEROORONE`.
+- Classes, fields and the variants of `OrSubtype` enums are ordered by `rank` and then by name, as
+  in the other generators of ohi LinkML, instead of by their order in the schema files.
+- A type designator with a URI range picks a class by the URI or CURIE of its `class_uri`, as the
+  LinkML specification says, and not also by a URI made from the class name.
+- The type aliases have the types of the fields: `integer` is `isize`, not `String`.
+- A slot with an `alias` is written under its alias, as in other LinkML tools.
+- An enum has its serde names without `--serde` too, and its variants have valid and unique
+  names. An enum without permissible values is a `String`.
+- An enum of the ranges of a slot reads plain values, rather than `{"isize": 3}`, has one variant
+  for each Rust type, and has the `OrSubtype` enum in the variant of a class with subclasses.
+- A value that contains its own class through a subclass is boxed.
+- A dict entry is written in the short form `key: value` only if no other field is set. A list inlined
+  as a list is written as a list. A class with only a key can be inlined as a dict.
+- The getters of the traits compile for slots with different ranges in the descendants, boxed
+  values, and slots of two mixins with the same name.
+- Generated impls don't use names such as `Self::Error`, which a variant named `Error` hides.
+- A slot gets no type alias if another item has its name, such as a slot named `date`.
+- The crate version is the schema version only if it is a semantic version, as cargo requires.
+- The crate reads YAML with [`yaml_serde`](https://crates.io/crates/yaml_serde), as
+  [rust-linkml-core does](https://github.com/Kapernikov/rust-linkml-core/pull/136), instead of
+  `serde_yml`, which is unsound and no longer maintained
+  ([RUSTSEC-2025-0068](https://rustsec.org/advisories/RUSTSEC-2025-0068.html)).
+- Any class with the `linkml:Any` URI and no slots gets the struct for any value, not only a class
+  named `Anything`.
+
+## Limitations
+
+- `decimal` is an `f64`, and `time` a `String`.
+- The crate has all classes of the schema and its imports. There are no pruning options.
+- The generated code has no documentation comments.

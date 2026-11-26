@@ -88,6 +88,7 @@ char *linkml_stats(long long handle, const char *options, char **error);
 /* Generators producing several files, returned as a JSON object of filename to content. */
 char *linkml_scala(long long handle, const char *options, char **error);
 char *linkml_java(long long handle, const char *options, char **error);
+char *linkml_rust(long long handle, const char *options, char **error);
 char *linkml_frictionless(long long handle, const char *options, char **error);
 char *linkml_docs(long long handle, const char *options, char **error);
 

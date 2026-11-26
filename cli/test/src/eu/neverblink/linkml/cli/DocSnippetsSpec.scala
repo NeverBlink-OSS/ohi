@@ -266,6 +266,24 @@ class DocSnippetsSpec extends AnyWordSpec {
     }
   }
 
+  "the rust examples" should {
+    "run on the command line" in {
+      ohiLinkml("to rust --crate-name prov prov-o.linkml.yaml")
+    }
+    "run in Scala" in {
+      import eu.neverblink.linkml.generator.options.RustGeneratorOptions
+      import eu.neverblink.linkml.generator.rust.RustGenerator
+      import eu.neverblink.linkml.schemaview.{SchemaIssues, SchemaView}
+
+      val loaded = SchemaView.loadSchemaViewFromUri("prov-o.linkml.yaml")
+      given SchemaView = SchemaIssues.orThrow(loaded)
+      val files = RustGenerator().generateFiles(
+        RustGeneratorOptions(crateName = Some("prov")),
+      )
+      assert(files.nonEmpty)
+    }
+  }
+
   "the scala examples" should {
     "run on the command line" in {
       ohiLinkml("to scala --package org.example.prov --to src/org/example/prov/ prov-o.linkml.yaml")

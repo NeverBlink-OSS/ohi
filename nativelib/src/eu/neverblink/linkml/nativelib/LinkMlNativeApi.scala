@@ -13,6 +13,7 @@ import eu.neverblink.linkml.generator.owl.{OwlGenerator, OwlImporter}
 import eu.neverblink.linkml.generator.rdfs.RdfsGenerator
 import eu.neverblink.linkml.generator.scala.ScalaGenerator
 import eu.neverblink.linkml.generator.javagen.JavaGenerator
+import eu.neverblink.linkml.generator.rust.RustGenerator
 import eu.neverblink.linkml.generator.shacl.ShaclGenerator
 import eu.neverblink.linkml.generator.stats.StatsGenerator
 import eu.neverblink.linkml.generator.translation.TranslationGenerator
@@ -275,6 +276,12 @@ object LinkMlNativeApi {
   def java(handle: Long, optionsJson: String, out: OutputStream): Unit = {
     given SchemaView = view(handle)
     writeFiles(JavaGenerator().generate(Options.java(optionsJson)), out)
+  }
+
+  /** Generate a Rust crate, as a JSON object mapping path to content. */
+  def rust(handle: Long, optionsJson: String, out: OutputStream): Unit = {
+    given SchemaView = view(handle)
+    writeFiles(RustGenerator().generateFiles(Options.rust(optionsJson)), out)
   }
 
   /** Generate a Frictionless data package, as a JSON object mapping filename to content: the

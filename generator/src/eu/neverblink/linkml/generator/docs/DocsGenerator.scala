@@ -5,6 +5,7 @@ import eu.neverblink.linkml.generator.CharDocumentGenerator
 import eu.neverblink.linkml.generator.graphql.GraphQlRenamer
 import eu.neverblink.linkml.generator.pydantic.{PydanticGenerator, PydanticRenamer}
 import eu.neverblink.linkml.generator.javagen.{JavaGenerator, JavaRenamer}
+import eu.neverblink.linkml.generator.rust.{RustGenerator, RustRenamer}
 import eu.neverblink.linkml.generator.scala.{ScalaGenerator, ScalaRenamer}
 import eu.neverblink.linkml.generator.typescript.TypeScriptRenamer
 import eu.neverblink.linkml.generator.util.{GeneratedHeader, Renamer}
@@ -1020,6 +1021,7 @@ object DocsGenerator {
     CodeTarget("TypeScript", TypeScriptRenamer, _ => true),
     CodeTarget("Python", PydanticRenamer, PydanticGenerator.definesEnum),
     CodeTarget("Java", JavaRenamer, JavaGenerator.definesEnum),
+    CodeTarget("Rust", RustRenamer, RustGenerator.definesEnum),
     CodeTarget("GraphQL", GraphQlRenamer, _ => true),
   )
 
