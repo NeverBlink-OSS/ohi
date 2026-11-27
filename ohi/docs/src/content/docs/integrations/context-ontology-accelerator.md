@@ -10,7 +10,7 @@ sidebar:
 
 Use ohi to load standard ontologies into AWS [Context Ontology Accelerator](https://github.com/aws/context-ontology-accelerator) (COA). It builds an ontology from your data, and based on loaded reference ontologies reuses existing terms instead of making up new ones. Here we will use [W3C Organization](https://ohi.dev/o/w3c/org@2014) and [PROV-O](https://ohi.dev/o/w3c/prov-o@2013).
 
-To use other ontologies, find them with `ohi search`. See [Find and inspect ontologies](/docs/guides/search/).
+To use other ontologies, search on [ohi.dev](/docs/guides/search/) or use `ohi search`. 
 
 ## How ohi and COA work together
 
@@ -71,9 +71,13 @@ Skip this if you already have one.
 
 ## Start induction with your ontologies
 
-1. On the **Induction** page, select your data sources.
-2. In the grounding ontologies selector, select the reference ontologies you uploaded. If you have accepted an induction result in this namespace before, the console selects that one too. Leave it like that.
-3. Leave **Strategy** as `table_to_ontology` and click **Start induction**.
+1. On the **Induction** page, click **Start induction**.
+2. Leave **Strategy** as **Table to Ontology**.
+3. Under **Data sources**, select your data sources.
+4. Under **Grounding ontologies (optional)**, select the reference ontologies you uploaded. If you have accepted an induction result in this namespace before, the console selects that one too. Leave it like that.
+5. Click **Start induction**.
+
+![Induce Ontology dialog](../../../assets/integrations/aws-coa.png)
 
 ## Check that COA used your ontologies
 
