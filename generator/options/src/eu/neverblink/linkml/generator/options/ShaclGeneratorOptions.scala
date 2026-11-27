@@ -37,4 +37,6 @@ final case class ShaclGeneratorOptions(
     */
   override def infer(): ShaclGeneratorOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

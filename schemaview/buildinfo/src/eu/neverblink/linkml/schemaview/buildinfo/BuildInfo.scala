@@ -55,4 +55,6 @@ final case class BuildInfo(
     */
   def infer(): BuildInfo =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

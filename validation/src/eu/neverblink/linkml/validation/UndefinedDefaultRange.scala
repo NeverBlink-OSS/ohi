@@ -51,4 +51,6 @@ final case class UndefinedDefaultRange(
       ),
       message = inferOptional("message", message, "No 'default_range' is defined in the schema"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

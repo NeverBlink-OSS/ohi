@@ -51,4 +51,6 @@ final case class DocsGeneratorOptions(
     */
   override def infer(): DocsGeneratorOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -43,4 +43,6 @@ final case class SubclassCycle(
       detail = inferOptional("detail", detail, className + " -> " + parent),
       kind = inferOptional("kind", kind, "Subclass cycle, broken by leaving out a parent"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

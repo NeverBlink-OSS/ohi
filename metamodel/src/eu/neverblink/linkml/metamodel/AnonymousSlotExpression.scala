@@ -293,4 +293,6 @@ final case class AnonymousSlotExpression(
     */
   override def infer(): AnonymousSlotExpression =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

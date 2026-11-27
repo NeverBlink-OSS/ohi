@@ -32,4 +32,6 @@ final case class Manifest(
     */
   def infer(): Manifest =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

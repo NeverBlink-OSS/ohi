@@ -62,4 +62,6 @@ final case class CyclicReference(
       ),
       message = inferOptional("message", message, "Cyclic " + relation + " reference: " + cycle),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

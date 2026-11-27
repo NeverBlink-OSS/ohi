@@ -28,19 +28,19 @@ object `package` extends Module, NativeOptional, LinkMlModelModule {
 
   object jvm extends CommonModule {
     def moduleDeps = Seq(
-      build.runtime.jvm,
+      build.yaml.jvm,
     )
   }
 
   object js extends CommonModule, NoBspModule, CommonScalaJsModule {
     def moduleDeps = Seq(
-      build.runtime.js,
+      build.yaml.js,
     )
   }
 
   object native extends CommonModule, NoBspModule, CommonScalaNativeModule {
     def moduleDeps = Seq(
-      build.runtime.native,
+      build.yaml.native,
     )
   }
 }

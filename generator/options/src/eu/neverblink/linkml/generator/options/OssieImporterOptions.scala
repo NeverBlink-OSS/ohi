@@ -37,4 +37,6 @@ final case class OssieImporterOptions(
     */
   override def infer(): OssieImporterOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

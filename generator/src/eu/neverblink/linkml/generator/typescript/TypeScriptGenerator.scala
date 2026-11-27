@@ -2,12 +2,17 @@ package eu.neverblink.linkml.generator.typescript
 
 import eu.neverblink.linkml.generator.options.{TypeScriptErrorHandling, TypeScriptGeneratorOptions}
 import eu.neverblink.linkml.generator.CharDocumentGenerator
-import eu.neverblink.linkml.generator.util.{DocLines, GeneratedHeader, Pruning, TreeRootDocument}
+import eu.neverblink.linkml.generator.util.{
+  DocLines,
+  GeneratedHeader,
+  Literals,
+  Pruning,
+  TreeRootDocument,
+}
 import eu.neverblink.linkml.generator.util.Pruning.pruning
 import eu.neverblink.linkml.generator.util.metadataLanguage
 import eu.neverblink.linkml.rdf.io.CharSink
 import eu.neverblink.linkml.runtime.FastUtils.*
-import eu.neverblink.linkml.runtime.StringUtils.hexDigit
 import eu.neverblink.linkml.schemaview.*
 
 import scala.collection.mutable
@@ -136,14 +141,6 @@ final class TypeScriptGenerator(using sv: SchemaView)
     else tpe
   }
 
-  private def referenceDoc(attribute: AttributeView): Option[String] = {
-    val alternatives = attribute.rangeAlternatives
-    val classes = (if alternatives.isEmpty then Seq(attribute) else alternatives).collect {
-      case ref: ClassReferenceAttributeView => className(ref.classView)
-    }
-    Option.when(classes.nonEmpty)(classes.mkString("Reference to ", " or ", ""))
-  }
-
   private def writeDoc(sink: CharSink, lines: Seq[String], indent: String): Unit =
     if lines.nonEmpty then {
       val escaped = lines.map(_.replace("*/", "*\\/"))
@@ -175,7 +172,9 @@ final class TypeScriptGenerator(using sv: SchemaView)
       val slot = attribute.slotView
       val default = defaultValue(attribute)
       val doc =
-        DocLines(slot.slot) ++ referenceDoc(attribute) ++ default.map("@defaultValue ".concat)
+        DocLines(slot.slot) ++ DocLines.reference(attribute, className) ++ default.map(
+          "@defaultValue ".concat,
+        )
       writeDoc(sink, doc, "  ")
       sink.append("  ")
       sink.append(propertyKey(slotName(slot)))
@@ -460,27 +459,8 @@ object TypeScriptGenerator {
   def propertyKey(key: String): String = if isPlainKey(key) then key else stringLiteral(key)
 
   /** A double-quoted TypeScript string literal. */
-  def stringLiteral(value: String): String = {
-    val sb = new java.lang.StringBuilder(value.length + 2)
-    sb.append('"')
-    val len = value.length
-    var i = 0
-    while (i < len) {
-      value.charAt(i) match {
-        case '"' => sb.append("\\\"")
-        case '\\' => sb.append("\\\\")
-        case '\n' => sb.append("\\n")
-        case '\r' => sb.append("\\r")
-        case '\t' => sb.append("\\t")
-        case c if c < ' ' || c == '\u2028' || c == '\u2029' =>
-          sb.append('\\').append('u').append(hexDigit(c >> 12)).append(hexDigit(c >> 8))
-            .append(hexDigit(c >> 4)).append(hexDigit(c))
-        case c => sb.append(c)
-      }
-      i += 1
-    }
-    sb.append('"').toString
-  }
+  def stringLiteral(value: String): String =
+    Literals.string(value, cp => cp < ' ' || cp == '\u2028' || cp == '\u2029')
 
   private def arrayOf(tpe: String): String =
     if tpe.indexOf('|') >= 0 || tpe.indexOf(' ') >= 0 then s"($tpe)[]" else tpe.concat("[]")

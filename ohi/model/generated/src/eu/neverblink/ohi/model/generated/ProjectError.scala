@@ -59,4 +59,6 @@ final case class ProjectError(
     */
   def infer(): ProjectError =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

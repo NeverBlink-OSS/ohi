@@ -63,4 +63,6 @@ final case class InvalidEqualsString(
         "equals_string '" + value + "' of slot '" + slotName + "' in class '" + className + "' isn't a valid URI or CURIE",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

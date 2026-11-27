@@ -44,4 +44,6 @@ final case class UnmappedImport(
         "Import that is not mapped to a LinkML schema (see `imports` in the config)",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

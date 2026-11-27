@@ -31,4 +31,6 @@ final case class SchemaValidationReport(
     */
   def infer(): SchemaValidationReport =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

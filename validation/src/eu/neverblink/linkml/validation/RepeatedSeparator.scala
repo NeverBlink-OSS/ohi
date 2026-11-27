@@ -54,4 +54,6 @@ final case class RepeatedSeparator(
         "Element '" + elementName + "' name contains repeated separators, they will be reduced to a single underscore.",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

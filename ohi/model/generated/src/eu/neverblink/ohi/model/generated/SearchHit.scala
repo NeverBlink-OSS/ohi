@@ -106,4 +106,6 @@ final case class SearchHit(
     */
   def infer(): SearchHit =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -63,4 +63,6 @@ final case class InvalidSlotUsage(
         "Invalid 'slot_usage' slots: " + stringify(slotNames) + " in class " + className,
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

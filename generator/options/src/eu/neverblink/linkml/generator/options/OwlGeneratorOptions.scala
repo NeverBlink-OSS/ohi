@@ -42,4 +42,6 @@ final case class OwlGeneratorOptions(
     */
   override def infer(): OwlGeneratorOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -48,4 +48,6 @@ final case class UnimplementedDatatypeFacet(
         inferOptional("detail", detail, datatype + ": " + facet + " (LinkML: " + feature + ")"),
       kind = inferOptional("kind", kind, "Datatype facet that is not supported by the importer yet"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

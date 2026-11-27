@@ -66,4 +66,6 @@ final case class UndeclaredCuriePrefix(
         ) + "' at " + inferenceInput("location.json_pointer", location.jsonPointer),
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

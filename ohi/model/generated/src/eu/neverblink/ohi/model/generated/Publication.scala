@@ -130,4 +130,6 @@ final case class Publication(
     */
   def infer(): Publication =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

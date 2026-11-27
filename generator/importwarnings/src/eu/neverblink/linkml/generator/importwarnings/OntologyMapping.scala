@@ -40,4 +40,6 @@ final case class OntologyMapping(
       detail = inferOptional("detail", detail, mappingName),
       kind = inferOptional("kind", kind, "Ontology mapping, which is not read"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

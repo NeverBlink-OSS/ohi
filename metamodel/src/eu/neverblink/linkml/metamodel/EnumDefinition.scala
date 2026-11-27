@@ -299,4 +299,6 @@ final case class EnumDefinition(
     */
   override def infer(): EnumDefinition =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

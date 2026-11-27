@@ -4,6 +4,7 @@ import eu.neverblink.linkml.metamodel.CommonMetadata
 import eu.neverblink.linkml.runtime.FastUtils.*
 import eu.neverblink.linkml.runtime.MetadataLanguage
 import eu.neverblink.linkml.runtime.StringUtils.splitLines
+import eu.neverblink.linkml.schemaview.{AttributeView, ClassReferenceAttributeView, ClassView}
 
 /** The text of a doc comment on a generated element, for the code generators. */
 object DocLines {
@@ -24,5 +25,16 @@ object DocLines {
       case _ => description
     }
     text.foldFast(Nil: Seq[String])(t => splitLines(t.strip))
+  }
+
+  /** The doc of a field that refers to objects by their identifiers, such as `Reference to Person
+    * or Organization`, or None if the field holds no references.
+    */
+  def reference(attribute: AttributeView, className: ClassView => String): Option[String] = {
+    val alternatives = attribute.rangeAlternatives
+    val classes = (if alternatives.isEmpty then Seq(attribute) else alternatives).collect {
+      case ref: ClassReferenceAttributeView => className(ref.classView)
+    }
+    Option.when(classes.nonEmpty)(classes.mkString("Reference to ", " or ", ""))
   }
 }

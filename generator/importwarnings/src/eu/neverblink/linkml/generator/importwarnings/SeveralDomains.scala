@@ -42,4 +42,6 @@ final case class SeveralDomains(
       detail = inferOptional("detail", detail, property + ": " + domain),
       kind = inferOptional("kind", kind, "Several domains (all of them apply), attached to each"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

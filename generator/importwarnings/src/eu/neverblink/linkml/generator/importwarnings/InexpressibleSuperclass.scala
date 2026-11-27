@@ -44,4 +44,6 @@ final case class InexpressibleSuperclass(
       detail = inferOptional("detail", detail, className + ": " + expression),
       kind = inferOptional("kind", kind, "Superclass inexpressible in LinkML"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

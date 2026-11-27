@@ -188,4 +188,6 @@ final case class PathExpression(
     */
   override def infer(): PathExpression =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

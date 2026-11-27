@@ -16,3 +16,14 @@ trait Renamer {
   def permissibleValueName(el: EnumView, pv: PermissibleValue): String
   def functionName(el: FunctionView): String
 }
+
+object Renamer {
+
+  /** The name, or `ifEmpty` if it is empty, with `_` in front of a leading digit, which no target
+    * language allows.
+    */
+  def validStart(name: String, ifEmpty: String): String =
+    if name.isEmpty then ifEmpty
+    else if Case.isNumeric(name.head) then "_".concat(name)
+    else name
+}

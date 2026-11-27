@@ -9,17 +9,26 @@ import scala.collection.mutable
 import scala.quoted.*
 import scala.util.control.NoStackTrace
 
-/** Decodes values of `T` from YAML nodes and encodes them back.
+/** Decodes values of `T` from YAML nodes.
   *
-  * Both take a [[PrefixMap]]. Decoding expands each URI or CURIE value that it can, and encoding
-  * compacts each URI that it can. With the default [[PrefixMap.empty]], values are kept as they are
-  * written.
+  * Decoding expands each URI or CURIE value that it can with the [[PrefixMap]]. With the default
+  * [[PrefixMap.empty]], values are kept as they are written.
   */
-abstract class LinkmlYamlCodec[T] {
+trait LinkmlYamlDecoder[T] {
   def decode(node: Node, id: Option[Any] = None, prefixes: PrefixMap = PrefixMap.empty): T
+}
 
+/** Encodes values of `T` as YAML nodes.
+  *
+  * Encoding compacts each URI that it can with the [[PrefixMap]]. With the default
+  * [[PrefixMap.empty]], values are kept as they are written.
+  */
+trait LinkmlYamlEncoder[T] {
   def encode(x: T, skipId: Boolean = false, prefixes: PrefixMap = PrefixMap.empty): Node
 }
+
+/** Decodes values of `T` from YAML nodes and encodes them back. */
+abstract class LinkmlYamlCodec[T] extends LinkmlYamlDecoder[T], LinkmlYamlEncoder[T]
 
 object LinkmlYamlCodec {
   def decodeError(msg: String, node: Node): Nothing = throw new DecodeError(
@@ -207,6 +216,12 @@ object LinkmlYamlCodec {
   inline def derived[T](inline extraSlotsAllowed: Boolean): LinkmlYamlCodec[T] =
     ${ LinkmlYamlCodecImpl.make('extraSlotsAllowed) }
 
+  /** Derives only the decoding half of [[derived]], for a type that is never encoded. */
+  inline def derivedDecoder[T]: LinkmlYamlDecoder[T] = ${ LinkmlYamlCodecImpl.makeDecoder }
+
+  /** Derives only the encoding half of [[derived]], for a type that is never decoded. */
+  inline def derivedEncoder[T]: LinkmlYamlEncoder[T] = ${ LinkmlYamlCodecImpl.makeEncoder }
+
   def getFields(n: Node.MappingNode): java.util.HashMap[String, Node] = {
     val m = new java.util.HashMap[String, Node](n.mappings.size << 1, 0.5f)
     n.mappings.foreachEntry { (k, v) =>
@@ -228,6 +243,15 @@ object LinkmlYamlCodec {
     }
     m
   }
+
+  /** Adds a field to an encoded mapping. Not inlined: the encoders call it for every field, so
+    * inlining would repeat its code in each place.
+    */
+  @noinline def addField(kvs: mutable.Growable[(Node, Node)], name: String, value: Node): Unit =
+    kvs.addOne((Node.ScalarNode(name), value))
+
+  /** Whether a field holds a value other than its default. Not inlined, like [[addField]]. */
+  @noinline def differs(value: Any, default: Any): Boolean = value != default
 
   /** Whether the decoded value of a `@required` field is `None` or an empty collection. */
   def isEmptyValue(value: Any): Boolean = value match {
@@ -286,6 +310,12 @@ object LinkmlYamlCodec {
 private object LinkmlYamlCodecImpl {
   def make[T: Type](extraSlotsAllowed: Expr[Boolean])(using Quotes): Expr[LinkmlYamlCodec[T]] =
     new LinkmlYamlCodecImpl(extraSlotsAllowed.valueOrAbort).make[T]
+
+  def makeDecoder[T: Type](using Quotes): Expr[LinkmlYamlDecoder[T]] =
+    new LinkmlYamlCodecImpl(false).makeDecoder[T]
+
+  def makeEncoder[T: Type](using Quotes): Expr[LinkmlYamlEncoder[T]] =
+    new LinkmlYamlCodecImpl(false).makeEncoder[T]
 }
 
 /** @param extraSlotsAllowed
@@ -295,9 +325,8 @@ private class LinkmlYamlCodecImpl(extraSlotsAllowed: Boolean)(using Quotes) exte
   import quotes.reflect._
 
   def make[T: Type]: Expr[LinkmlYamlCodec[T]] = {
-    val rootTpe = TypeRepr.of[T].dealias
-    inferredCodecs.put(rootTpe, None)
-    val codecDef = '{
+    val rootTpe = root[T]
+    withDefs('{
       new LinkmlYamlCodec[T] {
         def decode(node: Node, id: Option[Any], prefixes: PrefixMap): T =
           ${ genDecode[T](rootTpe, 'node, 'id, 'prefixes) }
@@ -305,11 +334,43 @@ private class LinkmlYamlCodecImpl(extraSlotsAllowed: Boolean)(using Quotes) exte
         def encode(x: T, skipId: Boolean, prefixes: PrefixMap): Node =
           ${ genEncode[T](rootTpe, 'x, 'skipId, 'prefixes) }
       }
-    }
-    val codec = Block(defs.toList, codecDef.asTerm).asExpr.asInstanceOf[Expr[LinkmlYamlCodec[T]]]
-    // report.info(s"Generated Yaml codec for type '${rootTpe.show}':\n${codec.show}", Position.ofMacroExpansion)
-    codec
+    })
   }
+
+  def makeDecoder[T: Type]: Expr[LinkmlYamlDecoder[T]] = {
+    val rootTpe = root[T]
+    withDefs('{
+      new LinkmlYamlDecoder[T] {
+        def decode(node: Node, id: Option[Any], prefixes: PrefixMap): T =
+          ${ genDecode[T](rootTpe, 'node, 'id, 'prefixes) }
+      }
+    })
+  }
+
+  def makeEncoder[T: Type]: Expr[LinkmlYamlEncoder[T]] = {
+    val rootTpe = root[T]
+    withDefs('{
+      new LinkmlYamlEncoder[T] {
+        def encode(x: T, skipId: Boolean, prefixes: PrefixMap): Node =
+          ${ genEncode[T](rootTpe, 'x, 'skipId, 'prefixes) }
+      }
+    })
+  }
+
+  /** The type to derive for, which the implicit search must not find, as that would be the value
+    * being defined.
+    */
+  private def root[T: Type]: TypeRepr = {
+    val rootTpe = TypeRepr.of[T].dealias
+    decoders.put(rootTpe, None)
+    encoders.put(rootTpe, None)
+    rootTpe
+  }
+
+  /** The codec with the methods and values that it calls in front of it. */
+  private def withDefs[C](codec: Expr[C]): Expr[C] =
+    // report.info(s"Generated Yaml codec:\n${codec.show}", Position.ofMacroExpansion)
+    Block(defs.toList, codec.asTerm).asExpr.asInstanceOf[Expr[C]]
 
   private def genDecode[T: Type](
       tpe: TypeRepr,
@@ -317,9 +378,11 @@ private class LinkmlYamlCodecImpl(extraSlotsAllowed: Boolean)(using Quotes) exte
       id: Expr[Option[Any]],
       prefixes: Expr[PrefixMap],
   )(using Quotes): Expr[T] = {
-    val implCodec = findImplicitCodec(tpe)
-    if (implCodec.isDefined) {
-      '{ ${ implCodec.get.asInstanceOf[Expr[LinkmlYamlCodec[T]]] }.decode($node, $id, $prefixes) }
+    val implDecoder = findImplicitDecoder(tpe)
+    if (implDecoder.isDefined) {
+      '{
+        ${ implDecoder.get.asInstanceOf[Expr[LinkmlYamlDecoder[T]]] }.decode($node, $id, $prefixes)
+      }
     } else if (isUnion(tpe)) withDecoderFor(tpe, node, id, prefixes) { (node, id, prefixes) =>
       genDecodeUnion[T](tpe, node, id, prefixes)
     }
@@ -441,9 +504,11 @@ private class LinkmlYamlCodecImpl(extraSlotsAllowed: Boolean)(using Quotes) exte
       skipId: Expr[Boolean],
       prefixes: Expr[PrefixMap],
   )(using Quotes): Expr[Node] = {
-    val implCodec = findImplicitCodec(tpe)
-    if (implCodec.isDefined) {
-      '{ ${ implCodec.get.asInstanceOf[Expr[LinkmlYamlCodec[T]]] }.encode($x, $skipId, $prefixes) }
+    val implEncoder = findImplicitEncoder(tpe)
+    if (implEncoder.isDefined) {
+      '{
+        ${ implEncoder.get.asInstanceOf[Expr[LinkmlYamlEncoder[T]]] }.encode($x, $skipId, $prefixes)
+      }
     } else if (isUnion(tpe)) withEncoderFor(tpe, x, skipId, prefixes) { (x, skipId, prefixes) =>
       genEncodeUnion[T](tpe, x, skipId, prefixes)
     }
@@ -996,15 +1061,15 @@ private class LinkmlYamlCodecImpl(extraSlotsAllowed: Boolean)(using Quotes) exte
                 // so they are written out even when they still hold it.
                 case Some(d) if !fieldInfo.serializeDefault =>
                   '{
-                    if (${ getter } != ${ d.asExpr }) {
-                      $kvs.addOne((Node.ScalarNode($name), $encodeVal))
+                    if (LinkmlYamlCodec.differs($getter, ${ d.asExpr })) {
+                      LinkmlYamlCodec.addField($kvs, $name, $encodeVal)
                     }
                   }
                 case _ =>
                   if (fieldInfo.kind == FieldKind.Id) '{
-                    if (! $skipId) $kvs.addOne((Node.ScalarNode($name), $encodeVal))
+                    if (! $skipId) LinkmlYamlCodec.addField($kvs, $name, $encodeVal)
                   }
-                  else '{ $kvs.addOne((Node.ScalarNode($name), $encodeVal)) }
+                  else '{ LinkmlYamlCodec.addField($kvs, $name, $encodeVal) }
               }
           }).asTerm
         },
@@ -1021,7 +1086,7 @@ private class LinkmlYamlCodecImpl(extraSlotsAllowed: Boolean)(using Quotes) exte
         if (fieldInfo.kind != FieldKind.Id && fieldInfo.kind != FieldKind.Value) {
           val getter = Select(x.asTerm, fieldInfo.getterOrField).asExpr
           val d = fieldInfo.defaultValue.get.asExpr
-          checks.addOne('{ if ($holds && $getter != $d) $clear }.asTerm)
+          checks.addOne('{ if ($holds && LinkmlYamlCodec.differs($getter, $d)) $clear }.asTerm)
         }
       }
       Block(checks.toList, '{}.asTerm).asExpr.asInstanceOf[Expr[Unit]]
@@ -1249,17 +1314,23 @@ private class LinkmlYamlCodecImpl(extraSlotsAllowed: Boolean)(using Quotes) exte
       },
     ).asExpr.asInstanceOf[Expr[java.util.HashMap[T, String]]]
 
-  private def findImplicitCodec(tpe: TypeRepr): Option[Expr[LinkmlYamlCodec[?]]] =
-    inferredCodecs.getOrElseUpdate(
-      tpe, {
-        Implicits.search(linkmlYamlCodecTpe.appliedTo(tpe)) match
-          case s: ImplicitSearchSuccess =>
-            new Some(s.tree.asExpr.asInstanceOf[Expr[LinkmlYamlCodec[?]]])
-          case _ => None
-      },
-    )
+  /** A given codec of the type, or else a given decoder. Codecs come first, as the codecs of
+    * runtime types, such as `UriOrCurie`, are in the implicit scope of codecs only.
+    */
+  private def findImplicitDecoder(tpe: TypeRepr): Option[Expr[Any]] =
+    decoders.getOrElseUpdate(tpe, findImplicit(tpe, linkmlYamlDecoderTpe))
 
-  private val inferredCodecs = new mutable.HashMap[TypeRepr, Option[Expr[LinkmlYamlCodec[?]]]]
+  /** A given codec of the type, or else a given encoder. */
+  private def findImplicitEncoder(tpe: TypeRepr): Option[Expr[Any]] =
+    encoders.getOrElseUpdate(tpe, findImplicit(tpe, linkmlYamlEncoderTpe))
+
+  private def findImplicit(tpe: TypeRepr, orElse: TypeRepr): Option[Expr[Any]] =
+    Seq(linkmlYamlCodecTpe, orElse).iterator
+      .map(typeClass => Implicits.search(typeClass.appliedTo(tpe)))
+      .collectFirst { case s: ImplicitSearchSuccess => s.tree.asExpr }
+
+  private val decoders = new mutable.HashMap[TypeRepr, Option[Expr[Any]]]
+  private val encoders = new mutable.HashMap[TypeRepr, Option[Expr[Any]]]
   private val decodeRefs = new mutable.HashMap[TypeRepr, Ref]
   private val encodeRefs = new mutable.HashMap[TypeRepr, Ref]
   private val defs = new mutable.ListBuffer[Definition]
@@ -1269,6 +1340,10 @@ private class LinkmlYamlCodecImpl(extraSlotsAllowed: Boolean)(using Quotes) exte
   private val prefixMapTpe = Symbol.requiredClass("eu.neverblink.linkml.runtime.PrefixMap").typeRef
   private val linkmlYamlCodecTpe =
     Symbol.requiredClass("eu.neverblink.linkml.yaml.LinkmlYamlCodec").typeRef
+  private val linkmlYamlDecoderTpe =
+    Symbol.requiredClass("eu.neverblink.linkml.yaml.LinkmlYamlDecoder").typeRef
+  private val linkmlYamlEncoderTpe =
+    Symbol.requiredClass("eu.neverblink.linkml.yaml.LinkmlYamlEncoder").typeRef
 }
 
 /** Failure to decode a YAML node into a metamodel type.

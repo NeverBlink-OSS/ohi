@@ -203,4 +203,6 @@ final case class FunctionDefinition(
     */
   override def infer(): FunctionDefinition =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

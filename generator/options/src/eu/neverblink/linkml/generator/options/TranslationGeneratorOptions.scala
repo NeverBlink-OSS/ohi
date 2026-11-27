@@ -39,4 +39,6 @@ final case class TranslationGeneratorOptions(
     */
   def infer(): TranslationGeneratorOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

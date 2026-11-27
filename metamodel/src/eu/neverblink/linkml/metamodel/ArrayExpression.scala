@@ -174,4 +174,6 @@ final case class ArrayExpression(
     */
   override def infer(): ArrayExpression =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

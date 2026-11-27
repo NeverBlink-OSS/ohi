@@ -47,4 +47,6 @@ final case class SeveralRanges(
         "Several ranges (all of them apply), of which only the first is kept, as `all_of` ranges are not supported by the importer yet",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

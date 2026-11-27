@@ -34,4 +34,6 @@ final case class LockedFile(
     */
   override def infer(): LockedFile =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

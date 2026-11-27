@@ -26,4 +26,6 @@ final case class NamespacePrefix(
     */
   def infer(): NamespacePrefix =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -16,6 +16,8 @@ final case class DeliveryResultImpl(
 
   override def infer(): DeliveryResultImpl =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }
 
 /** @see

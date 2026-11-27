@@ -75,4 +75,6 @@ final case class UnrelatedSlotRange(
         "Class '" + className + "' gives slot '" + slotName + "' the range " + slotRange + ", which is not derived from the range " + parentRange + " of its parent '" + parentName + "'",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -49,4 +49,6 @@ final case class EquivalentClassDefinition(
         "Class defined by an equivalence, kept as superclasses only, as `classification_rules` are not supported by the importer yet",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

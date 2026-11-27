@@ -108,7 +108,7 @@ object ValidationReport {
     */
   private def renderJson(reports: Seq[(String, Seq[SchemaIssue])]): String =
     val nodes = reports.map { (inputName, issues) =>
-      Codec.codec.encode(
+      Codec.encoder.encode(
         SchemaValidationReport(
           issues = issues.map(_.infer()),
           validationRunId = Some(inputName),

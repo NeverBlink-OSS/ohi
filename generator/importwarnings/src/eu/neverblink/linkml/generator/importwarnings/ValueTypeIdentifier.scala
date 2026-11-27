@@ -43,4 +43,6 @@ final case class ValueTypeIdentifier(
       detail = inferOptional("detail", detail, concept + ": " + stringify(identifyBy)),
       kind = inferOptional("kind", kind, "Identifier of a value type"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -23,4 +23,6 @@ final case class Files(
     */
   def infer(): Files =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

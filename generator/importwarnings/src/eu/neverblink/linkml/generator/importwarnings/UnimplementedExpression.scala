@@ -45,4 +45,6 @@ final case class UnimplementedExpression(
       detail = inferOptional("detail", detail, owner + ": " + expression),
       kind = inferOptional("kind", kind, "Expression that is not supported by the importer yet"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

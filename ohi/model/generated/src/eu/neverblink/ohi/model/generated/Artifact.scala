@@ -43,4 +43,6 @@ final case class Artifact(
     */
   def infer(): Artifact =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

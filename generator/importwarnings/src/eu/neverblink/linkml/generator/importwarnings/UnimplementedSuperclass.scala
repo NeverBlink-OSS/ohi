@@ -52,4 +52,6 @@ final case class UnimplementedSuperclass(
       ),
       kind = inferOptional("kind", kind, "Superclass that is not supported by the importer yet"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

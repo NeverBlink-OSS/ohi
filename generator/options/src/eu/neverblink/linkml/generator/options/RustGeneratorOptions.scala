@@ -54,4 +54,6 @@ final case class RustGeneratorOptions(
     */
   def infer(): RustGeneratorOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

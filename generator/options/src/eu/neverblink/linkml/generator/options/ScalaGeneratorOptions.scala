@@ -50,4 +50,6 @@ final case class ScalaGeneratorOptions(
     */
   override def infer(): ScalaGeneratorOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

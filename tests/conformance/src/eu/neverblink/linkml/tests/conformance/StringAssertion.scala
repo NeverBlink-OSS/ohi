@@ -35,4 +35,6 @@ final case class StringAssertion(
     */
   override def infer(): StringAssertion =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

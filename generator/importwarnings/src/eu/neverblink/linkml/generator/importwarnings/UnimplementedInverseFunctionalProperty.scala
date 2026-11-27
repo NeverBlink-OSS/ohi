@@ -45,4 +45,6 @@ final case class UnimplementedInverseFunctionalProperty(
         "Inverse functional property that is not supported by the importer yet",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

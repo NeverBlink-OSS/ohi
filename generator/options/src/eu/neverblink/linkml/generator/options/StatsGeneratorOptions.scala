@@ -39,4 +39,6 @@ final case class StatsGeneratorOptions(
     */
   override def infer(): StatsGeneratorOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -1,6 +1,7 @@
 package eu.neverblink.linkml.generator.typescript
 
 import eu.neverblink.linkml.generator.jsonschema.JsonRenamer
+import eu.neverblink.linkml.generator.util.Renamer
 import eu.neverblink.linkml.schemaview.{
   Case,
   ClassView,
@@ -122,10 +123,10 @@ object TypeScriptRenamer extends TypeScriptRenamer {
     * becomes `_`, and a leading digit or a reserved name gets an underscore in front.
     */
   private def usable(cased: String): String = {
-    val name =
-      cased.map(c => if Character.isLetterOrDigit(c) || c == '_' || c == '$' then c else '_')
-    if name.isEmpty then "__"
-    else if Case.isNumeric(name.head) || reserved.contains(name) then "_".concat(name)
-    else name
+    val name = Renamer.validStart(
+      cased.map(c => if Character.isLetterOrDigit(c) || c == '_' || c == '$' then c else '_'),
+      "__",
+    )
+    if reserved.contains(name) then "_".concat(name) else name
   }
 }

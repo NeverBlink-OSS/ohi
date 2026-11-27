@@ -54,4 +54,6 @@ final case class NonAsciiName(
         "Element '" + elementName + "' uses non-ASCII characters in its name",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -246,7 +246,7 @@ object LinkMlNativeApi {
     val result =
       importer.importWithWarnings(ByteArrayInputStream(document.getBytes(UTF_8)), options)
     val notImported =
-      JsonUtil.yamlToJson(LinkmlYamlCodec.derived[NotImported].encode(result.notImported))
+      JsonUtil.yamlToJson(LinkmlYamlCodec.derivedEncoder[NotImported].encode(result.notImported))
     loaded(importer.load(result.schema, options), None, inferMessages = true, notImported)
   }
 
@@ -261,7 +261,7 @@ object LinkMlNativeApi {
   ): Unit = {
     if document eq null then throw BadRequest("no document to import was given")
     val result = importer.importResult(ByteArrayInputStream(document.getBytes(UTF_8)), options)
-    JsonUtil.writeJson(LinkmlYamlCodec.derived[ImportResult].encode(result), out)
+    JsonUtil.writeJson(LinkmlYamlCodec.derivedEncoder[ImportResult].encode(result), out)
   }
 
   // Results that are structured, and so come back as JSON
@@ -404,7 +404,7 @@ object LinkMlNativeApi {
       runId: Option[String],
       inferMessages: Boolean,
   ): Node =
-    Codec.codec.encode(
+    Codec.encoder.encode(
       SchemaValidationReport(
         issues = if inferMessages then issues.map(_.infer()) else issues,
         validationRunId = runId,

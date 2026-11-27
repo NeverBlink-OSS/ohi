@@ -47,4 +47,6 @@ final case class LinkMlGeneratorOptions(
     */
   override def infer(): LinkMlGeneratorOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

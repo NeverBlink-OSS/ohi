@@ -55,4 +55,6 @@ final case class FlankingSeparator(
         "Element '" + elementName + "' name starts or ends with a separator. These separators will be stripped, as they are reserved for linkml use",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

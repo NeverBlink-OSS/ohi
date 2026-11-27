@@ -43,4 +43,6 @@ final case class RenamedTerm(
       detail = inferOptional("detail", detail, iri + " is named '" + name + "'"),
       kind = inferOptional("kind", kind, "Renamed to avoid a clash"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

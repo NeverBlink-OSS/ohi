@@ -32,4 +32,6 @@ final case class SerializeOptions(
     */
   override def infer(): SerializeOptions =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

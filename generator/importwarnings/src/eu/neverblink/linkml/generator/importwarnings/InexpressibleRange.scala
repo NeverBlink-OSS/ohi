@@ -44,4 +44,6 @@ final case class InexpressibleRange(
       detail = inferOptional("detail", detail, property + ": " + rangeExpression),
       kind = inferOptional("kind", kind, "Range inexpressible in LinkML"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

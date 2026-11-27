@@ -47,4 +47,6 @@ final case class SearchResult(
     */
   def infer(): SearchResult =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

@@ -62,4 +62,6 @@ final case class NonUniqueName(
         "Non-unique name '" + elementName + "' (renamed internally to '" + transformedName + "') used for " + usedFor,
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

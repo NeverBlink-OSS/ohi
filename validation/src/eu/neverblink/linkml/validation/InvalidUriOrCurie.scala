@@ -63,4 +63,6 @@ final case class InvalidUriOrCurie(
         ),
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

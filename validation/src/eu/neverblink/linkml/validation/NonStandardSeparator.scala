@@ -58,4 +58,6 @@ final case class NonStandardSeparator(
         ) + ". They will be replaced with underscores",
       ),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

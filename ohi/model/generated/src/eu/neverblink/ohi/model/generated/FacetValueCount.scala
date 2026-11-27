@@ -29,4 +29,6 @@ final case class FacetValueCount(
     */
   def infer(): FacetValueCount =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

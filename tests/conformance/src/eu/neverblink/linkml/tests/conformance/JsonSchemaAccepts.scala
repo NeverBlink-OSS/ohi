@@ -38,4 +38,6 @@ final case class JsonSchemaAccepts(
     */
   override def infer(): JsonSchemaAccepts =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

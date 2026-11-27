@@ -31,4 +31,6 @@ final case class LoadAction(
     */
   override def infer(): LoadAction =
     this
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

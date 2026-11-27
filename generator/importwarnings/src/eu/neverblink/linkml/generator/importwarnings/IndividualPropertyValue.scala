@@ -42,4 +42,6 @@ final case class IndividualPropertyValue(
       detail = inferOptional("detail", detail, individual + " " + property),
       kind = inferOptional("kind", kind, "Property value of an individual"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }

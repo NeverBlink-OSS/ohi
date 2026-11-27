@@ -42,4 +42,6 @@ final case class Derivation(
       detail = inferOptional("detail", detail, owner + ": " + expression),
       kind = inferOptional("kind", kind, "Derivation (`derived_by`), which is not read"),
     )
+
+  override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
 }
