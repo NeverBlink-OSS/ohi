@@ -154,9 +154,7 @@ public class SearchHit {
         this.contributors = contributors;
     }
 
-    /**
-     * The number of dependents. Sort or filter on it to find the publications others depend on most.
-     */
+    /** The number of dependents. */
     public Long getDependentCount() {
         return dependentCount;
     }

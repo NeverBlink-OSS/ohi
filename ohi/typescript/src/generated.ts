@@ -268,7 +268,7 @@ export interface SearchHit {
   base_url: string;
   /** The people or organizations that contributed to the ontology. */
   contributors?: Agent[];
-  /** The number of dependents. Sort or filter on it to find the publications others depend on most. */
+  /** The number of dependents. */
   dependent_count?: number;
   /** The base_urls of publications whose dependencies include this one. */
   dependents?: string[];

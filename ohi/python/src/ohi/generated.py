@@ -419,7 +419,7 @@ class SearchHit(LinkMLModel):
     contributors: list[Agent] | None = None
     """The people or organizations that contributed to the ontology."""
     dependent_count: Annotated[StrictInt, Field(ge=0)] | None = None
-    """The number of dependents. Sort or filter on it to find the publications others depend on most."""
+    """The number of dependents."""
     dependents: list[str] | None = None
     """The base_urls of publications whose dependencies include this one."""
     description: Annotated[str, Field(pattern=r"^[\s\S]*\S")]

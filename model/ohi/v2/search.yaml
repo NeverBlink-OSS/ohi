@@ -100,8 +100,7 @@ classes:
         range: uri
         multivalued: true
       dependent_count:
-        description: The number of dependents. Sort or filter on it to find the publications others
-          depend on most.
+        description: The number of dependents.
         range: integer
         minimum_value: 0
   FacetCount:

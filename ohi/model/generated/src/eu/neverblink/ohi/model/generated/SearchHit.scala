@@ -15,7 +15,7 @@ import eu.neverblink.linkml.runtime.*
   * @param contributors
   *   The people or organizations that contributed to the ontology.
   * @param dependentCount
-  *   The number of dependents. Sort or filter on it to find the publications others depend on most.
+  *   The number of dependents.
   * @param dependents
   *   The base_urls of publications whose dependencies include this one.
   * @param description
