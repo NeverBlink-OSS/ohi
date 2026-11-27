@@ -47,7 +47,24 @@ private[cli] object SearchOutput {
 
     result.hits.foreach { hit =>
       output += ""
-      text(hit.title, "1")
+      val seal = hit.qualityScore.collect {
+        case score if score >= 80 => ("[★★★ Gold]", "33")
+        case score if score >= 65 => ("[★★ Silver]", "37")
+        case score if score >= 50 => ("[★ Bronze]", "33")
+      }
+      val title = wrap(hit.title, width, "", "")
+      output ++= title.init.map(styled(_, "1", colored))
+      seal match {
+        case Some((label, color)) =>
+          val last = styled(title.last, "1", colored)
+          val badge = styled(label, color, colored)
+          if length(title.last) + 2 + length(label) <= width then output += s"$last  $badge"
+          else {
+            output += last
+            output += badge
+          }
+        case None => output += styled(title.last, "1", colored)
+      }
       val identity = clean(s"${hit.namespace}/${hit.name}")
       val version = clean(hit.version)
       val heading = s"  Ontology: $identity | Version: $version"
