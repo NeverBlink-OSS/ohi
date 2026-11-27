@@ -55,4 +55,18 @@ object Format {
     *   From schema: https://ohi.neverblink.eu/contracts/publication-fields
     */
   @named("shacl-turtle") case object ShaclTurtle extends Format
+
+  /** LinkML in JSON syntax.
+    *
+    * @see
+    *   From schema: https://ohi.neverblink.eu/contracts/publication-fields
+    */
+  @named("linkml-json") case object LinkmlJson extends Format
+
+  /** Apache Ossie in JSON syntax.
+    *
+    * @see
+    *   From schema: https://ohi.neverblink.eu/contracts/publication-fields
+    */
+  @named("ossie-json") case object OssieJson extends Format
 }

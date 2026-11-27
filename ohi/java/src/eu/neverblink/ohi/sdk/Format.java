@@ -23,7 +23,13 @@ public enum Format {
     OSSIE_YAML("ossie-yaml"),
 
     /** SHACL shapes in Turtle syntax. */
-    SHACL_TURTLE("shacl-turtle");
+    SHACL_TURTLE("shacl-turtle"),
+
+    /** LinkML in JSON syntax. */
+    LINKML_JSON("linkml-json"),
+
+    /** Apache Ossie in JSON syntax. */
+    OSSIE_JSON("ossie-json");
 
     private final String value;
 

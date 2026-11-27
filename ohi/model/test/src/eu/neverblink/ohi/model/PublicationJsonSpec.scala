@@ -207,6 +207,8 @@ class PublicationJsonSpec extends AnyWordSpec, Matchers {
         "rdfs-turtle" -> Format.RdfsTurtle,
         "ossie-yaml" -> Format.OssieYaml,
         "shacl-turtle" -> Format.ShaclTurtle,
+        "linkml-json" -> Format.LinkmlJson,
+        "ossie-json" -> Format.OssieJson,
       )
     ) {
       s"map format $label" in {

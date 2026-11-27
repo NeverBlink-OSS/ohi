@@ -97,6 +97,10 @@ class Format(str, Enum):
     """Apache Ossie in YAML syntax."""
     shacl_turtle = "shacl-turtle"
     """SHACL shapes in Turtle syntax."""
+    linkml_json = "linkml-json"
+    """LinkML in JSON syntax."""
+    ossie_json = "ossie-json"
+    """Apache Ossie in JSON syntax."""
 
 
 class LockErrorCode(str, Enum):

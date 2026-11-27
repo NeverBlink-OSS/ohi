@@ -411,7 +411,9 @@ export type Format =
   | "rdfs-turtle"
   | "linkml-yaml"
   | "ossie-yaml"
-  | "shacl-turtle";
+  | "shacl-turtle"
+  | "linkml-json"
+  | "ossie-json";
 
 export type LockErrorCode =
   | "INVALID_LOCK"
