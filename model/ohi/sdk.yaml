@@ -10,7 +10,7 @@ default_prefix: ohi
 imports:
 - v2/package
 - v2/search
-- v2/tags
+- v2/domains
 - search-request
 - catalog-config
 - catalog-error

@@ -21,11 +21,11 @@ To browse a particular namespace, use a filter:
 ohi search '*' --filter-by 'namespace:=w3c'
 ```
 
-To browse a topic, filter by a tag. `ohi tags` lists the tags and their ids:
+To browse an area of knowledge, filter by its domain. `ohi domains` lists the domains and their ids:
 
 ```sh
-ohi tags
-ohi search '*' --filter-by 'tags:=health-and-medicine'
+ohi domains
+ohi search '*' --filter-by 'domains:=health-and-medicine'
 ```
 
 Search shows five results per page. For more results, request another page, or more results per

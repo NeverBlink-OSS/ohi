@@ -34,6 +34,7 @@ import java.util.Objects;
     "contributors",
     "dependencies",
     "description",
+    "domains",
     "element_count",
     "hub_version",
     "keywords",
@@ -53,7 +54,6 @@ import java.util.Objects;
     "publishers",
     "revision",
     "schema_version",
-    "tags",
     "title",
     "version",
 })
@@ -75,6 +75,9 @@ public class Publication {
 
     @JsonProperty("description")
     private String description;
+
+    @JsonProperty("domains")
+    private List<String> domains;
 
     @JsonProperty("element_count")
     private Long elementCount;
@@ -131,9 +134,6 @@ public class Publication {
 
     @JsonProperty("schema_version")
     private Long schemaVersion;
-
-    @JsonProperty("tags")
-    private List<String> tags;
 
     @JsonProperty("title")
     private String title;
@@ -201,6 +201,15 @@ public class Publication {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    /** Thematic areas of the ontology, as ids of domains in the Hub. */
+    public List<String> getDomains() {
+        return domains;
+    }
+
+    public void setDomains(List<String> domains) {
+        this.domains = domains;
     }
 
     /** Number of LinkML elements in the publication. */
@@ -388,15 +397,6 @@ public class Publication {
         this.schemaVersion = schemaVersion;
     }
 
-    /** Thematic areas of the ontology, as ids of tags in the Hub. */
-    public List<String> getTags() {
-        return tags;
-    }
-
-    public void setTags(List<String> tags) {
-        this.tags = tags;
-    }
-
     /** Display title of the ontology. */
     public String getTitle() {
         return title;
@@ -435,6 +435,7 @@ public class Publication {
             && Objects.equals(contributors, other.contributors)
             && Objects.equals(dependencies, other.dependencies)
             && Objects.equals(description, other.description)
+            && Objects.equals(domains, other.domains)
             && Objects.equals(elementCount, other.elementCount)
             && Objects.equals(hubVersion, other.hubVersion)
             && Objects.equals(keywords, other.keywords)
@@ -454,7 +455,6 @@ public class Publication {
             && Objects.equals(publishers, other.publishers)
             && Objects.equals(revision, other.revision)
             && Objects.equals(schemaVersion, other.schemaVersion)
-            && Objects.equals(tags, other.tags)
             && Objects.equals(title, other.title)
             && Objects.equals(version, other.version)
             && Objects.equals(extraProperties, other.extraProperties);
@@ -462,7 +462,7 @@ public class Publication {
 
     @Override
     public int hashCode() {
-        return Objects.hash(artifacts, authors, baseUrl, contributors, dependencies, description, elementCount, hubVersion, keywords, licenseFiles, licenses, maintainers, name, namespace, namespaceIri, nativeElementCount, originalSources, preferredPrefix, provenance, publications, publishedAt, publisher, publishers, revision, schemaVersion, tags, title, version, extraProperties);
+        return Objects.hash(artifacts, authors, baseUrl, contributors, dependencies, description, domains, elementCount, hubVersion, keywords, licenseFiles, licenses, maintainers, name, namespace, namespaceIri, nativeElementCount, originalSources, preferredPrefix, provenance, publications, publishedAt, publisher, publishers, revision, schemaVersion, title, version, extraProperties);
     }
 
     @Override
@@ -474,6 +474,7 @@ public class Publication {
             + ", contributors=" + getContributors()
             + ", dependencies=" + getDependencies()
             + ", description=" + getDescription()
+            + ", domains=" + getDomains()
             + ", elementCount=" + getElementCount()
             + ", hubVersion=" + getHubVersion()
             + ", keywords=" + getKeywords()
@@ -493,7 +494,6 @@ public class Publication {
             + ", publishers=" + getPublishers()
             + ", revision=" + getRevision()
             + ", schemaVersion=" + getSchemaVersion()
-            + ", tags=" + getTags()
             + ", title=" + getTitle()
             + ", version=" + getVersion()
             + ", extraProperties=" + getExtraProperties()
@@ -510,6 +510,7 @@ public class Publication {
             @JsonProperty("contributors") @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> contributors,
             @JsonProperty(value = "dependencies", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Dependency> dependencies,
             @JsonProperty(value = "description", required = true) String description,
+            @JsonProperty("domains") @JsonSetter(contentNulls = Nulls.FAIL) List<String> domains,
             @JsonProperty("element_count") Long elementCount,
             @JsonProperty("hub_version") String hubVersion,
             @JsonProperty(value = "keywords", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<String> keywords,
@@ -529,7 +530,6 @@ public class Publication {
             @JsonProperty(value = "publishers", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> publishers,
             @JsonProperty("revision") RevisionInfo revision,
             @JsonProperty(value = "schema_version", required = true) Long schemaVersion,
-            @JsonProperty("tags") @JsonSetter(contentNulls = Nulls.FAIL) List<String> tags,
             @JsonProperty(value = "title", required = true) String title,
             @JsonProperty(value = "version", required = true) String version) {
         Publication json$item = new Publication();
@@ -539,6 +539,7 @@ public class Publication {
         json$item.setContributors(contributors);
         json$item.setDependencies(dependencies);
         json$item.setDescription(description);
+        json$item.setDomains(domains);
         json$item.setElementCount(elementCount);
         json$item.setHubVersion(hubVersion);
         json$item.setKeywords(keywords);
@@ -558,7 +559,6 @@ public class Publication {
         json$item.setPublishers(publishers);
         json$item.setRevision(revision);
         json$item.setSchemaVersion(schemaVersion);
-        json$item.setTags(tags);
         json$item.setTitle(title);
         json$item.setVersion(version);
         return json$item;

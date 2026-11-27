@@ -19,7 +19,7 @@ public enum CatalogErrorCode {
     TIMEOUT("TIMEOUT"),
 
     /**
-     * A successful search, publication or tag list response, or HTTP content coding, cannot be decoded.
+     * A successful search, publication or domain list response, or HTTP content coding, cannot be decoded.
      */
     INVALID_RESPONSE("INVALID_RESPONSE");
 

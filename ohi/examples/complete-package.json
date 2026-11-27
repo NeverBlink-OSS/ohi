@@ -10,7 +10,7 @@
     "sensors",
     "observations"
   ],
-  "tags": [
+  "domains": [
     "internet-of-things",
     "units-and-measurement"
   ],

@@ -16,6 +16,8 @@ import eu.neverblink.linkml.runtime.*
   *   The people or organizations that contributed to the ontology.
   * @param description
   *   Short description of the ontology's domain and intended use.
+  * @param domains
+  *   Thematic areas of the ontology, as ids of domains in the Hub.
   * @param elementCount
   *   Number of LinkML elements in the publication.
   * @param formats
@@ -54,8 +56,6 @@ import eu.neverblink.linkml.runtime.*
   * @param revisionId
   *   The id of the revision, only for a revision. The latest revision of a version is its document
   *   in packages_latest_revision.
-  * @param tags
-  *   Thematic areas of the ontology, as ids of tags in the Hub.
   * @param title
   *   Display title of the ontology.
   * @param version
@@ -70,6 +70,7 @@ final case class SearchHit(
     baseUrl: Uri,
     contributors: Seq[Agent] = Seq(),
     description: String,
+    domains: Seq[String] = Seq(),
     @named("element_count")
     elementCount: Option[Int] = None,
     formats: Seq[Format],
@@ -92,7 +93,6 @@ final case class SearchHit(
     publishers: Seq[Agent],
     @named("revision_id")
     revisionId: Option[String] = None,
-    tags: Seq[String] = Seq(),
     title: String,
     version: String,
 ) {

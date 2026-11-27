@@ -40,7 +40,7 @@ object CatalogErrorCode {
     */
   @named("TIMEOUT") case object Timeout extends CatalogErrorCode
 
-  /** A successful search, publication or tag list response, or HTTP content coding, cannot be
+  /** A successful search, publication or domain list response, or HTTP content coding, cannot be
     * decoded.
     *
     * @see

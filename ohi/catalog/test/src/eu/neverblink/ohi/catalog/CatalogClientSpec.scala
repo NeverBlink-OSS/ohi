@@ -320,32 +320,32 @@ class CatalogClientSpec extends AnyWordSpec, Matchers {
     }
   }
 
-  "CatalogClient.tags" should {
-    "get the tag list next to the search_url" in {
-      val tags = Files.readAllBytes(
-        Path.of(sys.env("MILL_WORKSPACE_ROOT"), "ohi", "examples", "tags.json"),
+  "CatalogClient.domains" should {
+    "get the domain list next to the search_url" in {
+      val domains = Files.readAllBytes(
+        Path.of(sys.env("MILL_WORKSPACE_ROOT"), "ohi", "examples", "domains.json"),
       )
-      withServer(exchange => reply(exchange, 200, tags)) { (url, requests) =>
-        val result = configured(url + searchPath).tags()
+      withServer(exchange => reply(exchange, 200, domains)) { (url, requests) =>
+        val result = configured(url + searchPath).domains()
         result.groups.map(_.id) shouldBe Seq("technology", "cross-domain")
-        result.tags.map(_.id) shouldBe
+        result.domains.map(_.id) shouldBe
           Seq("internet-of-things", "units-and-measurement", "sensor-networks")
-        result.tags.head.title shouldBe "Internet of things"
-        result.tags.head.group shouldBe Some("technology")
-        result.tags.head.deprecated shouldBe None
-        result.tags(2).deprecated shouldBe Some("Use internet-of-things")
-        result.tags(2).description shouldBe None
-        result.tags(2).group shouldBe None
-        requests.asScala.toSeq shouldBe Seq("/files/tags_v1.json" -> "identity")
+        result.domains.head.title shouldBe "Internet of things"
+        result.domains.head.group shouldBe Some("technology")
+        result.domains.head.deprecated shouldBe None
+        result.domains(2).deprecated shouldBe Some("Use internet-of-things")
+        result.domains(2).description shouldBe None
+        result.domains(2).group shouldBe None
+        requests.asScala.toSeq shouldBe Seq("/files/domains_v1.json" -> "identity")
       }
     }
 
     "fail with an invalid response on an invalid list" in {
-      val body = """{"groups": [], "tags": [{"id": "energy"}]}""".getBytes(UTF_8)
+      val body = """{"groups": [], "domains": [{"id": "energy"}]}""".getBytes(UTF_8)
       withServer(exchange => reply(exchange, 200, body)) { (url, _) =>
-        val target = url + "/files/tags_v1.json"
-        error(CatalogErrorCode.InvalidResponse, CatalogOperation.Tags, Some(target), Some(200))(
-          configured(url + searchPath).tags(),
+        val target = url + "/files/domains_v1.json"
+        error(CatalogErrorCode.InvalidResponse, CatalogOperation.Domains, Some(target), Some(200))(
+          configured(url + searchPath).domains(),
         )
       }
     }

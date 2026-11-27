@@ -95,7 +95,7 @@ class AppSpec extends AnyWordSpec, Matchers {
         (engineCommands.map(_._1) ++ generateAliases ++ versionNames ++ Seq(
           "search",
           "inspect",
-          "tags",
+          "domains",
           "get",
           "init",
           "add",

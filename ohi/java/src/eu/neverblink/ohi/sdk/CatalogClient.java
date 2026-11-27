@@ -41,7 +41,7 @@ public final class CatalogClient {
     private final String latestUrl;
     private final String latestRevisionUrl;
     private final String filesUrl;
-    private final String tagsUrl;
+    private final String domainsUrl;
     private final String queryBy;
     private final long timeoutMs;
     private final HttpClient http;
@@ -86,7 +86,7 @@ public final class CatalogClient {
         this.latestUrl = base + "/search/collections/packages_latest/documents/search";
         this.latestRevisionUrl = base + "/search/collections/packages_latest_revision/documents/search";
         this.filesUrl = base + "/files/packages/";
-        this.tagsUrl = base + "/files/tags_v1.json";
+        this.domainsUrl = base + "/files/domains_v1.json";
         this.http = HttpClient.newBuilder()
                 .followRedirects(HttpClient.Redirect.NEVER)
                 .connectTimeout(Duration.ofMillis(timeoutMs))
@@ -233,26 +233,26 @@ public final class CatalogClient {
     }
 
     /**
-     * The Hub's tag list, with the metadata of the tag ids that publications and search hits hold.
-     * Fetch it again to see new tags. Properties that the model doesn't have are discarded.
+     * The Hub's domain list, with the metadata of the domain ids that publications and search hits hold.
+     * Fetch it again to see new domains. Properties that the model doesn't have are discarded.
      *
      * @throws CatalogException if the request fails or the list is invalid
      */
-    public TagList tags() {
-        byte[] body = request(httpUrl(tagsUrl, CatalogOperation.TAGS), CatalogOperation.TAGS, tagsUrl);
-        TagList tags;
+    public DomainList domains() {
+        byte[] body = request(httpUrl(domainsUrl, CatalogOperation.DOMAINS), CatalogOperation.DOMAINS, domainsUrl);
+        DomainList domains;
         try {
-            tags = Json.MAPPER.readValue(new String(body, StandardCharsets.UTF_8), TagList.class);
+            domains = Json.MAPPER.readValue(new String(body, StandardCharsets.UTF_8), DomainList.class);
         } catch (JsonProcessingException e) {
-            throw failure(CatalogErrorCode.INVALID_RESPONSE, CatalogOperation.TAGS, tagsUrl, 200,
-                    "The tag list is invalid: " + e.getOriginalMessage(), e);
+            throw failure(CatalogErrorCode.INVALID_RESPONSE, CatalogOperation.DOMAINS, domainsUrl, 200,
+                    "The domain list is invalid: " + e.getOriginalMessage(), e);
         }
-        if (tags == null) {
-            throw failure(CatalogErrorCode.INVALID_RESPONSE, CatalogOperation.TAGS, tagsUrl, 200,
-                    "The tag list is invalid: null", null);
+        if (domains == null) {
+            throw failure(CatalogErrorCode.INVALID_RESPONSE, CatalogOperation.DOMAINS, domainsUrl, 200,
+                    "The domain list is invalid: null", null);
         }
-        tags.getExtraProperties().clear();
-        return tags;
+        domains.getExtraProperties().clear();
+        return domains;
     }
 
     private static void parameter(StringBuilder query, String name, Object value) {

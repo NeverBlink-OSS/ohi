@@ -11,7 +11,7 @@
       "description": "General building blocks used across domains."
     }
   ],
-  "tags": [
+  "domains": [
     {
       "id": "internet-of-things",
       "title": "Internet of things",

@@ -617,22 +617,22 @@ class CatalogTests(unittest.TestCase):
         url = self.route("/publication", b"{}")
         self.assert_failure(lambda: self.client().inspect(url), "INVALID_RESPONSE", "INSPECT", url, 200)
 
-    def test_tags_gets_the_tag_list_next_to_the_search_url(self):
-        self.route("/files/tags_v1.json", (EXAMPLES / "tags.json").read_bytes())
-        result = self.search_client().tags()
+    def test_domains_gets_the_domain_list_next_to_the_search_url(self):
+        self.route("/files/domains_v1.json", (EXAMPLES / "domains.json").read_bytes())
+        result = self.search_client().domains()
         self.assertEqual([group.id for group in result.groups], ["technology", "cross-domain"])
-        self.assertEqual([tag.id for tag in result.tags],
+        self.assertEqual([domain.id for domain in result.domains],
                          ["internet-of-things", "units-and-measurement", "sensor-networks"])
-        self.assertEqual((result.tags[0].title, result.tags[0].group), ("Internet of things", "technology"))
-        self.assertIsNone(result.tags[0].deprecated)
-        self.assertEqual(result.tags[2].deprecated, "Use internet-of-things")
-        self.assertIsNone(result.tags[2].description)
-        self.assertIsNone(result.tags[2].group)
-        self.assertEqual(self.server.requests, [("/files/tags_v1.json", "identity")])
+        self.assertEqual((result.domains[0].title, result.domains[0].group), ("Internet of things", "technology"))
+        self.assertIsNone(result.domains[0].deprecated)
+        self.assertEqual(result.domains[2].deprecated, "Use internet-of-things")
+        self.assertIsNone(result.domains[2].description)
+        self.assertIsNone(result.domains[2].group)
+        self.assertEqual(self.server.requests, [("/files/domains_v1.json", "identity")])
 
-    def test_invalid_tag_list_is_invalid_response(self):
-        url = self.route("/files/tags_v1.json", b'{"groups": [], "tags": [{"id": "energy"}]}')
-        self.assert_failure(lambda: self.search_client().tags(), "INVALID_RESPONSE", "TAGS", url, 200)
+    def test_invalid_domain_list_is_invalid_response(self):
+        url = self.route("/files/domains_v1.json", b'{"groups": [], "domains": [{"id": "energy"}]}')
+        self.assert_failure(lambda: self.search_client().domains(), "INVALID_RESPONSE", "DOMAINS", url, 200)
 
     def test_refused_connection_has_no_status(self):
         with socket.socket() as sock:

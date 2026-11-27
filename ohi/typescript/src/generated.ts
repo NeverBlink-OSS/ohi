@@ -77,6 +77,41 @@ export interface Dependency {
   [key: string]: unknown;
 }
 
+/** A thematic area of an ontology. */
+export interface Domain {
+  /** Why the domain is retired, such as "Use health-and-medicine". New publications can't use it; old publications that use it keep it. Absent on nondeprecated domains. */
+  deprecated?: string;
+  /** What the domain covers. */
+  description?: string;
+  /** Id of the group the domain belongs to. Absent on a domain in no group. */
+  group?: string;
+  /** Permanent identifier of the domain, such as health-and-medicine. */
+  id: string;
+  /** Display name of the domain. */
+  title: string;
+  [key: string]: unknown;
+}
+
+/** A group of domains. */
+export interface DomainGroup {
+  /** What the group covers. */
+  description?: string;
+  /** Permanent identifier of the group, such as life-sciences. */
+  id: string;
+  /** Display name of the group. */
+  title: string;
+  [key: string]: unknown;
+}
+
+/** Every domain and domain group of the Hub. Publications and search hits hold only domain ids; their metadata is here. */
+export interface DomainList {
+  /** The domains. */
+  domains: Domain[];
+  /** The groups of domains. */
+  groups: DomainGroup[];
+  [key: string]: unknown;
+}
+
 /** Counts for the returned values of one indexed field. */
 export interface FacetCount {
   /** Value counts in search-result order. */
@@ -191,6 +226,8 @@ export interface Publication {
   dependencies: Dependency[];
   /** Short description of the ontology's domain and intended use. */
   description: string;
+  /** Thematic areas of the ontology, as ids of domains in the Hub. */
+  domains?: string[];
   /** Number of LinkML elements in the publication. */
   element_count?: number;
   /** Hub version that released this publication. */
@@ -229,8 +266,6 @@ export interface Publication {
   revision?: RevisionInfo;
   /** Metadata contract revision, independent of the ontology's version. */
   schema_version: number;
-  /** Thematic areas of the ontology, as ids of tags in the Hub. */
-  tags?: string[];
   /** Display title of the ontology. */
   title: string;
   /** Complete publication version label, including the revision id if present. */
@@ -270,6 +305,8 @@ export interface SearchHit {
   contributors?: Agent[];
   /** Short description of the ontology's domain and intended use. */
   description: string;
+  /** Thematic areas of the ontology, as ids of domains in the Hub. */
+  domains?: string[];
   /** Number of LinkML elements in the publication. */
   element_count?: number;
   /** Formats of the publication's available artifacts. Each value identifies both the ontology language and serialization syntax, as in artifact.format. */
@@ -300,8 +337,6 @@ export interface SearchHit {
   publishers: Agent[];
   /** The id of the revision, only for a revision. The latest revision of a version is its document in packages_latest_revision. */
   revision_id?: string;
-  /** Thematic areas of the ontology, as ids of tags in the Hub. */
-  tags?: string[];
   /** Display title of the ontology. */
   title: string;
   /** Complete publication version label, including the revision id if present. */
@@ -346,41 +381,6 @@ export interface SearchResult {
   [key: string]: unknown;
 }
 
-/** A thematic area of an ontology. */
-export interface Tag {
-  /** Why the tag is retired, such as "Use health-and-medicine". New publications can't use it; old publications that use it keep it. Absent on nondeprecated tags. */
-  deprecated?: string;
-  /** What the tag covers. */
-  description?: string;
-  /** Id of the group the tag belongs to. Absent on a tag in no group. */
-  group?: string;
-  /** Permanent identifier of the tag, such as health-and-medicine. */
-  id: string;
-  /** Display name of the tag. */
-  title: string;
-  [key: string]: unknown;
-}
-
-/** A group of tags. */
-export interface TagGroup {
-  /** What the group covers. */
-  description?: string;
-  /** Permanent identifier of the group, such as life-sciences. */
-  id: string;
-  /** Display name of the group. */
-  title: string;
-  [key: string]: unknown;
-}
-
-/** Every tag and tag group of the Hub. Publications and search hits hold only tag ids; their metadata is here. */
-export interface TagList {
-  /** The groups of tags. */
-  groups: TagGroup[];
-  /** The tags. */
-  tags: Tag[];
-  [key: string]: unknown;
-}
-
 /** Origin of published artifact content. */
 export type ArtifactOrigin =
   | "UPSTREAM"
@@ -398,7 +398,7 @@ export type CatalogOperation =
   | "SEARCH"
   | "INSPECT"
   | "GET"
-  | "TAGS";
+  | "DOMAINS";
 
 /** A combination of ontology language and syntax. */
 export type Format =

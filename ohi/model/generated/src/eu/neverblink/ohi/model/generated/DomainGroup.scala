@@ -5,7 +5,7 @@ package eu.neverblink.ohi.model.generated
 
 import eu.neverblink.linkml.runtime.*
 
-/** A group of tags.
+/** A group of domains.
   *
   * @param description
   *   What the group covers.
@@ -14,10 +14,10 @@ import eu.neverblink.linkml.runtime.*
   * @param title
   *   Display name of the group.
   * @see
-  *   From schema: https://ohi.neverblink.eu/contracts/tags
+  *   From schema: https://ohi.neverblink.eu/contracts/domains
   */
 @extraSlotsAllowed
-final case class TagGroup(
+final case class DomainGroup(
     description: Option[String] = None,
     id: String,
     title: String,
@@ -30,7 +30,7 @@ final case class TagGroup(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  def infer(): TagGroup =
+  def infer(): DomainGroup =
     this
 
   override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
