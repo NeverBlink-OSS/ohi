@@ -1,11 +1,11 @@
 {
   "name": "ohi",
-  "description": "Use ohi for ontology discovery, file acquisition and project selections, with LinkML schema authoring and engine guidance.",
+  "description": "Find, download and pin ontologies from ohi.dev, and author, validate, import and generate LinkML schemas, all with the ohi CLI.",
   "author": {
     "name": "NeverBlink",
     "url": "https://neverblink.eu"
   },
-  "homepage": "https://github.com/NeverBlink-OSS/ohi/tree/main/cli/ohi",
+  "homepage": "https://github.com/NeverBlink-OSS/ohi/tree/main/.agents",
   "repository": "https://github.com/NeverBlink-OSS/ohi",
   "license": "Apache-2.0",
   "keywords": [
@@ -13,23 +13,27 @@
     "ontology",
     "linkml",
     "schema",
+    "owl",
+    "rdf",
+    "shacl",
+    "json-schema",
     "validation",
     "code-generation"
   ],
   "skills": "./skills",
   "interface": {
-    "displayName": "ohi + LinkML",
-    "shortDescription": "Acquire ontologies with ohi and work with LinkML schemas.",
-    "longDescription": "Use ohi for ontology discovery, file acquisition and project selections, with LinkML schema authoring and engine guidance.",
+    "displayName": "ohi",
+    "shortDescription": "Find ontologies on ohi.dev and work with LinkML schemas.",
+    "longDescription": "Find, download and pin ontologies from ohi.dev, and author, validate, review and release LinkML schemas. Covers ohi.yaml project records, importing OWL, RDFS and Apache Ossie ontologies into LinkML, bootstrapping from SHACL, JSON Schema, XSD or sample data, instance-data validation and GitHub Actions setup.",
     "developerName": "NeverBlink",
     "category": "Development",
     "capabilities": [
       "Skills"
     ],
-    "websiteURL": "https://github.com/NeverBlink-OSS/ohi/tree/main/cli/ohi",
+    "websiteURL": "https://ohi.dev",
     "defaultPrompt": [
-      "Find and download an ontology with ohi",
-      "Record an ontology selection in my project",
+      "Find a provenance ontology on ohi.dev and download it",
+      "Add an ontology to my project's ohi.yaml",
       "Create and validate a LinkML schema"
     ],
     "brandColor": "#8A2BE2"

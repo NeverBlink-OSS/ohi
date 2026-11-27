@@ -28,7 +28,7 @@ JSON Schema, SHACL, RDFS, Frictionless data packages and code from it. This skil
 ## Toolchain
 
 ```shell
-ohi version     # 0.17.1 or newer is required
+ohi version     # 0.18.7 or newer is required
 ```
 
 If the CLI is missing or too old, offer the
@@ -157,6 +157,9 @@ Importers: `owl`, `ossie`.
 Turtle or N-Triples. `from ossie` reads an [Apache Ossie](https://github.com/apache/ossie)
 ontology. Both keep the source IRIs, and the result usually needs only small manual fixes. How to
 import, check and finish the result is in [300-bootstrap.md](300-bootstrap.md).
+
+Many published ontologies are already on [ohi.dev](https://ohi.dev) as `linkml-yaml`, ready to
+import or reuse. Use the `ohi` skill to find and download them before converting one yourself.
 
 ## Topics
 
