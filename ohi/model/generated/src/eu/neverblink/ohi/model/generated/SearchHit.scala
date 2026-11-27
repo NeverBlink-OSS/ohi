@@ -17,9 +17,7 @@ import eu.neverblink.linkml.runtime.*
   * @param dependentCount
   *   The number of dependents. Sort or filter on it to find the publications others depend on most.
   * @param dependents
-  *   The base_url of each publication whose dependencies include this one, directly or indirectly.
-  *   The inverse of a publication's dependencies. Each base_url occurs once, in no particular
-  *   order. An empty list means no publication depends on this one.
+  *   The base_urls of publications whose dependencies include this one.
   * @param description
   *   Short description of the ontology's domain and intended use.
   * @param elementCount

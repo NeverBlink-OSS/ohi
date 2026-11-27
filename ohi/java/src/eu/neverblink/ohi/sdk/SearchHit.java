@@ -165,9 +165,7 @@ public class SearchHit {
         this.dependentCount = dependentCount;
     }
 
-    /**
-     * The base_url of each publication whose dependencies include this one, directly or indirectly. The inverse of a publication's dependencies. Each base_url occurs once, in no particular order. An empty list means no publication depends on this one.
-     */
+    /** The base_urls of publications whose dependencies include this one. */
     public List<String> getDependents() {
         return dependents;
     }

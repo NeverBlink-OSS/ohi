@@ -270,7 +270,7 @@ export interface SearchHit {
   contributors?: Agent[];
   /** The number of dependents. Sort or filter on it to find the publications others depend on most. */
   dependent_count?: number;
-  /** The base_url of each publication whose dependencies include this one, directly or indirectly. The inverse of a publication's dependencies. Each base_url occurs once, in no particular order. An empty list means no publication depends on this one. */
+  /** The base_urls of publications whose dependencies include this one. */
   dependents?: string[];
   /** Short description of the ontology's domain and intended use. */
   description: string;
