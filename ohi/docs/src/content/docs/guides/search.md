@@ -21,7 +21,7 @@ To browse a particular namespace, use a filter:
 ohi search '*' --filter-by 'namespace:=w3c'
 ```
 
-To browse an area of knowledge, filter by its domain. `ohi domains` lists the domains and their ids:
+To browse a thematic area, filter by its domain. `ohi domains` lists the domains and their ids:
 
 ```sh
 ohi domains
