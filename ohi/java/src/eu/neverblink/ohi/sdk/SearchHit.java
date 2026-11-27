@@ -29,6 +29,8 @@ import java.util.Objects;
     "authors",
     "base_url",
     "contributors",
+    "dependent_count",
+    "dependents",
     "description",
     "element_count",
     "formats",
@@ -58,6 +60,12 @@ public class SearchHit {
 
     @JsonProperty("contributors")
     private List<Agent> contributors;
+
+    @JsonProperty("dependent_count")
+    private Long dependentCount;
+
+    @JsonProperty("dependents")
+    private List<String> dependents;
 
     @JsonProperty("description")
     private String description;
@@ -144,6 +152,28 @@ public class SearchHit {
 
     public void setContributors(List<Agent> contributors) {
         this.contributors = contributors;
+    }
+
+    /**
+     * The number of dependents. Sort or filter on it to find the publications others depend on most.
+     */
+    public Long getDependentCount() {
+        return dependentCount;
+    }
+
+    public void setDependentCount(Long dependentCount) {
+        this.dependentCount = dependentCount;
+    }
+
+    /**
+     * The base_url of each publication whose dependencies include this one, directly or indirectly. The inverse of a publication's dependencies. Each base_url occurs once, in no particular order. An empty list means no publication depends on this one.
+     */
+    public List<String> getDependents() {
+        return dependents;
+    }
+
+    public void setDependents(List<String> dependents) {
+        this.dependents = dependents;
     }
 
     /** Short description of the ontology's domain and intended use. */
@@ -348,6 +378,8 @@ public class SearchHit {
         return Objects.equals(authors, other.authors)
             && Objects.equals(baseUrl, other.baseUrl)
             && Objects.equals(contributors, other.contributors)
+            && Objects.equals(dependentCount, other.dependentCount)
+            && Objects.equals(dependents, other.dependents)
             && Objects.equals(description, other.description)
             && Objects.equals(elementCount, other.elementCount)
             && Objects.equals(formats, other.formats)
@@ -372,7 +404,7 @@ public class SearchHit {
 
     @Override
     public int hashCode() {
-        return Objects.hash(authors, baseUrl, contributors, description, elementCount, formats, hubVersion, keywords, licenses, maintainers, name, namespace, nativeElementCount, originalSources, originalVersion, publications, publishedAt, publishers, revisionId, tags, title, version, extraProperties);
+        return Objects.hash(authors, baseUrl, contributors, dependentCount, dependents, description, elementCount, formats, hubVersion, keywords, licenses, maintainers, name, namespace, nativeElementCount, originalSources, originalVersion, publications, publishedAt, publishers, revisionId, tags, title, version, extraProperties);
     }
 
     @Override
@@ -381,6 +413,8 @@ public class SearchHit {
             + "authors=" + getAuthors()
             + ", baseUrl=" + getBaseUrl()
             + ", contributors=" + getContributors()
+            + ", dependentCount=" + getDependentCount()
+            + ", dependents=" + getDependents()
             + ", description=" + getDescription()
             + ", elementCount=" + getElementCount()
             + ", formats=" + getFormats()
@@ -411,6 +445,8 @@ public class SearchHit {
             @JsonProperty(value = "authors", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> authors,
             @JsonProperty(value = "base_url", required = true) String baseUrl,
             @JsonProperty("contributors") @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> contributors,
+            @JsonProperty("dependent_count") Long dependentCount,
+            @JsonProperty("dependents") @JsonSetter(contentNulls = Nulls.FAIL) List<String> dependents,
             @JsonProperty(value = "description", required = true) String description,
             @JsonProperty("element_count") Long elementCount,
             @JsonProperty(value = "formats", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Format> formats,
@@ -434,6 +470,8 @@ public class SearchHit {
         json$item.setAuthors(authors);
         json$item.setBaseUrl(baseUrl);
         json$item.setContributors(contributors);
+        json$item.setDependentCount(dependentCount);
+        json$item.setDependents(dependents);
         json$item.setDescription(description);
         json$item.setElementCount(elementCount);
         json$item.setFormats(formats);

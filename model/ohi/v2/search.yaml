@@ -95,6 +95,23 @@ classes:
         description: The id of the revision, only for a revision. The latest revision of a version is
           its document in packages_latest_revision.
         range: string
+      dependents:
+        description: The base_url of each publication whose dependencies include this one, directly or
+          indirectly. The inverse of a publication's dependencies. Each base_url occurs once, in no
+          particular order. An empty list means no publication depends on this one.
+        range: uri
+        multivalued: true
+        notes:
+          - Computed by the hub from the dependencies of all publications, so it changes when another
+            publication is published.
+          - Missing from documents indexed before the hub computed it, until they are reindexed.
+      dependent_count:
+        description: The number of dependents. Sort or filter on it to find the publications others
+          depend on most.
+        range: integer
+        minimum_value: 0
+        notes:
+          - Missing from documents indexed before the hub computed it, until they are reindexed.
   FacetCount:
     description: Counts for the returned values of one indexed field.
     extra_slots:
