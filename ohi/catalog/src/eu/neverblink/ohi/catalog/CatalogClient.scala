@@ -161,8 +161,8 @@ final class CatalogClient(config: CatalogConfig = CatalogConfig()) {
 
   def get(url: String): Array[Byte] = retrieve(url, CatalogOperation.Get, url)
 
-  /** Fetches the Hub's domain list, with the metadata of the domain ids that publications and search
-    * hits hold. Fetch it again to see new domains.
+  /** Fetches the Hub's domain list, with the metadata of the domain ids that publications and
+    * search hits hold. Fetch it again to see new domains.
     */
   def domains(): DomainList = {
     val bytes = retrieve(domainsUrl, CatalogOperation.Domains, domainsUrl)
