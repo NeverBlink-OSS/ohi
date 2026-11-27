@@ -67,6 +67,10 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Integrations',
+          items: ['integrations/context-ontology-accelerator'],
+        },
+        {
           label: 'Reference',
           items: [
             'reference/cli',
