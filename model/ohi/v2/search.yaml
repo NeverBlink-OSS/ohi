@@ -70,7 +70,7 @@ classes:
     - published_at
     - hub_version
     - keywords
-    - tags
+    - domains
     - element_count
     - native_element_count
     - authors

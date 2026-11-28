@@ -14,14 +14,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-/** A group of tags. */
+/** A group of domains. */
 @JsonAutoDetect(
     getterVisibility = JsonAutoDetect.Visibility.NONE,
     isGetterVisibility = JsonAutoDetect.Visibility.NONE,
     setterVisibility = JsonAutoDetect.Visibility.NONE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"description", "id", "title"})
-public class TagGroup {
+public class DomainGroup {
     @JsonProperty("description")
     private String description;
 
@@ -73,7 +73,7 @@ public class TagGroup {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        TagGroup other = (TagGroup) o;
+        DomainGroup other = (DomainGroup) o;
         return Objects.equals(description, other.description)
             && Objects.equals(id, other.id)
             && Objects.equals(title, other.title)
@@ -87,7 +87,7 @@ public class TagGroup {
 
     @Override
     public String toString() {
-        return "TagGroup{"
+        return "DomainGroup{"
             + "description=" + getDescription()
             + ", id=" + getId()
             + ", title=" + getTitle()
@@ -98,11 +98,11 @@ public class TagGroup {
     // Reading and writing JSON, for Jackson
 
     @JsonCreator
-    private static TagGroup json$create(
+    private static DomainGroup json$create(
             @JsonProperty("description") String description,
             @JsonProperty(value = "id", required = true) String id,
             @JsonProperty(value = "title", required = true) String title) {
-        TagGroup json$item = new TagGroup();
+        DomainGroup json$item = new DomainGroup();
         json$item.setDescription(description);
         json$item.setId(id);
         json$item.setTitle(title);

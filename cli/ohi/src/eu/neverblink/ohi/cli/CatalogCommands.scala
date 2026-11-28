@@ -218,11 +218,11 @@ object Search extends CatalogCommand[SearchOptions] {
   }
 }
 
-@HelpMessage("List the tags that ontologies can have")
-final case class TagsOptions(
+@HelpMessage("List the domains, the thematic areas that ontologies can have")
+final case class DomainsOptions(
     @Recurse
     common: CatalogOptions,
-    @HelpMessage("Show all tags information, like their descriptions")
+    @HelpMessage("Show all domains information, like their descriptions")
     @Name("v")
     verbose: Boolean = false,
     @HelpMessage("Complete HTTP search endpoint")
@@ -230,13 +230,14 @@ final case class TagsOptions(
     searchUrl: Option[String] = None,
 ) extends HasCatalogOptions
 
-private[cli] class TagsCommand extends CatalogCommand[TagsOptions] {
-  override protected def commandName: String = "tags"
+private[cli] class DomainsCommand extends CatalogCommand[DomainsOptions] {
+  override protected def commandName: String = "domains"
   override protected def argumentName: String = ""
   override protected def takesArgument: Boolean = false
 
-  // The client takes query_by with search_url. The tag list doesn't use it, so it is the default.
-  override protected def config(options: TagsOptions): CatalogConfig =
+  // The client takes query_by with search_url. The domain list doesn't use it, so it is the
+  // default.
+  override protected def config(options: DomainsOptions): CatalogConfig =
     CatalogConfig(
       searchUrl = options.searchUrl.map(Uri(_)),
       queryBy = options.searchUrl.map(_ => "title,name,description,namespace"),
@@ -244,13 +245,13 @@ private[cli] class TagsCommand extends CatalogCommand[TagsOptions] {
     )
 
   override protected def execute(
-      options: TagsOptions,
+      options: DomainsOptions,
       input: String,
       client: CatalogClient,
-  ): String = CatalogOutput.tags(client.tags(), options.common.json, colored, options.verbose)
+  ): String = CatalogOutput.domains(client.domains(), options.common.json, colored, options.verbose)
 }
 
-object Tags extends TagsCommand
+object Domains extends DomainsCommand
 
 @HelpMessage("Show a release's files and dependencies")
 @ArgsName("<ontology-or-release-url>")

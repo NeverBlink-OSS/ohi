@@ -71,7 +71,7 @@ class CatalogErrorCode(str, Enum):
     TIMEOUT = "TIMEOUT"
     """A configured native timeout interrupted the request or body transfer."""
     INVALID_RESPONSE = "INVALID_RESPONSE"
-    """A successful search, publication or tag list response, or HTTP content coding, cannot be decoded."""
+    """A successful search, publication or domain list response, or HTTP content coding, cannot be decoded."""
 
 
 class CatalogOperation(str, Enum):
@@ -79,7 +79,7 @@ class CatalogOperation(str, Enum):
     SEARCH = "SEARCH"
     INSPECT = "INSPECT"
     GET = "GET"
-    TAGS = "TAGS"
+    DOMAINS = "DOMAINS"
 
 
 class Format(str, Enum):
@@ -198,6 +198,47 @@ class Dependency(LinkMLModel):
 
     base_url: str
     """Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns its publication JSON. Do not append a filename."""
+
+
+class Domain(LinkMLModel):
+    """A thematic area of an ontology."""
+
+    model_config = ConfigDict(extra="allow")
+
+    deprecated: Annotated[str, Field(pattern=r"^[\s\S]*\S")] | None = None
+    """Why the domain is retired, such as "Use health-and-medicine". New publications can't use it; old publications that use it keep it. Absent on nondeprecated domains."""
+    description: Annotated[str, Field(pattern=r"^[\s\S]*\S")] | None = None
+    """What the domain covers."""
+    group: Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])")] | None = None
+    """Id of the group the domain belongs to. Absent on a domain in no group."""
+    id: Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])")]
+    """Permanent identifier of the domain, such as health-and-medicine."""
+    title: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
+    """Display name of the domain."""
+
+
+class DomainGroup(LinkMLModel):
+    """A group of domains."""
+
+    model_config = ConfigDict(extra="allow")
+
+    description: Annotated[str, Field(pattern=r"^[\s\S]*\S")] | None = None
+    """What the group covers."""
+    id: Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])")]
+    """Permanent identifier of the group, such as life-sciences."""
+    title: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
+    """Display name of the group."""
+
+
+class DomainList(LinkMLModel):
+    """Every domain and domain group of the Hub. Publications and search hits hold only domain ids; their metadata is here."""
+
+    model_config = ConfigDict(extra="allow")
+
+    domains: list[Domain]
+    """The domains."""
+    groups: list[DomainGroup]
+    """The groups of domains."""
 
 
 class FacetCount(LinkMLModel):
@@ -331,6 +372,8 @@ class Publication(LinkMLModel):
     """Complete set of direct and indirect runtime dependency publications, excluding this publication. Each base_url occurs once. An empty list means this publication has no runtime dependencies."""
     description: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
     """Short description of the ontology's domain and intended use."""
+    domains: list[Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])")]] | None = None
+    """Thematic areas of the ontology, as ids of domains in the Hub."""
     element_count: Annotated[StrictInt, Field(ge=0)] | None = None
     """Number of LinkML elements in the publication."""
     hub_version: str | None = None
@@ -369,8 +412,6 @@ class Publication(LinkMLModel):
     """Revision information about this Publication, if it has any"""
     schema_version: Annotated[StrictInt, Field(ge=2, le=2)]
     """Metadata contract revision, independent of the ontology's version."""
-    tags: list[Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])")]] | None = None
-    """Thematic areas of the ontology, as ids of tags in the Hub."""
     title: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
     """Display title of the ontology."""
     version: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
@@ -416,6 +457,8 @@ class SearchHit(LinkMLModel):
     """The people or organizations that contributed to the ontology."""
     description: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
     """Short description of the ontology's domain and intended use."""
+    domains: list[Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])")]] | None = None
+    """Thematic areas of the ontology, as ids of domains in the Hub."""
     element_count: Annotated[StrictInt, Field(ge=0)] | None = None
     """Number of LinkML elements in the publication."""
     formats: list[Format] = Field(min_length=1)
@@ -446,8 +489,6 @@ class SearchHit(LinkMLModel):
     """The people or organizations that publish the ontology upstream."""
     revision_id: str | None = None
     """The id of the revision, only for a revision. The latest revision of a version is its document in packages_latest_revision."""
-    tags: list[Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])")]] | None = None
-    """Thematic areas of the ontology, as ids of tags in the Hub."""
     title: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
     """Display title of the ontology."""
     version: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
@@ -492,44 +533,3 @@ class SearchResult(LinkMLModel):
     """Whether search stopped early. When true, hits or total may be incomplete."""
     total: Annotated[StrictInt, Field(ge=0)]
     """Matching indexed publications after query and filters, before pagination. May be incomplete when search_cutoff is true. An exact total can exceed the retrieval window."""
-
-
-class Tag(LinkMLModel):
-    """A thematic area of an ontology."""
-
-    model_config = ConfigDict(extra="allow")
-
-    deprecated: Annotated[str, Field(pattern=r"^[\s\S]*\S")] | None = None
-    """Why the tag is retired, such as "Use health-and-medicine". New publications can't use it; old publications that use it keep it. Absent on nondeprecated tags."""
-    description: Annotated[str, Field(pattern=r"^[\s\S]*\S")] | None = None
-    """What the tag covers."""
-    group: Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])")] | None = None
-    """Id of the group the tag belongs to. Absent on a tag in no group."""
-    id: Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])")]
-    """Permanent identifier of the tag, such as health-and-medicine."""
-    title: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
-    """Display name of the tag."""
-
-
-class TagGroup(LinkMLModel):
-    """A group of tags."""
-
-    model_config = ConfigDict(extra="allow")
-
-    description: Annotated[str, Field(pattern=r"^[\s\S]*\S")] | None = None
-    """What the group covers."""
-    id: Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*(?![\s\S])")]
-    """Permanent identifier of the group, such as life-sciences."""
-    title: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
-    """Display name of the group."""
-
-
-class TagList(LinkMLModel):
-    """Every tag and tag group of the Hub. Publications and search hits hold only tag ids; their metadata is here."""
-
-    model_config = ConfigDict(extra="allow")
-
-    groups: list[TagGroup]
-    """The groups of tags."""
-    tags: list[Tag]
-    """The tags."""

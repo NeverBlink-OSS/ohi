@@ -18,39 +18,39 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Every tag and tag group of the Hub. Publications and search hits hold only tag ids; their metadata is here.
+ * Every domain and domain group of the Hub. Publications and search hits hold only domain ids; their metadata is here.
  */
 @JsonAutoDetect(
     getterVisibility = JsonAutoDetect.Visibility.NONE,
     isGetterVisibility = JsonAutoDetect.Visibility.NONE,
     setterVisibility = JsonAutoDetect.Visibility.NONE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({"groups", "tags"})
-public class TagList {
-    @JsonProperty("groups")
-    private List<TagGroup> groups;
+@JsonPropertyOrder({"domains", "groups"})
+public class DomainList {
+    @JsonProperty("domains")
+    private List<Domain> domains;
 
-    @JsonProperty("tags")
-    private List<Tag> tags;
+    @JsonProperty("groups")
+    private List<DomainGroup> groups;
 
     private final Map<String, Object> extraProperties = new LinkedHashMap<>();
 
-    /** The groups of tags. */
-    public List<TagGroup> getGroups() {
+    /** The domains. */
+    public List<Domain> getDomains() {
+        return domains;
+    }
+
+    public void setDomains(List<Domain> domains) {
+        this.domains = domains;
+    }
+
+    /** The groups of domains. */
+    public List<DomainGroup> getGroups() {
         return groups;
     }
 
-    public void setGroups(List<TagGroup> groups) {
+    public void setGroups(List<DomainGroup> groups) {
         this.groups = groups;
-    }
-
-    /** The tags. */
-    public List<Tag> getTags() {
-        return tags;
-    }
-
-    public void setTags(List<Tag> tags) {
-        this.tags = tags;
     }
 
     /** The properties beyond the ones in the schema, by key. */
@@ -66,22 +66,22 @@ public class TagList {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        TagList other = (TagList) o;
-        return Objects.equals(groups, other.groups)
-            && Objects.equals(tags, other.tags)
+        DomainList other = (DomainList) o;
+        return Objects.equals(domains, other.domains)
+            && Objects.equals(groups, other.groups)
             && Objects.equals(extraProperties, other.extraProperties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(groups, tags, extraProperties);
+        return Objects.hash(domains, groups, extraProperties);
     }
 
     @Override
     public String toString() {
-        return "TagList{"
-            + "groups=" + getGroups()
-            + ", tags=" + getTags()
+        return "DomainList{"
+            + "domains=" + getDomains()
+            + ", groups=" + getGroups()
             + ", extraProperties=" + getExtraProperties()
             + "}";
     }
@@ -89,12 +89,12 @@ public class TagList {
     // Reading and writing JSON, for Jackson
 
     @JsonCreator
-    private static TagList json$create(
-            @JsonProperty(value = "groups", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<TagGroup> groups,
-            @JsonProperty(value = "tags", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Tag> tags) {
-        TagList json$item = new TagList();
+    private static DomainList json$create(
+            @JsonProperty(value = "domains", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Domain> domains,
+            @JsonProperty(value = "groups", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<DomainGroup> groups) {
+        DomainList json$item = new DomainList();
+        json$item.setDomains(domains);
         json$item.setGroups(groups);
-        json$item.setTags(tags);
         return json$item;
     }
 

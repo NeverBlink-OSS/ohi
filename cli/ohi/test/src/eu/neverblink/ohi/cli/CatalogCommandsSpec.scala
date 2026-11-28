@@ -1250,14 +1250,14 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
     }
   }
 
-  "catalog tags" should {
-    // Synthetic tags: one deprecated, one in no group and one in an unknown group.
-    val tags = """{
+  "catalog domains" should {
+    // Synthetic domains: one deprecated, one in no group and one in an unknown group.
+    val domains = """{
       "groups":[
         {"id":"technology","title":"Technology","description":"Computing and devices."},
         {"id":"empty","title":"Empty"}
       ],
-      "tags":[
+      "domains":[
         {"id":"internet-of-things","title":"Internet of things","group":"technology",
           "description":"Connected devices and their observations."},
         {"id":"sensor-networks","title":"Sensor networks","group":"technology",
@@ -1268,9 +1268,9 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
       ]
     }"""
 
-    "list the tags by group from the hub of the search URL" in {
-      withServer(tags) { (url, requests) =>
-        successful(Tags, "tags", "--search-url", url + searchPath) shouldBe
+    "list the domains by group from the hub of the search URL" in {
+      withServer(domains) { (url, requests) =>
+        successful(Domains, "domains", "--search-url", url + searchPath) shouldBe
           """Technology
             |  internet-of-things  Internet of things
             |  sensor-networks     Sensor networks (deprecated)
@@ -1279,16 +1279,16 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
             |  units               Units
             |  energy              Energy
             |
-            |Search by a tag: ohi search "*" --filter-by tags:=<id>
+            |Search by a domain: ohi search "*" --filter-by domains:=<id>
             |""".stripMargin
-        requests.asScala.toSeq shouldBe Seq("/files/tags_v1.json")
+        requests.asScala.toSeq shouldBe Seq("/files/domains_v1.json")
       }
     }
 
-    "list every group and tag in full with --verbose or -v" in {
-      withServer(tags) { (url, _) =>
-        val verbose = successful(Tags, "tags", "--verbose", "--search-url", url + searchPath)
-        successful(Tags, "tags", "-v", "--search-url", url + searchPath) shouldBe verbose
+    "list every group and domain in full with --verbose or -v" in {
+      withServer(domains) { (url, _) =>
+        val verbose = successful(Domains, "domains", "--verbose", "--search-url", url + searchPath)
+        successful(Domains, "domains", "-v", "--search-url", url + searchPath) shouldBe verbose
         verbose shouldBe
           """Technology (technology)
             |  Computing and devices.
@@ -1308,25 +1308,25 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
             |  energy
             |    Energy
             |
-            |Search by a tag: ohi search "*" --filter-by tags:=<id>
+            |Search by a domain: ohi search "*" --filter-by domains:=<id>
             |""".stripMargin
       }
     }
 
-    "write the tag list as JSON" in {
-      withServer(tags) { (url, _) =>
-        json(successful(Tags, "tags", "--search-url", url + searchPath, "--json")) shouldBe
-          json(tags)
+    "write the domain list as JSON" in {
+      withServer(domains) { (url, _) =>
+        json(successful(Domains, "domains", "--search-url", url + searchPath, "--json")) shouldBe
+          json(domains)
       }
     }
 
-    "report a hub without a tag list" in {
+    "report a hub without a domain list" in {
       withServer("", status = 404) { (url, requests) =>
-        val err = failed(Tags, "tags", "--search-url", url + searchPath)
-        err should include("Tag list not found.")
-        err should include(url + "/files/tags_v1.json")
+        val err = failed(Domains, "domains", "--search-url", url + searchPath)
+        err should include("Domain list not found.")
+        err should include(url + "/files/domains_v1.json")
         err should include("--search-url")
-        requests.asScala.toSeq shouldBe Seq("/files/tags_v1.json")
+        requests.asScala.toSeq shouldBe Seq("/files/domains_v1.json")
       }
     }
   }
@@ -1407,7 +1407,7 @@ class CatalogCommandsSpec extends AnyWordSpec, Matchers {
           "format",
         ),
         ("missing file URL", Get, List("get", "--to", "."), "ohi get <namespace>/<name>"),
-        ("argument to tags", Tags, List("tags", "energy"), "tags accepts no arguments"),
+        ("argument to domains", Domains, List("domains", "energy"), "domains accepts no arguments"),
         (
           "search setting on inspect",
           Inspect,

@@ -30,6 +30,7 @@ import java.util.Objects;
     "base_url",
     "contributors",
     "description",
+    "domains",
     "element_count",
     "formats",
     "hub_version",
@@ -45,7 +46,6 @@ import java.util.Objects;
     "published_at",
     "publishers",
     "revision_id",
-    "tags",
     "title",
     "version",
 })
@@ -61,6 +61,9 @@ public class SearchHit {
 
     @JsonProperty("description")
     private String description;
+
+    @JsonProperty("domains")
+    private List<String> domains;
 
     @JsonProperty("element_count")
     private Long elementCount;
@@ -106,9 +109,6 @@ public class SearchHit {
     @JsonProperty("revision_id")
     private String revisionId;
 
-    @JsonProperty("tags")
-    private List<String> tags;
-
     @JsonProperty("title")
     private String title;
 
@@ -153,6 +153,15 @@ public class SearchHit {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    /** Thematic areas of the ontology, as ids of domains in the Hub. */
+    public List<String> getDomains() {
+        return domains;
+    }
+
+    public void setDomains(List<String> domains) {
+        this.domains = domains;
     }
 
     /** Number of LinkML elements in the publication. */
@@ -304,15 +313,6 @@ public class SearchHit {
         this.revisionId = revisionId;
     }
 
-    /** Thematic areas of the ontology, as ids of tags in the Hub. */
-    public List<String> getTags() {
-        return tags;
-    }
-
-    public void setTags(List<String> tags) {
-        this.tags = tags;
-    }
-
     /** Display title of the ontology. */
     public String getTitle() {
         return title;
@@ -349,6 +349,7 @@ public class SearchHit {
             && Objects.equals(baseUrl, other.baseUrl)
             && Objects.equals(contributors, other.contributors)
             && Objects.equals(description, other.description)
+            && Objects.equals(domains, other.domains)
             && Objects.equals(elementCount, other.elementCount)
             && Objects.equals(formats, other.formats)
             && Objects.equals(hubVersion, other.hubVersion)
@@ -364,7 +365,6 @@ public class SearchHit {
             && Objects.equals(publishedAt, other.publishedAt)
             && Objects.equals(publishers, other.publishers)
             && Objects.equals(revisionId, other.revisionId)
-            && Objects.equals(tags, other.tags)
             && Objects.equals(title, other.title)
             && Objects.equals(version, other.version)
             && Objects.equals(extraProperties, other.extraProperties);
@@ -372,7 +372,7 @@ public class SearchHit {
 
     @Override
     public int hashCode() {
-        return Objects.hash(authors, baseUrl, contributors, description, elementCount, formats, hubVersion, keywords, licenses, maintainers, name, namespace, nativeElementCount, originalSources, originalVersion, publications, publishedAt, publishers, revisionId, tags, title, version, extraProperties);
+        return Objects.hash(authors, baseUrl, contributors, description, domains, elementCount, formats, hubVersion, keywords, licenses, maintainers, name, namespace, nativeElementCount, originalSources, originalVersion, publications, publishedAt, publishers, revisionId, title, version, extraProperties);
     }
 
     @Override
@@ -382,6 +382,7 @@ public class SearchHit {
             + ", baseUrl=" + getBaseUrl()
             + ", contributors=" + getContributors()
             + ", description=" + getDescription()
+            + ", domains=" + getDomains()
             + ", elementCount=" + getElementCount()
             + ", formats=" + getFormats()
             + ", hubVersion=" + getHubVersion()
@@ -397,7 +398,6 @@ public class SearchHit {
             + ", publishedAt=" + getPublishedAt()
             + ", publishers=" + getPublishers()
             + ", revisionId=" + getRevisionId()
-            + ", tags=" + getTags()
             + ", title=" + getTitle()
             + ", version=" + getVersion()
             + ", extraProperties=" + getExtraProperties()
@@ -412,6 +412,7 @@ public class SearchHit {
             @JsonProperty(value = "base_url", required = true) String baseUrl,
             @JsonProperty("contributors") @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> contributors,
             @JsonProperty(value = "description", required = true) String description,
+            @JsonProperty("domains") @JsonSetter(contentNulls = Nulls.FAIL) List<String> domains,
             @JsonProperty("element_count") Long elementCount,
             @JsonProperty(value = "formats", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Format> formats,
             @JsonProperty("hub_version") String hubVersion,
@@ -427,7 +428,6 @@ public class SearchHit {
             @JsonProperty(value = "published_at", required = true) Object publishedAt,
             @JsonProperty(value = "publishers", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> publishers,
             @JsonProperty("revision_id") String revisionId,
-            @JsonProperty("tags") @JsonSetter(contentNulls = Nulls.FAIL) List<String> tags,
             @JsonProperty(value = "title", required = true) String title,
             @JsonProperty(value = "version", required = true) String version) {
         SearchHit json$item = new SearchHit();
@@ -435,6 +435,7 @@ public class SearchHit {
         json$item.setBaseUrl(baseUrl);
         json$item.setContributors(contributors);
         json$item.setDescription(description);
+        json$item.setDomains(domains);
         json$item.setElementCount(elementCount);
         json$item.setFormats(formats);
         json$item.setHubVersion(hubVersion);
@@ -450,7 +451,6 @@ public class SearchHit {
         json$item.setPublishedAt(LinkMLJson.dateTime(publishedAt));
         json$item.setPublishers(publishers);
         json$item.setRevisionId(revisionId);
-        json$item.setTags(tags);
         json$item.setTitle(title);
         json$item.setVersion(version);
         return json$item;

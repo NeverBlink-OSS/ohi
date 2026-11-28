@@ -104,24 +104,24 @@ The CLI, the Java, Python and TypeScript packages share the ohi LinkML release v
 
 <Tabs syncKey="language">
   <TabItem label="Python">
-    `ohi.CatalogClient` is synchronous. `search`, `inspect`, `latest`, `get` and `tags` return
-    `SearchResult`, `Publication`, `SearchHit | None`, `bytes` and `TagList`, respectively.
+    `ohi.CatalogClient` is synchronous. `search`, `inspect`, `latest`, `get` and `domains` return
+    `SearchResult`, `Publication`, `SearchHit | None`, `bytes` and `DomainList`, respectively.
   </TabItem>
   <TabItem label="TypeScript">
-    Import `CatalogClient` from `@neverblink/ohi`. `search`, `inspect`, `latest`, `get` and `tags`
+    Import `CatalogClient` from `@neverblink/ohi`. `search`, `inspect`, `latest`, `get` and `domains`
     return promises of `SearchResult`, `Publication`, `SearchHit | undefined`, `Uint8Array` and
-    `TagList`, respectively.
+    `DomainList`, respectively.
   </TabItem>
   <TabItem label="Java">
     `eu.neverblink.ohi.sdk.CatalogClient` is synchronous, and one client can be shared between
-    threads. `search`, `inspect`, `latest`, `get` and `tags` return `SearchResult`, `Publication`,
-    `Optional<SearchHit>`, `byte[]` and `TagList`, respectively. The classes of the data have a getter and a
+    threads. `search`, `inspect`, `latest`, `get` and `domains` return `SearchResult`, `Publication`,
+    `Optional<SearchHit>`, `byte[]` and `DomainList`, respectively. The classes of the data have a getter and a
     setter for each field, named after its JSON key in camel case, such as `getBaseUrl()`.
   </TabItem>
   <TabItem label="Scala">
     Use `eu.neverblink.ohi.catalog.CatalogClient` in `ohi.catalog.jvm`.
-    `search`, `inspect`, `latest`, `get` and `tags` synchronously return `SearchResult`,
-    `Publication`, `Option[SearchHit]`, `Array[Byte]` and `TagList`, respectively.
+    `search`, `inspect`, `latest`, `get` and `domains` synchronously return `SearchResult`,
+    `Publication`, `Option[SearchHit]`, `Array[Byte]` and `DomainList`, respectively.
   </TabItem>
 </Tabs>
 
@@ -149,17 +149,17 @@ Dependency files must be selected and retrieved separately.
 A known publication or artifact URL can be passed directly to `inspect` or `get`, without
 searching first.
 
-## Tags
+## Domains
 
-Publications and search hits hold their tags, the thematic areas of the ontology, as ids such as
-`health-and-medicine`. `tags` fetches the Hub's
-[tag list](https://github.com/NeverBlink-OSS/ohi/blob/main/model/ohi/v2/tags.yaml) with the
-metadata of every tag and group. Each has an id and a title. A tag may also have a description and
+Publications and search hits hold their domains, the thematic areas of the ontology, as ids such as
+`health-and-medicine`. `domains` fetches the Hub's
+[domain list](https://github.com/NeverBlink-OSS/ohi/blob/main/model/ohi/v2/domains.yaml) with the
+metadata of every domain and group. Each has an id and a title. A domain may also have a description and
 belong to one group. Ids are never removed or edited, so fetch the list again when you find an
-unknown one. A `deprecated` tag stays on old publications, but new ones can't use it.
+unknown one. A `deprecated` domain stays on old publications, but new ones can't use it.
 
-To find publications with a tag, filter the search by it, such as `tags:=health-and-medicine`.
-Facet on `tags` to count them per tag.
+To find publications with a domain, filter the search by it, such as `domains:=health-and-medicine`.
+Facet on `domains` to count them per domain.
 
 ## Link to ohi.dev
 

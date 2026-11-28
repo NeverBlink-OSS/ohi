@@ -35,5 +35,5 @@ object CatalogOperation {
   /** @see
     *   From schema: https://ohi.neverblink.eu/contracts/catalog-error
     */
-  @named("TAGS") case object Tags extends CatalogOperation
+  @named("DOMAINS") case object Domains extends CatalogOperation
 }

@@ -24,9 +24,9 @@ from .generated import (
     SearchHit,
     SearchRequest,
     SearchResult,
-    Tag,
-    TagGroup,
-    TagList,
+    Domain,
+    DomainGroup,
+    DomainList,
 )
 from .pages import Release, ohi_release_page
 from .publication import decode_publication
@@ -37,6 +37,6 @@ __all__ = [
     "CatalogErrorCode", "CatalogException", "CatalogOperation", "Citation", "Dependency", "FacetCount",
     "FacetValueCount", "Format", "Lock", "LockedFile", "LockError", "LockErrorCode", "LockException",
     "LockOperation", "Publication", "Release", "SearchHit", "SearchRequest", "SearchResult",
-    "Tag", "TagGroup", "TagList",
+    "Domain", "DomainGroup", "DomainList",
     "decode_publication", "decode_lock", "encode_lock", "ohi_release_page", "read_lock", "write_lock",
 ]

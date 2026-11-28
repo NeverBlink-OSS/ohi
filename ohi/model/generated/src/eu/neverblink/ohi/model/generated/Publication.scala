@@ -24,6 +24,8 @@ import eu.neverblink.linkml.runtime.*
   *   dependencies.
   * @param description
   *   Short description of the ontology's domain and intended use.
+  * @param domains
+  *   Thematic areas of the ontology, as ids of domains in the Hub.
   * @param elementCount
   *   Number of LinkML elements in the publication.
   * @param hubVersion
@@ -70,8 +72,6 @@ import eu.neverblink.linkml.runtime.*
   *   Revision information about this Publication, if it has any
   * @param schemaVersion
   *   Metadata contract revision, independent of the ontology's version.
-  * @param tags
-  *   Thematic areas of the ontology, as ids of tags in the Hub.
   * @param title
   *   Display title of the ontology.
   * @param version
@@ -88,6 +88,7 @@ final case class Publication(
     contributors: Seq[Agent] = Seq(),
     dependencies: Seq[Dependency],
     description: String,
+    domains: Seq[String] = Seq(),
     @named("element_count")
     elementCount: Option[Int] = None,
     @named("hub_version")
@@ -116,7 +117,6 @@ final case class Publication(
     revision: Option[RevisionInfo] = None,
     @named("schema_version")
     schemaVersion: Int,
-    tags: Seq[String] = Seq(),
     title: String,
     version: String,
 ) {

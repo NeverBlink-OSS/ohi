@@ -62,11 +62,11 @@ slots:
     range: string
     required: true
     multivalued: true
-  tags:
-    description: Thematic areas of the ontology, as ids of tags in the Hub.
+  domains:
+    description: Thematic areas of the ontology, as ids of domains in the Hub.
     comments:
-    - Absent when none were given, including every publication from before tags existed.
-    - The tags are described in the Hub in the tag list, see the tags contract.
+    - Absent when none were given, including every publication from before domains existed.
+    - The domains are described in the Hub in the domain list, see the domains contract.
     - An id is never removed or edited in the list.
     - Consumers should accept ids they don't know, as the list grows.
     range: string

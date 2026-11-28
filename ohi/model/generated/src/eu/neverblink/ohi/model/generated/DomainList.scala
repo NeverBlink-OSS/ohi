@@ -5,27 +5,27 @@ package eu.neverblink.ohi.model.generated
 
 import eu.neverblink.linkml.runtime.*
 
-/** Every tag and tag group of the Hub. Publications and search hits hold only tag ids; their
-  * metadata is here.
+/** Every domain and domain group of the Hub. Publications and search hits hold only domain ids;
+  * their metadata is here.
   *
+  * @param domains
+  *   The domains.
   * @param groups
-  *   The groups of tags.
-  * @param tags
-  *   The tags.
+  *   The groups of domains.
   * @see
-  *   From schema: https://ohi.neverblink.eu/contracts/tags
+  *   From schema: https://ohi.neverblink.eu/contracts/domains
   * @note
-  *   A tag or group is never removed and its id never changes, so every id is always resolved.
-  *   Other tag metadata can change.
+  *   A domain or group is never removed and its id never changes, so every id is always resolved.
+  *   Other domain metadata can change.
   * @note
   *   The order of each list is the Hub's display order.
   * @note
   *   Fields can be added. Breaking changes are versioned.
   */
 @extraSlotsAllowed
-final case class TagList(
-    groups: Seq[TagGroup],
-    tags: Seq[Tag],
+final case class DomainList(
+    domains: Seq[Domain],
+    groups: Seq[DomainGroup],
 ) {
 
   /** Fill in the slots that have an `equals_expression` with their computed values, and check that
@@ -35,7 +35,7 @@ final case class TagList(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  def infer(): TagList =
+  def infer(): DomainList =
     this
 
   override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)

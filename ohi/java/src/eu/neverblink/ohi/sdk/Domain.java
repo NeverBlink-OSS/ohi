@@ -21,7 +21,7 @@ import java.util.Objects;
     setterVisibility = JsonAutoDetect.Visibility.NONE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({"deprecated", "description", "group", "id", "title"})
-public class Tag {
+public class Domain {
     @JsonProperty("deprecated")
     private String deprecated;
 
@@ -40,7 +40,7 @@ public class Tag {
     private final Map<String, Object> extraProperties = new LinkedHashMap<>();
 
     /**
-     * Why the tag is retired, such as "Use health-and-medicine". New publications can't use it; old publications that use it keep it. Absent on nondeprecated tags.
+     * Why the domain is retired, such as "Use health-and-medicine". New publications can't use it; old publications that use it keep it. Absent on nondeprecated domains.
      */
     public String getDeprecated() {
         return deprecated;
@@ -50,7 +50,7 @@ public class Tag {
         this.deprecated = deprecated;
     }
 
-    /** What the tag covers. */
+    /** What the domain covers. */
     public String getDescription() {
         return description;
     }
@@ -59,7 +59,7 @@ public class Tag {
         this.description = description;
     }
 
-    /** Id of the group the tag belongs to. Absent on a tag in no group. */
+    /** Id of the group the domain belongs to. Absent on a domain in no group. */
     public String getGroup() {
         return group;
     }
@@ -68,7 +68,7 @@ public class Tag {
         this.group = group;
     }
 
-    /** Permanent identifier of the tag, such as health-and-medicine. */
+    /** Permanent identifier of the domain, such as health-and-medicine. */
     public String getId() {
         return id;
     }
@@ -77,7 +77,7 @@ public class Tag {
         this.id = id;
     }
 
-    /** Display name of the tag. */
+    /** Display name of the domain. */
     public String getTitle() {
         return title;
     }
@@ -99,7 +99,7 @@ public class Tag {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Tag other = (Tag) o;
+        Domain other = (Domain) o;
         return Objects.equals(deprecated, other.deprecated)
             && Objects.equals(description, other.description)
             && Objects.equals(group, other.group)
@@ -115,7 +115,7 @@ public class Tag {
 
     @Override
     public String toString() {
-        return "Tag{"
+        return "Domain{"
             + "deprecated=" + getDeprecated()
             + ", description=" + getDescription()
             + ", group=" + getGroup()
@@ -128,13 +128,13 @@ public class Tag {
     // Reading and writing JSON, for Jackson
 
     @JsonCreator
-    private static Tag json$create(
+    private static Domain json$create(
             @JsonProperty("deprecated") String deprecated,
             @JsonProperty("description") String description,
             @JsonProperty("group") String group,
             @JsonProperty(value = "id", required = true) String id,
             @JsonProperty(value = "title", required = true) String title) {
-        Tag json$item = new Tag();
+        Domain json$item = new Domain();
         json$item.setDeprecated(deprecated);
         json$item.setDescription(description);
         json$item.setGroup(group);

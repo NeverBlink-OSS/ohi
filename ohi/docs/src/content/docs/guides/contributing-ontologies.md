@@ -68,7 +68,7 @@ dependencies: []
 title: "Obographs LinkML model"
 description: "A schema for ontology graphs with nodes, edges and metadata."
 keywords: ["ontology graphs", "linkml"]
-tags: [knowledge-representation]
+domains: [knowledge-representation]
 authors:
   - name: "Chris Mungall"
     link: "https://mungall.dev"
@@ -96,9 +96,9 @@ Use [SPDX identifiers](https://spdx.org/licenses/) in `licenses` where available
 license texts in `licenseFiles` and separate copyright notices in `copyrightFiles`, using
 paths relative to the release folder.
 
-Pick the ontology's thematic areas in `tags` from the [tag list](https://api.ohi.dev/files/tags_v1.json),
-by their ids. Unlike `keywords`, which can be anything, a tag must be in the list. Unknown,
-deprecated or repeated ids are refused. `tags` is optional.
+Pick the ontology's thematic areas in `domains` from the [domain list](https://api.ohi.dev/files/domains_v1.json),
+by their ids. Unlike `keywords`, which can be anything, a domain must be in the list. Unknown,
+deprecated or repeated ids are refused. `domains` is optional.
 
 List imported ontologies in `dependencies` as `namespace/name@version`. Each must already
 be published on ohi. Use `[]` when none are needed. The built-in `linkml:types` import does

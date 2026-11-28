@@ -10,7 +10,7 @@ public enum CatalogOperation {
     SEARCH("SEARCH"),
     INSPECT("INSPECT"),
     GET("GET"),
-    TAGS("TAGS");
+    DOMAINS("DOMAINS");
 
     private final String value;
 

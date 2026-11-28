@@ -11,8 +11,8 @@ import eu.neverblink.ohi.model.generated.{
   Publication,
   SearchHit,
   SearchResult,
-  Tag,
-  TagList,
+  Domain,
+  DomainList,
 }
 
 import java.net.URI
@@ -25,7 +25,7 @@ private[cli] object CatalogOutput {
   private val publicationCodec: LinkmlYamlCodec[Publication] = LinkmlYamlCodec.derived
   private val deliveryCodec: LinkmlYamlCodec[DeliveryResultImpl] = LinkmlYamlCodec.derived
   private val fileErrorCodec: LinkmlYamlCodec[CliFileError] = LinkmlYamlCodec.derived
-  private val tagListCodec: LinkmlYamlCodec[TagList] = LinkmlYamlCodec.derived
+  private val domainListCodec: LinkmlYamlCodec[DomainList] = LinkmlYamlCodec.derived
 
   def search(
       result: SearchResult,
@@ -182,30 +182,30 @@ private[cli] object CatalogOutput {
       if result.licenseFiles.nonEmpty then
         field("License files", result.licenseFiles.map(_.original).mkString(", "), code = "36")
       field("Keywords", reported(result.keywords))
-      if result.tags.nonEmpty then field("Tags", result.tags.mkString(", "))
+      if result.domains.nonEmpty then field("Domains", result.domains.mkString(", "))
       output.mkString("\n")
     }
 
-  /** Render JSON or the groups and their tags, in the list's order. Tags in no group, or in an
-    * unknown group, come last under Other. By default, each group has its title, and each tag a
-    * line with its id and title, marked if it is deprecated. Verbose output also has the ids and
-    * descriptions of the groups, the descriptions of the tags and why a tag is retired, with each
-    * tag's id on a line of its own and the rest wrapped at 80 columns below it.
+  /** Render JSON or the groups and their domains, in the list's order. Domains in no group, or in
+    * an unknown group, come last under Other. By default, each group has its title, and each domain
+    * a line with its id and title, marked if it is deprecated. Verbose output also has the ids and
+    * descriptions of the groups, the descriptions of the domains and why a domain is retired, with
+    * each domain's id on a line of its own and the rest wrapped at 80 columns below it.
     */
-  def tags(
-      result: TagList,
+  def domains(
+      result: DomainList,
       json: Boolean,
       colored: Boolean = false,
       verbose: Boolean = false,
   ): String =
-    if json then JsonUtil.yamlToJson(tagListCodec.encode(result))
-    else if result.tags.isEmpty then "No tags."
+    if json then JsonUtil.yamlToJson(domainListCodec.encode(result))
+    else if result.domains.isEmpty then "No domains."
     else {
       def wrapped(text: String, indent: String): Seq[String] =
         SearchOutput.wrap(text, 80, indent, indent)
 
-      val width = result.tags.map(tag => clean(tag.id).length).max
-      def tag(value: Tag): Seq[String] =
+      val width = result.domains.map(domain => clean(domain.id).length).max
+      def domain(value: Domain): Seq[String] =
         if verbose then
           Seq("  " + styled(clean(value.id), "36", colored)) ++
             wrapped(value.title, "    ") ++
@@ -226,16 +226,16 @@ private[cli] object CatalogOutput {
           styled(clean(group.title), "1", colored) +
             (if verbose then styled(s" (${clean(group.id)})", "2", colored) else ""),
           group.description.filter(_ => verbose),
-          result.tags.filter(_.group.contains(group.id)),
+          result.domains.filter(_.group.contains(group.id)),
         ),
-      ) :+ (styled("Other", "1", colored), None, result.tags.filterNot(_.group.exists(groupIds)))
-      val groups = sections.filter(_._3.nonEmpty).map { (heading, description, tags) =>
+      ) :+ (styled("Other", "1", colored), None, result.domains.filterNot(_.group.exists(groupIds)))
+      val groups = sections.filter(_._3.nonEmpty).map { (heading, description, domains) =>
         val about = description.toSeq.flatMap(wrapped(_, "  "))
-        ((heading +: about) ++ (if about.nonEmpty then Seq("") else Seq()) ++ tags.flatMap(tag))
-          .mkString("\n")
+        ((heading +: about) ++ (if about.nonEmpty then Seq("") else Seq()) ++
+          domains.flatMap(domain)).mkString("\n")
       }
-      (groups :+ (styled("Search by a tag: ", "2", colored) +
-        styled("ohi search \"*\" --filter-by tags:=<id>", "36", colored))).mkString("\n\n")
+      (groups :+ (styled("Search by a domain: ", "2", colored) +
+        styled("ohi search \"*\" --filter-by domains:=<id>", "36", colored))).mkString("\n\n")
     }
 
   def delivery(result: DeliveryResultImpl): String =

@@ -8,21 +8,21 @@ import eu.neverblink.linkml.runtime.*
 /** A thematic area of an ontology.
   *
   * @param deprecated
-  *   Why the tag is retired, such as "Use health-and-medicine". New publications can't use it; old
-  *   publications that use it keep it. Absent on nondeprecated tags.
+  *   Why the domain is retired, such as "Use health-and-medicine". New publications can't use it;
+  *   old publications that use it keep it. Absent on nondeprecated domains.
   * @param description
-  *   What the tag covers.
+  *   What the domain covers.
   * @param group
-  *   Id of the group the tag belongs to. Absent on a tag in no group.
+  *   Id of the group the domain belongs to. Absent on a domain in no group.
   * @param id
-  *   Permanent identifier of the tag, such as health-and-medicine.
+  *   Permanent identifier of the domain, such as health-and-medicine.
   * @param title
-  *   Display name of the tag.
+  *   Display name of the domain.
   * @see
-  *   From schema: https://ohi.neverblink.eu/contracts/tags
+  *   From schema: https://ohi.neverblink.eu/contracts/domains
   */
 @extraSlotsAllowed
-final case class Tag(
+final case class Domain(
     deprecated: Option[String] = None,
     description: Option[String] = None,
     group: Option[String] = None,
@@ -37,7 +37,7 @@ final case class Tag(
     *   if a slot's value contradicts the value inferred for it, or if an expression references a
     *   slot that has no value
     */
-  def infer(): Tag =
+  def infer(): Domain =
     this
 
   override def hashCode: Int = _root_.scala.util.hashing.MurmurHash3.caseClassHash(this)
