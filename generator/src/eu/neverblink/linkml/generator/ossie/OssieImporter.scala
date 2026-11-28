@@ -331,13 +331,16 @@ object OssieImporter {
         relationship.requires,
       )
       val unary = relationship.roles.isEmpty
+      val first = relationship.verbalizes.headOption
+      val read = if unary then None else first.flatMap(Verbalization.parseWithRest)
+      // A first verbalization that goes on after the second concept, such as `{Aircraft} has
+      // {Integer} seats`, is kept in `aliases` too, as the title is only part of it.
+      val partly = read.exists(_._2.nonEmpty)
       // Try to get a title from the verbalization, but only if it is not empty
       // and not the same as the space-cased relationship name.
-      val title = relationship.verbalizes.headOption
-        .flatMap(v =>
-          if unary then Verbalization.unaryPhrase(v) else Verbalization.parse(v).map(_.phrase),
-        )
-        .filter(phrase => phrase.nonEmpty && phrase != name.replace('_', ' '))
+      val title =
+        (if unary then first.flatMap(Verbalization.unaryPhrase) else read.map(_._1.phrase))
+          .filter(phrase => phrase.nonEmpty && phrase != name.replace('_', ' '))
 
       name -> SlotDefinition(
         name = name,
@@ -346,7 +349,9 @@ object OssieImporter {
         slotUri = Some(relationship.iri.map(uriOf).getOrElse(Uri(s"$namespace$className.$name"))),
         domain = Some(Reference(className)),
         title = title.map(PlainText.apply),
-        aliases = relationship.verbalizes.drop(1).map(v => PlainText(Verbalization.plain(v))),
+        aliases = relationship.verbalizes
+          .drop(if partly then 0 else 1)
+          .map(v => PlainText(Verbalization.plain(v))),
         description = relationship.description.map(PlainText.apply),
         range =
           if unary then Some(Reference(linkmlTypes(BuiltInConcept.boolean)))

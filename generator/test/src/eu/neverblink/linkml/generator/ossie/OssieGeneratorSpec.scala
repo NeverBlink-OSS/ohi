@@ -210,7 +210,7 @@ class OssieGeneratorSpec extends AnyWordSpec, Matchers, OssieFixtures {
       relationship(o, "Thing", "n").requires shouldBe empty
     }
 
-    "put inherited constraints and child overrides on the derived value type" in {
+    "make a derived value type extend its parent's, with only the constraints it adds" in {
       val o = ontologyOf("""
         |types:
         |  BoundedInt:
@@ -234,8 +234,10 @@ class OssieGeneratorSpec extends AnyWordSpec, Matchers, OssieFixtures {
         |        range: ProductCode
         """)
 
-      concept(o, "SmallInt").requires shouldBe Seq("SmallInt >= 1", "SmallInt <= 5")
-      concept(o, "ProductCode").requires shouldBe Seq("REGEXP_LIKE(ProductCode, '^[A-Z]{3}$')")
+      concept(o, "SmallInt").extendsConcepts shouldBe Seq("BoundedInt")
+      concept(o, "SmallInt").requires shouldBe Seq("SmallInt <= 5")
+      concept(o, "ProductCode").extendsConcepts shouldBe Seq("Code")
+      concept(o, "ProductCode").requires shouldBe empty
       relationship(o, "Thing", "n").requires shouldBe empty
       relationship(o, "Thing", "code").requires shouldBe empty
     }

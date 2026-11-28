@@ -58,6 +58,13 @@ class ExpressionSpec extends AnyWordSpec, Matchers, ScalaCheckPropertyChecks {
       parsed("Integer >= 5") shouldBe AtLeast(Ref("Integer"), Literal.Number("5"))
       parsed("Integer <= -1") shouldBe AtMost(Ref("Integer"), Literal.Number("-1"))
       parsed("REGEXP_LIKE(S, '^x')") shouldBe RegexpLike(Ref("S"), Literal.Text("^x"))
+      parsed("LENGTH(S) >= 2") shouldBe LengthAtLeast(Ref("S"), 2)
+      parsed("length( S ) <= 10") shouldBe LengthAtMost(Ref("S"), 10)
+    }
+
+    "read a bound with the value first" in {
+      parsed("1 <= Integer") shouldBe AtLeast(Ref("Integer"), Literal.Number("1"))
+      parsed("'2020-01-01' >= Date") shouldBe AtMost(Ref("Date"), Literal.Text("2020-01-01"))
     }
 
     "read equality comparisons joined by OR as an IN list" in {

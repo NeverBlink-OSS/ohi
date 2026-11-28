@@ -37,12 +37,12 @@ private[ossie] object Expression {
       s"${ref.written} IN (${values.map(_.render).mkString(", ")})"
   }
 
-  /** `Ref >= 1` */
+  /** `Ref >= 1`. Also read from `1 <= Ref`, but always written this way. */
   final case class AtLeast(ref: Ref, value: Literal) extends Expression {
     override def render: String = s"${ref.written} >= ${value.render}"
   }
 
-  /** `Ref <= 10` */
+  /** `Ref <= 10`. Also read from `10 >= Ref`, but always written this way. */
   final case class AtMost(ref: Ref, value: Literal) extends Expression {
     override def render: String = s"${ref.written} <= ${value.render}"
   }
@@ -112,9 +112,13 @@ private[ossie] object Expression {
       .filter(cs => cs.forall(_._1 == cs.head._1))
       .map(cs => InList(cs.head._1, cs.map(_._2)))
 
-  private def atLeast[$: P]: P[AtLeast] = P(ref ~ ws ~ ">=" ~ ws ~ value).map(AtLeast.apply)
+  private def atLeast[$: P]: P[AtLeast] =
+    P(ref ~ ws ~ ">=" ~ ws ~ value).map(AtLeast.apply) |
+      P(value ~ ws ~ "<=" ~ ws ~ ref).map((v, r) => AtLeast(r, v))
 
-  private def atMost[$: P]: P[AtMost] = P(ref ~ ws ~ "<=" ~ ws ~ value).map(AtMost.apply)
+  private def atMost[$: P]: P[AtMost] =
+    P(ref ~ ws ~ "<=" ~ ws ~ value).map(AtMost.apply) |
+      P(value ~ ws ~ ">=" ~ ws ~ ref).map((v, r) => AtMost(r, v))
 
   private def lengthOf[$: P]: P[Ref] = P(IgnoreCase("LENGTH") ~ ws ~ "(" ~ ws ~ ref ~ ws ~ ")")
 

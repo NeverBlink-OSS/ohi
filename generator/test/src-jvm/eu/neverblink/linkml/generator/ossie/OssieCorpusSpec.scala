@@ -61,7 +61,7 @@ class OssieCorpusSpec extends AnyWordSpec, Matchers {
 }
 
 object OssieCorpusSpec {
-  val ontologies: Seq[String] = Seq("sap-business-partner")
+  val ontologies: Seq[String] = Seq("flights", "sap-business-partner")
 
   /** The `ossie` folder of linkml-benchmark-schemas. */
   private val corpus: Option[os.Path] =
@@ -85,11 +85,12 @@ object OssieCorpusSpec {
     )
 
   /** [[o]] with the changes a trip through LinkML may make. Expressions are written as the
-    * generator writes them, such as `IN (...)` for `==` joined with `OR`. A relationship without
-    * roles becomes one to `Boolean`, as it is a `boolean` slot in LinkML.
+    * generator writes them, such as `IN (...)` for `==` joined with `OR`, and in any order, as all
+    * of them have to hold. A relationship without roles becomes one to `Boolean`, as it is a
+    * `boolean` slot in LinkML.
     */
   private def normalized(o: OssieOntology): OssieOntology = {
-    def rewritten(e: String) = Expression.parse(e).fold(e)(_.render)
+    def rewritten(es: Seq[String]) = es.map(e => Expression.parse(e).fold(e)(_.render)).sorted
     def boolean(r: Relationship) =
       if r.roles.nonEmpty then r
       else
@@ -100,10 +101,10 @@ object OssieCorpusSpec {
         )
     o.copy(ontology = o.ontology.map { c =>
       c.copy(
-        requires = c.requires.map(rewritten),
+        requires = rewritten(c.requires),
         relationships = c.relationships.map { r =>
           val b = boolean(r)
-          b.copy(requires = b.requires.map(rewritten))
+          b.copy(requires = rewritten(b.requires))
         },
       )
     })

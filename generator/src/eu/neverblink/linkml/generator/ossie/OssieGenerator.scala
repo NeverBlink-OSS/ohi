@@ -67,7 +67,7 @@ class OssieGenerator(using sv: SchemaView)
     val components =
       classes.map(cv => classConcept(cv, conceptOf, declared)) ++
         enums.map(ev => enumConcept(ev, conceptOf(ev.name))) ++
-        types.map(tv => typeConcept(tv, conceptOf(tv.name)))
+        types.map(tv => typeConcept(tv, conceptOf(tv.name), conceptOf))
 
     if components.isEmpty then
       throw SchemaConversionException(
@@ -225,9 +225,12 @@ class OssieGenerator(using sv: SchemaView)
             )
             // The other readings, which the Ossie importer keeps in `aliases`
             val target = first.role.fold(range)(r => s"$range:$r")
-            val others = slot.aliases.localized
+            val readings = slot.aliases.localized
               .flatMap(Verbalization.fromPlain(_, Seq(conceptName, target)))
-            (first.render +: others).distinct
+            // A reading that goes on after the range, as in `{Aircraft} has {Integer} seats`, is
+            // the first one in full
+            val text = first.render
+            (readings.find(_.startsWith(text + " ")).getOrElse(text) +: readings).distinct
           },
           description = slot.description.localized,
           roles = Seq(role),
@@ -275,24 +278,27 @@ class OssieGenerator(using sv: SchemaView)
   }
 
   /** A named type becomes a value type over the built-in for its base, keeping its constraints. */
-  private def typeConcept(tv: TypeView, name: String)(using
+  private def typeConcept(tv: TypeView, name: String, conceptOf: Map[String, String])(using
       options: OssieGeneratorOptions,
-  ): Concept =
+  ): Concept = {
+    val parent = tv._type.typeof.flatMap(t => conceptOf.get(t.value))
+    val constrained = if parent.isDefined then tv._type else tv.derivedType
     Concept(
       concept = name,
       conceptType = ConceptType.ValueType,
       // A type without a `uri` of its own has the one of its base, which isn't its IRI.
       iri = tv._type.typeUri.map(_ => tv.uriStr),
       description = tv._type.description.localized,
-      extendsConcepts = Seq(builtInForType(tv)),
+      extendsConcepts = Seq(parent.getOrElse(builtInForType(tv))),
       requires = Constraints(
-        minimumValue = tv.derivedType.minimumValue,
-        maximumValue = tv.derivedType.maximumValue,
-        minimumLength = tv.derivedType.minimumLength,
-        maximumLength = tv.derivedType.maximumLength,
-        pattern = tv.derivedType.pattern,
+        minimumValue = constrained.minimumValue,
+        maximumValue = constrained.maximumValue,
+        minimumLength = constrained.minimumLength,
+        maximumLength = constrained.maximumLength,
+        pattern = constrained.pattern,
       ).render(Ref(name)).map(_.render),
     )
+  }
 
   /** The value constraints the slot itself adds, as expressions over the role that corresponds to
     * this slot.

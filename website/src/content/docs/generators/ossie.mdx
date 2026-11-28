@@ -43,7 +43,7 @@ The generator writes [Apache Ossie](https://github.com/apache/ossie) ontologies 
 | `EntityType` for classes, `ValueType` for enums and types.                           | `type`          |
 | `class_uri`, `enum_uri`, or the type's `uri`. See [IRIs](#iris).                     | `iri`           |
 | Element `description`, in `metadata_language`.                                       | `description`   |
-| Classes: `is_a` + `mixins`. Enums and types: the built-in value type for their base. | `extends`       |
+| Classes: `is_a` + `mixins`. Types: the concept of their `typeof`, else the built-in value type for their base, as for enums. | `extends`       |
 | `identifier`, `key`, or `unique_keys`                                                | `identify_by`   |
 | Required slots: `Concept.relationship`. Enums and named types: see [Expressions](#expressions). | `requires` |
 | The class' derived slots, minus the ones stated identically in a supertype.          | `relationships` |
