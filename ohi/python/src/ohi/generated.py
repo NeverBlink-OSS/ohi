@@ -97,6 +97,10 @@ class Format(str, Enum):
     """Apache Ossie in YAML syntax."""
     shacl_turtle = "shacl-turtle"
     """SHACL shapes in Turtle syntax."""
+    linkml_json = "linkml-json"
+    """LinkML in JSON syntax."""
+    ossie_json = "ossie-json"
+    """Apache Ossie in JSON syntax."""
 
 
 class LockErrorCode(str, Enum):
@@ -414,6 +418,10 @@ class SearchHit(LinkMLModel):
     """Permanent absolute URL identifying one exact immutable publication. GET this exact URL returns its publication JSON. Do not append a filename."""
     contributors: list[Agent] | None = None
     """The people or organizations that contributed to the ontology."""
+    dependent_count: Annotated[StrictInt, Field(ge=0)] | None = None
+    """The number of dependents."""
+    dependents: list[str] | None = None
+    """The base_urls of publications whose dependencies include this one."""
     description: Annotated[str, Field(pattern=r"^[\s\S]*\S")]
     """Short description of the ontology's domain and intended use."""
     element_count: Annotated[StrictInt, Field(ge=0)] | None = None

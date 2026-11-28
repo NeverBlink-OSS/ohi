@@ -81,7 +81,11 @@
           }
         ],
         "original_version": "1.0.0",
-        "revision_id": "2026-12-01"
+        "revision_id": "2026-12-01",
+        "dependents": [
+          "https://example.org/packages/weather/2.0.0/"
+        ],
+        "dependent_count": 1
       }
     }
   ]

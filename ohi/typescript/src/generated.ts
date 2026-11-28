@@ -268,6 +268,10 @@ export interface SearchHit {
   base_url: string;
   /** The people or organizations that contributed to the ontology. */
   contributors?: Agent[];
+  /** The number of dependents. */
+  dependent_count?: number;
+  /** The base_urls of publications whose dependencies include this one. */
+  dependents?: string[];
   /** Short description of the ontology's domain and intended use. */
   description: string;
   /** Number of LinkML elements in the publication. */
@@ -407,7 +411,9 @@ export type Format =
   | "rdfs-turtle"
   | "linkml-yaml"
   | "ossie-yaml"
-  | "shacl-turtle";
+  | "shacl-turtle"
+  | "linkml-json"
+  | "ossie-json";
 
 export type LockErrorCode =
   | "INVALID_LOCK"

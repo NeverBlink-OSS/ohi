@@ -29,8 +29,8 @@ The CLI's help and JSON use these words:
   `format`, a SHA-256 checksum and an `origin`. `UPSTREAM` is the file its publisher released.
   `GENERATED` files are ohi's conversions of it, which can leave out what the target format
   cannot express.
-- **Format**: `owl-turtle`, `owl-rdfxml`, `rdfs-turtle`, `linkml-yaml`, `ossie-yaml` or
-  `shacl-turtle`.
+- **Format**: `owl-turtle`, `owl-rdfxml`, `rdfs-turtle`, `linkml-yaml`, `ossie-yaml`,
+  `shacl-turtle`, `linkml-json` or `ossie-json`.
 - **Revision**: a correction to a published version, such as `2013-revision-2026-12-01`. A plain
   version means its latest revision.
 

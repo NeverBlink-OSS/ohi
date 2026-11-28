@@ -95,6 +95,14 @@ classes:
         description: The id of the revision, only for a revision. The latest revision of a version is
           its document in packages_latest_revision.
         range: string
+      dependents:
+        description: The base_urls of publications whose dependencies include this one.
+        range: uri
+        multivalued: true
+      dependent_count:
+        description: The number of dependents.
+        range: integer
+        minimum_value: 0
   FacetCount:
     description: Counts for the returned values of one indexed field.
     extra_slots:

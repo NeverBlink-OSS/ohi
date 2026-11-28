@@ -19,6 +19,8 @@ private[cli] object CliFormatting {
     Format.LinkmlYaml -> "LinkML (YAML)",
     Format.OssieYaml -> "Apache Ossie (YAML)",
     Format.ShaclTurtle -> "SHACL (Turtle)",
+    Format.LinkmlJson -> "LinkML (JSON)",
+    Format.OssieJson -> "Apache Ossie (JSON)",
   )
 
   def formatsHelp(colored: Boolean = false): String =

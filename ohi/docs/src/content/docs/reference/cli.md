@@ -43,6 +43,8 @@ specific format:
 | `linkml-yaml` | LinkML | YAML | `.linkml.yaml` |
 | `ossie-yaml` | Apache Ossie | YAML | `.ossie.yaml` |
 | `shacl-turtle` | SHACL | Turtle | `.shacl.ttl` |
+| `linkml-json` | LinkML | JSON | `.linkml.json` |
+| `ossie-json` | Apache Ossie | JSON | `.ossie.json` |
 
 The release must provide exactly one file in the requested format. ohi does not search older
 releases when a format is unavailable.

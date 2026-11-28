@@ -14,6 +14,10 @@ import eu.neverblink.linkml.runtime.*
   *   its publication JSON. Do not append a filename.
   * @param contributors
   *   The people or organizations that contributed to the ontology.
+  * @param dependentCount
+  *   The number of dependents.
+  * @param dependents
+  *   The base_urls of publications whose dependencies include this one.
   * @param description
   *   Short description of the ontology's domain and intended use.
   * @param elementCount
@@ -69,6 +73,9 @@ final case class SearchHit(
     @named("base_url")
     baseUrl: Uri,
     contributors: Seq[Agent] = Seq(),
+    @named("dependent_count")
+    dependentCount: Option[Int] = None,
+    dependents: Seq[Uri] = Seq(),
     description: String,
     @named("element_count")
     elementCount: Option[Int] = None,

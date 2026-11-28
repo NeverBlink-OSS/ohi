@@ -31,7 +31,8 @@ ohi serves files that were prepared when the release was published. To convert l
 
 `get` and `add` resolve references through ohi.dev with an optional `--format`. Use the exact
 namespace, name and version values from search or inspect. Supported formats are `owl-turtle`,
-`owl-rdfxml`, `rdfs-turtle`, `linkml-yaml`, `ossie-yaml` and `shacl-turtle`.
+`owl-rdfxml`, `rdfs-turtle`, `linkml-yaml`, `ossie-yaml`, `shacl-turtle`, `linkml-json` and
+`ossie-json`.
 
 Without `--format`, ohi reads `default_format` from `ohi.yaml`, or uses `linkml-yaml` without a
 declaration. If the release lacks the preferred format, it falls back to `linkml-yaml`. An explicit
