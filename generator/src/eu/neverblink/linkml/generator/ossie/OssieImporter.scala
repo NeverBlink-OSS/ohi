@@ -329,6 +329,7 @@ object OssieImporter {
         owner,
         role.fold(Ref(""))(r => Ref(r.ref)),
         relationship.requires,
+        role.exists(r => holdsIntegers(r.concept)),
       )
       val unary = relationship.roles.isEmpty
       val first = relationship.verbalizes.headOption
@@ -381,7 +382,12 @@ object OssieImporter {
     }
 
     private def typeOf(concept: Concept, rank: Int): TypeDefinition = {
-      val constraints = constraintsOf(concept.concept, Ref(concept.concept), concept.requires)
+      val constraints = constraintsOf(
+        concept.concept,
+        Ref(concept.concept),
+        concept.requires,
+        holdsIntegers(concept.concept),
+      )
       warnAboutValueType(concept)
       concept.extendsConcepts.drop(1).foreach { p =>
         warn(ExtraValueTypeParent(concept = concept.concept, parent = p))
@@ -461,10 +467,18 @@ object OssieImporter {
 
     /** The constraints that expressions place on `ref`. Warns about the expressions that are not
       * one.
+      *
+      * @param integer
+      *   whether `ref` is an integer, which makes `>` and `<` bounds LinkML can state
       */
-    private def constraintsOf(owner: String, ref: Ref, texts: Seq[String]): Constraints = {
+    private def constraintsOf(
+        owner: String,
+        ref: Ref,
+        texts: Seq[String],
+        integer: Boolean,
+    ): Constraints = {
       val read = expressions(owner, texts)
-      val (constraints, unused) = Constraints.from(ref, read.map(_._1))
+      val (constraints, unused) = Constraints.from(ref, read.map(_._1), integer)
       // Expressions that read the same are interchangeable, so each unused one takes the first
       // text left that reads like it.
       val left = collection.mutable.ArrayBuffer.from(read)
@@ -474,6 +488,14 @@ object OssieImporter {
       }
       constraints
     }
+
+    /** Whether a concept's values are integers: `Integer`, or a value type based on it. */
+    private def holdsIntegers(concept: String, seen: Set[String] = Set.empty): Boolean =
+      concept == BuiltInConcept.integer || !seen(concept) && conceptsByName.get(concept).exists {
+        c =>
+          c.conceptType == ConceptType.ValueType &&
+          c.extendsConcepts.headOption.exists(holdsIntegers(_, seen + concept))
+      }
 
     private def cannotExpress(owner: String, text: String): Unit =
       warn(UnimplementedExpression(owner = owner, expression = text))

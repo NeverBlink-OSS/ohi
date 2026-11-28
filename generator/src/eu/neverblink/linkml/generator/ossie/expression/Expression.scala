@@ -47,6 +47,16 @@ private[ossie] object Expression {
     override def render: String = s"${ref.written} <= ${value.render}"
   }
 
+  /** `Ref > 0`. Also read from `0 < Ref`. Only read for integers, as `Ref >= 1`. */
+  final case class GreaterThan(ref: Ref, value: Literal) extends Expression {
+    override def render: String = s"${ref.written} > ${value.render}"
+  }
+
+  /** `Ref < 10`. Also read from `10 > Ref`. Only read for integers, as `Ref <= 9`. */
+  final case class LessThan(ref: Ref, value: Literal) extends Expression {
+    override def render: String = s"${ref.written} < ${value.render}"
+  }
+
   /** `LENGTH(Ref) >= 1` */
   final case class LengthAtLeast(ref: Ref, length: Int) extends Expression {
     override def render: String = s"LENGTH(${ref.written}) >= $length"
@@ -73,7 +83,7 @@ private[ossie] object Expression {
   private def expression[$: P]: P[Expression] =
     P(
       ws ~ (regexpLike | lengthAtLeast | lengthAtMost | inList | equalsAny | atLeast | atMost |
-        member) ~ ws ~ End,
+        greaterThan | lessThan | member) ~ ws ~ End,
     )
 
   /** A bare identifier, or a name in double quotes, in which a doubled quote is an escaped one. */
@@ -119,6 +129,14 @@ private[ossie] object Expression {
   private def atMost[$: P]: P[AtMost] =
     P(ref ~ ws ~ "<=" ~ ws ~ value).map(AtMost.apply) |
       P(value ~ ws ~ ">=" ~ ws ~ ref).map((v, r) => AtMost(r, v))
+
+  private def greaterThan[$: P]: P[GreaterThan] =
+    P(ref ~ ws ~ ">" ~ ws ~ value).map(GreaterThan.apply) |
+      P(value ~ ws ~ "<" ~ ws ~ ref).map((v, r) => GreaterThan(r, v))
+
+  private def lessThan[$: P]: P[LessThan] =
+    P(ref ~ ws ~ "<" ~ ws ~ value).map(LessThan.apply) |
+      P(value ~ ws ~ ">" ~ ws ~ ref).map((v, r) => LessThan(r, v))
 
   private def lengthOf[$: P]: P[Ref] = P(IgnoreCase("LENGTH") ~ ws ~ "(" ~ ws ~ ref ~ ws ~ ")")
 

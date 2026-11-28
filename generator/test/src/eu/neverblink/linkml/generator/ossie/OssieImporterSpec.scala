@@ -278,6 +278,24 @@ class OssieImporterSpec extends AnyWordSpec, Matchers, OssieFixtures {
       t.minimumValue.map(_.value) shouldBe Some("1")
     }
 
+    "read a strict bound on an integer value type as an inclusive one" in {
+      val types = importOf(ossie("""
+        |ontology:
+        |  - concept: NrSeats
+        |    type: ValueType
+        |    extends: [Integer]
+        |    requires:
+        |      - NrSeats > 0
+        |  - concept: FewSeats
+        |    type: ValueType
+        |    extends: [NrSeats]
+        |    requires:
+        |      - 10 > FewSeats
+        """)).types
+      types("NrSeats").minimumValue.map(_.value) shouldBe Some("1")
+      types("FewSeats").maximumValue.map(_.value) shouldBe Some("9")
+    }
+
     "base a value type on text when it extends nothing LinkML knows" in {
       importOf(ossie("""
         |ontology:
@@ -515,6 +533,39 @@ class OssieImporterSpec extends AnyWordSpec, Matchers, OssieFixtures {
       slot.minimumValue.map(_.value) shouldBe Some("-1")
       slot.maximumValue.map(_.value) shouldBe Some("10")
       slot.pattern shouldBe Some("^[0-9]+$")
+    }
+
+    "read a strict bound on an integer role as an inclusive one" in {
+      attributeOf(
+        """
+        |      - name: n
+        |        roles: [{concept: Integer}]
+        |        multiplicity: ManyToOne
+        |        requires:
+        |          - Integer < 10
+        |        verbalizes: ['{Thing} n {Integer}']
+        """,
+        "n",
+      ).maximumValue.map(_.value) shouldBe Some("9")
+    }
+
+    "warn about a strict bound on anything but an integer" in {
+      val result = OssieImporter().importWithWarnings(stream(ossie("""
+        |ontology:
+        |  - concept: Thing
+        |    type: EntityType
+        |    relationships:
+        |      - name: x
+        |        roles: [{concept: Decimal}]
+        |        multiplicity: ManyToOne
+        |        requires:
+        |          - Decimal > 0
+        |        verbalizes: ['{Thing} x {Decimal}']
+        |""")))
+      result.schema.classes("Thing").attributes("x").minimumValue shouldBe None
+      result.warnings shouldBe Seq(
+        "Expression that is not supported by the importer yet (1): Thing.x: Decimal > 0",
+      )
     }
 
     "keep a bound that is not a number as the string it was" in {

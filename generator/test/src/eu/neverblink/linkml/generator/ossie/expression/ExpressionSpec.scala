@@ -65,6 +65,25 @@ class ExpressionSpec extends AnyWordSpec, Matchers, ScalaCheckPropertyChecks {
     "read a bound with the value first" in {
       parsed("1 <= Integer") shouldBe AtLeast(Ref("Integer"), Literal.Number("1"))
       parsed("'2020-01-01' >= Date") shouldBe AtMost(Ref("Date"), Literal.Text("2020-01-01"))
+      parsed("0 < Integer") shouldBe GreaterThan(Ref("Integer"), Literal.Number("0"))
+    }
+
+    "read a strict bound" in {
+      parsed("Integer > 0") shouldBe GreaterThan(Ref("Integer"), Literal.Number("0"))
+      parsed("Integer < 10") shouldBe LessThan(Ref("Integer"), Literal.Number("10"))
+      parsed("10 > Integer") shouldBe LessThan(Ref("Integer"), Literal.Number("10"))
+    }
+
+    "make a strict bound on an integer an inclusive one, and keep one on anything else" in {
+      val strict = Seq(
+        GreaterThan(Ref("N"), Literal.Number("0")),
+        LessThan(Ref("N"), Literal.Number("-10")),
+      )
+      Constraints.from(Ref("N"), strict, integer = true) shouldBe
+        (Constraints(Some(LinkmlAny("1")), Some(LinkmlAny("-11"))), Nil)
+      Constraints.from(Ref("N"), strict) shouldBe (Constraints(), strict)
+      val fraction = Seq(GreaterThan(Ref("N"), Literal.Number("0.5")))
+      Constraints.from(Ref("N"), fraction, integer = true) shouldBe (Constraints(), fraction)
     }
 
     "read equality comparisons joined by OR as an IN list" in {

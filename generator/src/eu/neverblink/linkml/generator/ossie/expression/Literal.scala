@@ -20,6 +20,10 @@ private[ossie] object Literal {
     override def render: String = text
 
     override def toLinkml: LinkmlAny = LinkmlAny(text)
+
+    /** This number plus `step`, if it is a whole number. */
+    def plus(step: Int): Option[Number] =
+      BigDecimal(text).toBigIntExact.map(n => Number((n + step).toString))
   }
 
   /** A single-quoted string. [[value]] is unescaped. */

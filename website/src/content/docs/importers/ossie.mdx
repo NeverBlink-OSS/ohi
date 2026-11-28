@@ -98,6 +98,7 @@ The generator maps several LinkML types to one Ossie concept, so a round trip ch
 | `Ref IN ('a', 'b')`        | `permissible_values`                       |
 | `Ref == 'a' OR Ref = 'b'`  | `permissible_values`, written back as `IN` |
 | `Ref >= v`, `Ref <= v`, also as `v <= Ref` | `minimum_value`, `maximum_value` |
+| `Ref > n`, `Ref < n`, also as `n < Ref`, on integers | `minimum_value: n + 1`, `maximum_value: n - 1` |
 | `LENGTH(Ref) >= n`, `LENGTH(Ref) <= n` | `minimum_length`, `maximum_length` |
 | `REGEXP_LIKE(Ref, 'p')`    | `pattern`                                  |
 
