@@ -130,6 +130,25 @@ class LinkmlYamlCodecSpec extends AnyWordSpec, Matchers, ScalaCheckPropertyCheck
           |^""".stripMargin,
       )
     }
+    "decode and encode double number values" in {
+      implicit val codec: LinkmlYamlCodec[Double] = LinkmlYamlCodec.derived
+      roundTrip(32.5, "32.5\n")
+      decode[Double]("32\n", 32.0)
+    }
+    "reject quoted numbers as double values" in {
+      implicit val codec: LinkmlYamlCodec[Double] = LinkmlYamlCodec.derived
+      decodeError[Double]("\"32.5\"\n", "Expected double number value")
+    }
+    "reject numbers that overflow a finite double" in {
+      implicit val codec: LinkmlYamlCodec[Double] = LinkmlYamlCodec.derived
+      decodeError[Double]("1e400\n", "Expected finite double number value")
+    }
+    "reject non-finite double encoding" in {
+      val codec: LinkmlYamlCodec[Double] = LinkmlYamlCodec.derived
+      for (value <- Seq(Double.PositiveInfinity, Double.NaN)) {
+        intercept[IllegalArgumentException](codec.encode(value))
+      }
+    }
     "decode and encode union types" in {
       implicit val codec: LinkmlYamlCodec[String | Int] = LinkmlYamlCodec.derived
       roundTrip[String | Int]("hello", "hello\n")

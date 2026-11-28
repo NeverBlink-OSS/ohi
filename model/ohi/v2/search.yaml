@@ -10,6 +10,7 @@ prefixes:
 default_prefix: ohi
 imports:
 - publication-fields
+- quality-fields
 classes:
   SearchResult:
     description: One ordered page of publication summaries, with count, effective paging information
@@ -73,6 +74,8 @@ classes:
     - tags
     - element_count
     - native_element_count
+    - quality_score
+    - quality_assessment_sha256
     - authors
     - publishers
     - contributors

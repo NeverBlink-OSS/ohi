@@ -44,6 +44,8 @@ import java.util.Objects;
     "publications",
     "published_at",
     "publishers",
+    "quality_assessment_sha256",
+    "quality_score",
     "revision_id",
     "tags",
     "title",
@@ -102,6 +104,12 @@ public class SearchHit {
 
     @JsonProperty("publishers")
     private List<Agent> publishers;
+
+    @JsonProperty("quality_assessment_sha256")
+    private String qualityAssessmentSha256;
+
+    @JsonProperty("quality_score")
+    private Double qualityScore;
 
     @JsonProperty("revision_id")
     private String revisionId;
@@ -293,6 +301,26 @@ public class SearchHit {
         this.publishers = publishers;
     }
 
+    /** Identifies the saved assessment, even when it has no score. */
+    public String getQualityAssessmentSha256() {
+        return qualityAssessmentSha256;
+    }
+
+    public void setQualityAssessmentSha256(String qualityAssessmentSha256) {
+        this.qualityAssessmentSha256 = qualityAssessmentSha256;
+    }
+
+    /**
+     * Unrounded score for term descriptions, metadata and use as a dependency, weighted by the assessment's policy. Omitted when unavailable.
+     */
+    public Double getQualityScore() {
+        return qualityScore;
+    }
+
+    public void setQualityScore(Double qualityScore) {
+        this.qualityScore = qualityScore;
+    }
+
     /**
      * The id of the revision, only for a revision. The latest revision of a version is its document in packages_latest_revision.
      */
@@ -363,6 +391,8 @@ public class SearchHit {
             && Objects.equals(publications, other.publications)
             && Objects.equals(publishedAt, other.publishedAt)
             && Objects.equals(publishers, other.publishers)
+            && Objects.equals(qualityAssessmentSha256, other.qualityAssessmentSha256)
+            && Objects.equals(qualityScore, other.qualityScore)
             && Objects.equals(revisionId, other.revisionId)
             && Objects.equals(tags, other.tags)
             && Objects.equals(title, other.title)
@@ -372,7 +402,7 @@ public class SearchHit {
 
     @Override
     public int hashCode() {
-        return Objects.hash(authors, baseUrl, contributors, description, elementCount, formats, hubVersion, keywords, licenses, maintainers, name, namespace, nativeElementCount, originalSources, originalVersion, publications, publishedAt, publishers, revisionId, tags, title, version, extraProperties);
+        return Objects.hash(authors, baseUrl, contributors, description, elementCount, formats, hubVersion, keywords, licenses, maintainers, name, namespace, nativeElementCount, originalSources, originalVersion, publications, publishedAt, publishers, qualityAssessmentSha256, qualityScore, revisionId, tags, title, version, extraProperties);
     }
 
     @Override
@@ -396,6 +426,8 @@ public class SearchHit {
             + ", publications=" + getPublications()
             + ", publishedAt=" + getPublishedAt()
             + ", publishers=" + getPublishers()
+            + ", qualityAssessmentSha256=" + getQualityAssessmentSha256()
+            + ", qualityScore=" + getQualityScore()
             + ", revisionId=" + getRevisionId()
             + ", tags=" + getTags()
             + ", title=" + getTitle()
@@ -426,6 +458,8 @@ public class SearchHit {
             @JsonProperty("publications") @JsonSetter(contentNulls = Nulls.FAIL) List<Citation> publications,
             @JsonProperty(value = "published_at", required = true) Object publishedAt,
             @JsonProperty(value = "publishers", required = true) @JsonSetter(contentNulls = Nulls.FAIL) List<Agent> publishers,
+            @JsonProperty("quality_assessment_sha256") String qualityAssessmentSha256,
+            @JsonProperty("quality_score") Double qualityScore,
             @JsonProperty("revision_id") String revisionId,
             @JsonProperty("tags") @JsonSetter(contentNulls = Nulls.FAIL) List<String> tags,
             @JsonProperty(value = "title", required = true) String title,
@@ -449,6 +483,8 @@ public class SearchHit {
         json$item.setPublications(publications);
         json$item.setPublishedAt(LinkMLJson.dateTime(publishedAt));
         json$item.setPublishers(publishers);
+        json$item.setQualityAssessmentSha256(qualityAssessmentSha256);
+        json$item.setQualityScore(qualityScore);
         json$item.setRevisionId(revisionId);
         json$item.setTags(tags);
         json$item.setTitle(title);

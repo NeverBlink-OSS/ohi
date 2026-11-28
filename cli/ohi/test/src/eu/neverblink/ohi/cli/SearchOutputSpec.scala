@@ -37,6 +37,44 @@ class SearchOutputSpec extends AnyWordSpec, Matchers {
   )
 
   "search output" should {
+    for (score, suffix) <- Seq(
+        49.99 -> "",
+        50.0 -> "  [★ Bronze]",
+        64.99 -> "  [★ Bronze]",
+        65.0 -> "  [★★ Silver]",
+        79.99 -> "  [★★ Silver]",
+        80.0 -> "  [★★★ Gold]",
+      )
+    do
+      s"show the seal for unrounded score $score beside the title" in {
+        val input = result.copy(hits = Seq(collections.copy(qualityScore = Some(score))))
+        SearchOutput.render(input, 80, colored = false).linesIterator.drop(2).next() shouldBe
+          s"OMG Commons Collections$suffix"
+      }
+
+    "keep a seal intact on a new line when it does not fit beside the title" in {
+      val input = result.copy(hits = Seq(collections.copy(qualityScore = Some(80))))
+      val plain = SearchOutput.render(input, 25, colored = false)
+      plain should include("\nOMG Commons Collections\n[★★★ Gold]\n")
+      val colored = SearchOutput.render(input, 25, colored = true)
+      colored.replaceAll("\u001b\\[[0-9;]*m", "") shouldBe plain
+      colored should include("\u001b[33m[★★★ Gold]\u001b[0m\n")
+    }
+
+    "append a seal that exactly fits the last wrapped title line" in {
+      val input = result.copy(hits =
+        Seq(
+          collections.copy(
+            title = "12345678901234567890 abcdefgh",
+            qualityScore = Some(80),
+          ),
+        ),
+      )
+      SearchOutput.render(input, 20, colored = false) should include(
+        "\n12345678901234567890\nabcdefgh  [★★★ Gold]\n",
+      )
+    }
+
     for (columns, expected) <- Seq(
         80 -> """1 matching ontology
                 |

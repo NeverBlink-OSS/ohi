@@ -51,6 +51,11 @@ import eu.neverblink.linkml.runtime.*
   *   publication. Not an upstream release date.
   * @param publishers
   *   The people or organizations that publish the ontology upstream.
+  * @param qualityAssessmentSha256
+  *   Identifies the saved assessment, even when it has no score.
+  * @param qualityScore
+  *   Unrounded score for term descriptions, metadata and use as a dependency, weighted by the
+  *   assessment's policy. Omitted when unavailable.
   * @param revisionId
   *   The id of the revision, only for a revision. The latest revision of a version is its document
   *   in packages_latest_revision.
@@ -90,6 +95,10 @@ final case class SearchHit(
     @named("published_at")
     publishedAt: LinkmlDateTime,
     publishers: Seq[Agent],
+    @named("quality_assessment_sha256")
+    qualityAssessmentSha256: Option[SignalDigest] = None,
+    @named("quality_score")
+    qualityScore: Option[Double] = None,
     @named("revision_id")
     revisionId: Option[String] = None,
     tags: Seq[String] = Seq(),
