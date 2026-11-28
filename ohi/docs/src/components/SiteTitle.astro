@@ -1,11 +1,10 @@
 ---
+// The logo links to the ohi.dev home page, not to the docs home
 import OhiLogo from '../assets/ohi-logo.svg';
 import OhiLogoDark from '../assets/ohi-logo-dark.svg';
-
-const { siteTitleHref } = Astro.locals.starlightRoute;
 ---
 
-<a href={siteTitleHref} class="site-title sl-flex">
+<a href="/" class="site-title sl-flex" aria-label="ohi.dev home">
   <OhiLogoDark class="light:sl-hidden" />
   <OhiLogo class="dark:sl-hidden" />
 </a>

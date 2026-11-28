@@ -40,6 +40,7 @@ export default defineConfig({
         EditLink: './src/components/EditLink.astro',
         Head: './src/components/Head.astro',
         SiteTitle: './src/components/SiteTitle.astro',
+        SocialIcons: './src/components/SocialIcons.astro',
         ThemeSelect: './src/components/ThemeSelect.astro',
       },
       social: [
