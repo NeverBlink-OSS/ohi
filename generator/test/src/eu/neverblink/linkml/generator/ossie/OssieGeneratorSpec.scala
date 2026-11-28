@@ -210,7 +210,7 @@ class OssieGeneratorSpec extends AnyWordSpec, Matchers, OssieFixtures {
       relationship(o, "Thing", "n").requires shouldBe empty
     }
 
-    "put inherited constraints and child overrides on the derived value type" in {
+    "make a derived value type extend its parent's, with only the constraints it adds" in {
       val o = ontologyOf("""
         |types:
         |  BoundedInt:
@@ -234,8 +234,10 @@ class OssieGeneratorSpec extends AnyWordSpec, Matchers, OssieFixtures {
         |        range: ProductCode
         """)
 
-      concept(o, "SmallInt").requires shouldBe Seq("SmallInt >= 1", "SmallInt <= 5")
-      concept(o, "ProductCode").requires shouldBe Seq("REGEXP_LIKE(ProductCode, '^[A-Z]{3}$')")
+      concept(o, "SmallInt").extendsConcepts shouldBe Seq("BoundedInt")
+      concept(o, "SmallInt").requires shouldBe Seq("SmallInt <= 5")
+      concept(o, "ProductCode").extendsConcepts shouldBe Seq("Code")
+      concept(o, "ProductCode").requires shouldBe empty
       relationship(o, "Thing", "n").requires shouldBe empty
       relationship(o, "Thing", "code").requires shouldBe empty
     }
@@ -292,9 +294,12 @@ class OssieGeneratorSpec extends AnyWordSpec, Matchers, OssieFixtures {
       val o = ontologyOf(globalIdentifiers)
       concept(o, "Agent").iri shouldBe Some("foaf:Agent")
       relationship(o, "Agent", "homepage").iri shouldBe Some("foaf:homepage")
-      concept(o, "Person").iri shouldBe Some("ex:Person")
       relationship(o, "Agent", "status").iri shouldBe Some("ex:status")
       concept(o, "Status").iri shouldBe Some("http://www.w3.org/ns/org#Status")
+    }
+
+    "give a class no IRI when the schema states none, as the Ossie importer would make it up" in {
+      concept(ontologyOf(globalIdentifiers), "Person").iri shouldBe None
     }
 
     "declare only the prefixes the IRIs use, in the schema's order" in {
@@ -305,9 +310,9 @@ class OssieGeneratorSpec extends AnyWordSpec, Matchers, OssieFixtures {
       )
     }
 
-    "give a named type its uri, inherited or not" in {
+    "give a named type its own uri, and no IRI when it inherits one" in {
       concept(ontologyOf(globalIdentifiers), "Year").iri shouldBe Some("xsd:gYear")
-      concept(ontologyOf(typeofChain), "PositiveInt").iri shouldBe Some("xsd:integer")
+      concept(ontologyOf(typeofChain), "PositiveInt").iri shouldBe None
     }
 
     "use the longest namespace when several cover an IRI" in {

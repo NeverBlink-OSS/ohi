@@ -67,7 +67,7 @@ class OssieGenerator(using sv: SchemaView)
     val components =
       classes.map(cv => classConcept(cv, conceptOf, declared)) ++
         enums.map(ev => enumConcept(ev, conceptOf(ev.name))) ++
-        types.map(tv => typeConcept(tv, conceptOf(tv.name)))
+        types.map(tv => typeConcept(tv, conceptOf(tv.name), conceptOf))
 
     if components.isEmpty then
       throw SchemaConversionException(
@@ -119,16 +119,21 @@ class OssieGenerator(using sv: SchemaView)
     Concept(
       concept = name,
       conceptType = ConceptType.EntityType,
-      iri = Some(cv.uriStr),
+      iri = cv.cls.classUri.map(_ => cv.uriStr),
       description = cv.cls.description.localized,
       // Ancestors that were pruned away are simply not extended.
       extendsConcepts = cv.parents.flatMap(p => conceptOf.get(p.name)).distinct,
       identifyBy = identifyingSlots(cv)
         .flatMap(slot => declared(cv.name).find(_.slotName == slot))
         .map(_.relationship.name),
-      // Only this concept's own required relationships - a supertype already states its own.
-      requires =
-        own.filter(_.required).map(r => Expression.Member(Ref(name), r.relationship.name).render),
+      // Only this concept's own required relationships - a supertype already states its own. An
+      // identifier only if the schema says so: LinkML makes it required anyway.
+      requires = own
+        .filter(r =>
+          r.required &&
+            (!singleIdentifierSlot(cv).contains(r.slotName) || statesRequired(cv, r.slotName)),
+        )
+        .map(r => Expression.Member(Ref(name), r.relationship.name).render),
       relationships = own.map(_.relationship),
     )
   }
@@ -176,10 +181,21 @@ class OssieGenerator(using sv: SchemaView)
       conceptOf: Map[String, String],
   )(using options: OssieGeneratorOptions): Seq[Rel] = {
     val singleIdentifier = singleIdentifierSlot(cv)
-
-    cv.sortedAttributeViews.map { av =>
+    // By rank, then in the order the class lists them, as a schema imported from OWL has no ranks
+    val listed = (cv.cls.attributes.keysIterator ++ cv.cls.slots.iterator.map(_.value))
+      .zipWithIndex.toMap
+    val ordered = cv.sortedAttributeViews.sortBy { av =>
       val slot = av.slotView.slot
-      val name = slotName(av.slotView)
+      (slot.rank.getOrElse(Int.MaxValue), listed.getOrElse(slot.name, Int.MaxValue))
+    }
+
+    ordered.map { av =>
+      val slot = av.slotView.slot
+      val iri = av.slotView.uriStr
+      val memberName = memberOf(iri, cv)
+      val name =
+        if slot.alias.isDefined then slotName(av.slotView)
+        else memberName.getOrElse(slotName(av.slotView))
 
       val range = rangeOf(av, conceptOf)
       // The one case where the role player is ambiguous: a slot pointing back at its own class.
@@ -196,18 +212,26 @@ class OssieGenerator(using sv: SchemaView)
       Rel(
         relationship = Relationship(
           name = name,
-          iri = Some(av.slotView.uriStr),
+          iri = Option.when(memberName.isEmpty)(iri),
           // Ossie requires at least one verbalization.
-          verbalizes = Seq(
-            Verbalization(
+          verbalizes = {
+            val first = Verbalization(
               Ref(conceptName),
               // Title or space-cased slot name
               slot.title.localized
                 .getOrElse(Case.base(name).replace('_', ' ')),
               Ref(range),
               Option.when(selfReference)(name),
-            ).render,
-          ),
+            )
+            // The other readings, which the Ossie importer keeps in `aliases`
+            val target = first.role.fold(range)(r => s"$range:$r")
+            val readings = slot.aliases.localized
+              .flatMap(Verbalization.fromPlain(_, Seq(conceptName, target)))
+            // A reading that goes on after the range, as in `{Aircraft} has {Integer} seats`, is
+            // the first one in full
+            val text = first.render
+            (readings.find(_.startsWith(text + " ")).getOrElse(text) +: readings).distinct
+          },
           description = slot.description.localized,
           roles = Seq(role),
           multiplicity = multiplicity,
@@ -219,6 +243,23 @@ class OssieGenerator(using sv: SchemaView)
     }
   }
 
+  /** Whether the schema makes a slot of `cv` required itself. */
+  private def statesRequired(cv: ClassView, slot: String): Boolean =
+    cv.ancestorsWithSelf.exists(a =>
+      a.cls.attributes.get(slot).exists(_.required) || a.cls.slotUsage.get(slot).exists(_.required),
+    ) || sv.slotDefinitions.get(slot).exists(_.slot.required)
+
+  /** The relationship name in a slot IRI of the form `<default IRI of the class>.<name>`, for the
+    * class or an ancestor. The Ossie importer gives relationships without an `iri` such IRIs.
+    */
+  private def memberOf(iri: String, cv: ClassView): Option[String] =
+    cv.ancestorsWithSelf.iterator.map(_.modelUri.original + ".").collectFirst {
+      case owner
+          if iri.startsWith(owner) && iri.length > owner.length &&
+            !iri.substring(owner.length).exists(c => c == '/' || c == '#') =>
+        iri.substring(owner.length)
+    }
+
   /** An enum becomes a value type over strings, constrained to its permissible values. */
   private def enumConcept(ev: EnumView, name: String)(using
       options: OssieGeneratorOptions,
@@ -227,7 +268,7 @@ class OssieGenerator(using sv: SchemaView)
     Concept(
       concept = name,
       conceptType = ConceptType.ValueType,
-      iri = Some(ev.uriStr),
+      iri = ev._enum.enumUri.map(_ => ev.uriStr),
       description = ev._enum.description.localized,
       extendsConcepts = Seq(BuiltInConcept.string),
       requires =
@@ -237,21 +278,27 @@ class OssieGenerator(using sv: SchemaView)
   }
 
   /** A named type becomes a value type over the built-in for its base, keeping its constraints. */
-  private def typeConcept(tv: TypeView, name: String)(using
+  private def typeConcept(tv: TypeView, name: String, conceptOf: Map[String, String])(using
       options: OssieGeneratorOptions,
-  ): Concept =
+  ): Concept = {
+    val parent = tv._type.typeof.flatMap(t => conceptOf.get(t.value))
+    val constrained = if parent.isDefined then tv._type else tv.derivedType
     Concept(
       concept = name,
       conceptType = ConceptType.ValueType,
-      iri = Some(tv.uriStr),
+      // A type without a `uri` of its own has the one of its base, which isn't its IRI.
+      iri = tv._type.typeUri.map(_ => tv.uriStr),
       description = tv._type.description.localized,
-      extendsConcepts = Seq(builtInForType(tv)),
+      extendsConcepts = Seq(parent.getOrElse(builtInForType(tv))),
       requires = Constraints(
-        tv.derivedType.minimumValue,
-        tv.derivedType.maximumValue,
-        tv.derivedType.pattern,
+        minimumValue = constrained.minimumValue,
+        maximumValue = constrained.maximumValue,
+        minimumLength = constrained.minimumLength,
+        maximumLength = constrained.maximumLength,
+        pattern = constrained.pattern,
       ).render(Ref(name)).map(_.render),
     )
+  }
 
   /** The value constraints the slot itself adds, as expressions over the role that corresponds to
     * this slot.
@@ -263,8 +310,13 @@ class OssieGenerator(using sv: SchemaView)
   private def slotConstraints(av: AttributeView, ref: String): Seq[String] = av match {
     case _: TypeAttributeView | _: EnumAttributeView =>
       val slot = av.slotView.slot
-      Constraints(slot.minimumValue, slot.maximumValue, slot.pattern)
-        .render(Ref(ref))
+      Constraints(
+        minimumValue = slot.minimumValue,
+        maximumValue = slot.maximumValue,
+        minimumLength = slot.minimumLength,
+        maximumLength = slot.maximumLength,
+        pattern = slot.pattern,
+      ).render(Ref(ref))
         .map(_.render)
     case _ => Nil
   }

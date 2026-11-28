@@ -435,6 +435,12 @@ object OwlGenerator {
         val properties = b.result()
         if (properties.nonEmpty) add(HasKey(self, properties))
       }
+      // An identifier that contains a value is a key too.
+      cv.identifier.foreachFast { id =>
+        val inherited = cv.parents.exists(_.identifier.exists(_.name == id.name))
+        if (!inherited && !cv.subjectType.foldFast(false)(_.isIri))
+          add(HasKey(self, Vector(id.uriStr)))
+      }
       val children = childrenOf.getOrElse(cv.name, Nil)
       // Every instance of an abstract class is an instance of one of its children. With only one
       // child, that would make the two classes equivalent, so we skip it.
@@ -762,7 +768,8 @@ object OwlGenerator {
             ),
           )
         } else DataRange.Datatype(tv.uriStr)
-      } else {
+      } else if (isNamedHere(tv)) DataRange.Datatype(ownDatatype(tv))
+      else {
         // A type without its own `uri` stands for the ancestor it inherits the `uri` from.
         val origin = tv.ancestorsWithSelf.find(_._type.typeUri.isDefined).orNullFast
         if ((origin ne null) && origin.isPrimitive && !hasFacets(tv)) datatypeOf(origin)
@@ -774,6 +781,20 @@ object OwlGenerator {
           )
         } else DataRange.Datatype(tv.uriStr)
       }
+
+    /** Whether the type gets a datatype of its own, [[ownDatatype]]. Without one, a type like `Age`
+      * with `typeof: integer` and no `uri` would be plain `xsd:integer` in OWL, and lose its name.
+      */
+    private def isNamedHere(tv: TypeView): Boolean =
+      !tv.isPrimitive && tv._type.typeUri.isEmpty && !isLinkmlOwn(tv) && !tv.isIri &&
+        (tv.runtimeType ne LocalizedTextType) &&
+        tv.ancestorsWithSelf.exists(_._type.typeUri.isDefined)
+
+    /** The IRI of the type's own datatype, such as `ex:Age` for `Age`. The OWL importer expects
+      * this IRI for a type, so it can skip the `uri` when reading it back.
+      */
+    private def ownDatatype(tv: TypeView): String =
+      Uri.synthetic(tv.defaultPrefixUri, Case.baseToPascal(Case.base(tv.name))).original
 
     /** Whether the type comes from LinkML's own schemas, such as `linkml:types`. */
     private def isLinkmlOwn(tv: TypeView): Boolean =
@@ -1155,6 +1176,15 @@ object OwlGenerator {
             ),
           )
           add(DatatypeDefinition(iri, restriction))
+        } else if (isNamedHere(tv)) {
+          // The same values as the type it is based on
+          val parent = tv.ancestorsWithSelf.drop(1).headOption
+          add(
+            DatatypeDefinition(
+              iri,
+              parent.fold(DataRange.Datatype(baseDatatype(tv)))(datatypeOf),
+            ),
+          )
         }
       } else if (!Metadata.of(tv._type).isEmpty && isNamedAfter(iri, tv.name)) {
         // A type named after the built-in datatype describes the datatype itself, as when an

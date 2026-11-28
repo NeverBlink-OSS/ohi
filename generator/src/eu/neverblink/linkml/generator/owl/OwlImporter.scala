@@ -968,7 +968,8 @@ object OwlImporter {
       doc.metadata.applyTo(
         TypeDefinition(
           name = name,
-          typeUri = Some(uri(iri)),
+          typeUri =
+            if (definition ne null) explicitIri(iri, NameGroup.Type) else Some(uri(iri)),
           typeof = Some(Reference(typeof)),
           annotations = doc.annotations,
         ).copy(
@@ -1872,9 +1873,7 @@ object OwlImporter {
       entriesOf(keysByClass, c).foreach { a =>
         if (a.properties.forall(names.contains)) {
           take(a)
-          val slots = mutable.ArrayBuffer.empty[String]
-          a.properties.foreach(p => slots.addOne(names(p)))
-          keys.addOne(slots)
+          keys.addOne(a.properties)
         }
       }
 
@@ -1902,11 +1901,22 @@ object OwlImporter {
       java.util.Arrays.sort(ordered, byPropertyOrder)
       val slotRefs = Vector.newBuilder[Reference[SlotDefinition]]
       ordered.foreach(p => slotRefs.addOne(Reference(names(p))))
+      // A key of one required, single-valued data property is the identifier, unless the class
+      // could get another one from an ancestor with a key.
+      val identifierKey = keys.indexWhere { key =>
+        key.size == 1 && {
+          val p = key.head
+          kindOf(p) == EntityKind.DataProperty && singleValuedSlot(p) && !isInherited(p) &&
+          usage.get(names(p)).exists(_.required)
+        }
+      }
+      if (identifierKey >= 0 && !ancestors.exists(a => entriesOf(keysByClass, a).nonEmpty))
+        restrict(keys.remove(identifierKey).head, _.copy(identifier = true, required = false))
       val slotUsage = VectorMap.newBuilder[String, SlotDefinition]
       usageOrder.foreach(n => slotUsage.addOne(n -> usage(n)))
       val uniqueKeys = VectorMap.newBuilder[String, UniqueKey]
       var i = 0
-      keys.foreach { slots =>
+      keys.map(_.map(names)).foreach { slots =>
         val keyName = if (i == 0) s"${name}_key" else s"${name}_key_${i + 1}"
         uniqueKeys.addOne(
           keyName -> UniqueKey(uniqueKeyName = keyName, uniqueKeySlots = references(slots)),

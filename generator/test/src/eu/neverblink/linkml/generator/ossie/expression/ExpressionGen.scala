@@ -63,10 +63,31 @@ private[ossie] object ExpressionGen {
 
   val atMost: Gen[AtMost] = for { r <- ref; v <- literal } yield AtMost(r, v)
 
+  val greaterThan: Gen[GreaterThan] = for { r <- ref; v <- literal } yield GreaterThan(r, v)
+
+  val lessThan: Gen[LessThan] = for { r <- ref; v <- literal } yield LessThan(r, v)
+
+  val length: Gen[Int] = Gen.chooseNum(0, 999999999)
+
+  val lengthAtLeast: Gen[LengthAtLeast] = for { r <- ref; n <- length } yield LengthAtLeast(r, n)
+
+  val lengthAtMost: Gen[LengthAtMost] = for { r <- ref; n <- length } yield LengthAtMost(r, n)
+
   val regexpLike: Gen[RegexpLike] =
     for { r <- ref; p <- literalText } yield RegexpLike(r, p)
 
-  val expression: Gen[Expression] = Gen.oneOf(member, inList, atLeast, atMost, regexpLike)
+  val expression: Gen[Expression] =
+    Gen.oneOf(
+      member,
+      inList,
+      atLeast,
+      atMost,
+      greaterThan,
+      lessThan,
+      lengthAtLeast,
+      lengthAtMost,
+      regexpLike,
+    )
 
   /** The same expression written with the whitespace Ossie allows but [[Expression.render]] does
     * not produce.
@@ -78,6 +99,10 @@ private[ossie] object ExpressionGen {
       s"\t${r.written}  \t IN \t( $body\t)  "
     case AtLeast(r, v) => s" ${r.written}\t>=  ${v.render} "
     case AtMost(r, v) => s"  ${r.written}  <=\t${v.render}\t"
+    case GreaterThan(r, v) => s"\t${r.written}  >  ${v.render}"
+    case LessThan(r, v) => s" ${r.written}<\t${v.render} "
+    case LengthAtLeast(r, n) => s" LENGTH ( ${r.written}\t) >=\t$n "
+    case LengthAtMost(r, n) => s"\tlength(${r.written} )  <= $n"
     case RegexpLike(r, p) => s" REGEXP_LIKE\t( ${r.written} ,\t${p.render}  ) "
   }
 }

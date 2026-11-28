@@ -60,7 +60,7 @@ sealed trait ElementView[E <: Element, R](using val sv: SchemaView) {
   /** Model URI of this element. This is the fallback URI to be used for an element that does not
     * have an explicit `???_uri`, like `class_uri`.
     */
-  private[schemaview] final def modelUri: Uri = Uri.synthetic(defaultPrefixUri, canonicalName)
+  final def modelUri: Uri = Uri.synthetic(defaultPrefixUri, canonicalName)
 
   /** The name of the underlying Element, overridden with the `alias` slot if defined, re-cased
     * appropriately.
@@ -100,7 +100,7 @@ sealed trait ElementView[E <: Element, R](using val sv: SchemaView) {
   /** Get the default URI prefix (prefix map value) for the defining schema, with a fallback to the
     * schema ID (this fallback mirrors the python implementation).
     */
-  final private[schemaview] def defaultPrefixUri: String = sv.getDefaultPrefix(definingSchema)
+  final def defaultPrefixUri: String = sv.getDefaultPrefix(definingSchema)
 }
 
 private object ClassView:

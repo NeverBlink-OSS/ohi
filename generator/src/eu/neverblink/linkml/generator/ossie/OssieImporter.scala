@@ -329,13 +329,19 @@ object OssieImporter {
         owner,
         role.fold(Ref(""))(r => Ref(r.ref)),
         relationship.requires,
+        role.exists(r => holdsIntegers(r.concept)),
       )
+      val unary = relationship.roles.isEmpty
+      val first = relationship.verbalizes.headOption
+      val read = if unary then None else first.flatMap(Verbalization.parseWithRest)
+      // A first verbalization that goes on after the second concept, such as `{Aircraft} has
+      // {Integer} seats`, is kept in `aliases` too, as the title is only part of it.
+      val partly = read.exists(_._2.nonEmpty)
       // Try to get a title from the verbalization, but only if it is not empty
       // and not the same as the space-cased relationship name.
-      val title = relationship.verbalizes.headOption
-        .flatMap(Verbalization.parse)
-        .map(_.phrase)
-        .filter(phrase => phrase.nonEmpty && phrase != name.replace('_', ' '))
+      val title =
+        (if unary then first.flatMap(Verbalization.unaryPhrase) else read.map(_._1.phrase))
+          .filter(phrase => phrase.nonEmpty && phrase != name.replace('_', ' '))
 
       name -> SlotDefinition(
         name = name,
@@ -344,13 +350,20 @@ object OssieImporter {
         slotUri = Some(relationship.iri.map(uriOf).getOrElse(Uri(s"$namespace$className.$name"))),
         domain = Some(Reference(className)),
         title = title.map(PlainText.apply),
+        aliases = relationship.verbalizes
+          .drop(if partly then 0 else 1)
+          .map(v => PlainText(Verbalization.plain(v))),
         description = relationship.description.map(PlainText.apply),
-        range = role.map(r => Reference(rangeOf(r.concept))),
-        multivalued = relationship.multiplicity.isEmpty,
+        range =
+          if unary then Some(Reference(linkmlTypes(BuiltInConcept.boolean)))
+          else role.map(r => Reference(rangeOf(r.concept))),
+        multivalued = !unary && relationship.multiplicity.isEmpty,
         required = required,
         identifier = identifier,
         minimumValue = constraints.minimumValue,
         maximumValue = constraints.maximumValue,
+        minimumLength = constraints.minimumLength,
+        maximumLength = constraints.maximumLength,
         pattern = constraints.pattern,
       )
     }
@@ -369,7 +382,12 @@ object OssieImporter {
     }
 
     private def typeOf(concept: Concept, rank: Int): TypeDefinition = {
-      val constraints = constraintsOf(concept.concept, Ref(concept.concept), concept.requires)
+      val constraints = constraintsOf(
+        concept.concept,
+        Ref(concept.concept),
+        concept.requires,
+        holdsIntegers(concept.concept),
+      )
       warnAboutValueType(concept)
       concept.extendsConcepts.drop(1).foreach { p =>
         warn(ExtraValueTypeParent(concept = concept.concept, parent = p))
@@ -388,6 +406,8 @@ object OssieImporter {
         base = Option.when(overAny)(BuiltInConcept.any),
         minimumValue = constraints.minimumValue,
         maximumValue = constraints.maximumValue,
+        minimumLength = constraints.minimumLength,
+        maximumLength = constraints.maximumLength,
         pattern = constraints.pattern,
       )
     }
@@ -447,10 +467,18 @@ object OssieImporter {
 
     /** The constraints that expressions place on `ref`. Warns about the expressions that are not
       * one.
+      *
+      * @param integer
+      *   whether `ref` is an integer, which makes `>` and `<` bounds LinkML can state
       */
-    private def constraintsOf(owner: String, ref: Ref, texts: Seq[String]): Constraints = {
+    private def constraintsOf(
+        owner: String,
+        ref: Ref,
+        texts: Seq[String],
+        integer: Boolean,
+    ): Constraints = {
       val read = expressions(owner, texts)
-      val (constraints, unused) = Constraints.from(ref, read.map(_._1))
+      val (constraints, unused) = Constraints.from(ref, read.map(_._1), integer)
       // Expressions that read the same are interchangeable, so each unused one takes the first
       // text left that reads like it.
       val left = collection.mutable.ArrayBuffer.from(read)
@@ -460,6 +488,14 @@ object OssieImporter {
       }
       constraints
     }
+
+    /** Whether a concept's values are integers: `Integer`, or a value type based on it. */
+    private def holdsIntegers(concept: String, seen: Set[String] = Set.empty): Boolean =
+      concept == BuiltInConcept.integer || !seen(concept) && conceptsByName.get(concept).exists {
+        c =>
+          c.conceptType == ConceptType.ValueType &&
+          c.extendsConcepts.headOption.exists(holdsIntegers(_, seen + concept))
+      }
 
     private def cannotExpress(owner: String, text: String): Unit =
       warn(UnimplementedExpression(owner = owner, expression = text))

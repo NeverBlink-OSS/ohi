@@ -21,11 +21,8 @@ class OwlGeneratorSpec extends AnyWordSpec, Matchers, OwlFixtures {
   private val xsd = XmlSchema.prefix
   private def c(local: String) = Named(ns + local)
 
-  private val ageRange =
-    DataRange.Restriction(
-      xsd + "integer",
-      Seq(xsd + "minInclusive" -> Literal("0", XmlSchema.integer)),
-    )
+  /** The `Age` type, which has no `uri` of its own, as a datatype of the schema. */
+  private val ageRange = DataRange.Datatype(ns + "Age")
 
   private def datatypesIn(axiom: Axiom): Seq[String] = {
     def range(r: Filler): Seq[String] = r match {
@@ -41,6 +38,7 @@ class OwlGeneratorSpec extends AnyWordSpec, Matchers, OwlFixtures {
       case Declaration(EntityKind.Datatype, iri, _) => Seq(iri)
       case Range(_, r, _) => range(r)
       case SubClassOf(_, sup, _) => range(sup)
+      case DatatypeDefinition(_, r, _) => range(r)
       case _ => Nil
     }
   }
@@ -299,10 +297,30 @@ class OwlGeneratorSpec extends AnyWordSpec, Matchers, OwlFixtures {
       )
     }
 
-    "use the uri of a constrained type, as SHACL does, narrowed by its constraints" in {
-      val axioms = ontologyOf(personinfo).axioms
-      axioms.collect { case d: DatatypeDefinition => d } shouldBe empty
-      axioms.collect { case d @ Declaration(EntityKind.Datatype, _, _) => d } shouldBe empty
+    "declare a type without a uri of its own as a datatype named after it, defined by its constraints" in {
+      ontologyOf(personinfo).axioms should contain allOf (
+        Declaration(EntityKind.Datatype, ns + "Age"),
+        DatatypeDefinition(
+          ns + "Age",
+          DataRange.Restriction(
+            xsd + "integer",
+            Seq(xsd + "minInclusive" -> Literal("0", XmlSchema.integer)),
+          ),
+        ),
+      )
+    }
+
+    "define a type without a uri of its own or constraints as the type it is based on" in {
+      ontologyOf("""
+        |types:
+        |  Code:
+        |    typeof: string
+        |  ProductCode:
+        |    typeof: Code
+        |""").axioms should contain allOf (
+        DatatypeDefinition(ns + "Code", DataRange.Datatype(xsd + "string")),
+        DatatypeDefinition(ns + "ProductCode", DataRange.Datatype(ns + "Code")),
+      )
     }
 
     "declare and define a type with a uri of its own" in {
