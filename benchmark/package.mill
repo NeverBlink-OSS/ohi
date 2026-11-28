@@ -28,7 +28,7 @@ object `package` extends ScalaModule, ScalafmtModule, ScalafixModule, JmhModule 
     mvn"dev.zio::zio-blocks-schema-yaml::0.0.56",
     mvn"org.eclipse.rdf4j:rdf4j-rio-ntriples:${Version.rdf4j}",
     mvn"org.eclipse.rdf4j:rdf4j-rio-turtle:${Version.rdf4j}",
-    mvn"org.apache.jena:jena-arq:6.2.0",
+    mvn"org.apache.jena:jena-arq:6.3.0",
   )
 
   def scalacOptions = Seq(
