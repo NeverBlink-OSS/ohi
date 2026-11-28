@@ -74,3 +74,9 @@
 h1#_top {
   letter-spacing: -0.02em;
 }
+
+/* No line before the theme toggle, as on the landing page: the GitHub button and the toggle have
+   borders already */
+.header .social-icons::after {
+  display: none;
+}

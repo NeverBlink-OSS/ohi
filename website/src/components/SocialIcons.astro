@@ -1,0 +1,138 @@
+---
+// Replaces Starlight's social links. GitHub is the button with the star and fork counts, as on the
+// landing page and in the playground. The other links stay icons.
+import config from 'virtual:starlight/user-config';
+import { Icon } from '@astrojs/starlight/components';
+
+const links = config.social || [];
+const github = links.find((link) => link.icon === 'github');
+const others = links.filter((link) => link !== github);
+const repo = github && new URL(github.href).pathname.slice(1);
+---
+
+{
+  others.map(({ label, href, icon }) => (
+    <a class="icon-link sl-flex" {href} rel="me">
+      <span class="sr-only">{label}</span>
+      <Icon name={icon} />
+    </a>
+  ))
+}
+{
+  github && (
+    <a class="repo-link" href={github.href} rel="me" aria-label={`${repo} on GitHub`} data-repo={repo}>
+      <Icon name="github" class="repo-icon" />
+      <span class="repo-meta">
+        <span class="repo-name">{repo}</span>
+        <span class="repo-stats" hidden>
+          <span class="repo-stat">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z" /></svg>
+            <span class="repo-stars">–</span>
+          </span>
+          <span class="repo-stat">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 5.372v.878c0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75v-.878a2.25 2.25 0 1 1 1.5 0v.878a2.25 2.25 0 0 1-2.25 2.25h-1.5v2.128a2.251 2.251 0 1 1-1.5 0V8.5h-1.5A2.25 2.25 0 0 1 3.5 6.25v-.878a2.25 2.25 0 1 1 1.5 0ZM5 3.25a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Zm6.75.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Zm-3 8.75a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0Z" /></svg>
+            <span class="repo-forks">–</span>
+          </span>
+        </span>
+      </span>
+    </a>
+  )
+}
+
+<script>
+  // Cached under the playground's key, so a visit to any of the pages shows the last counts at once
+  const KEY = 'linkml-ui-repo-stats';
+  const count = (n: number) =>
+    n < 1000 ? String(n) : (n >= 10000 ? Math.round(n / 1000) : Number((n / 1000).toFixed(1))) + 'k';
+
+  // The header and the mobile menu each have a button
+  const buttons = document.querySelectorAll<HTMLElement>('.repo-link');
+  function show(stars: unknown, forks: unknown) {
+    if (typeof stars !== 'number' || typeof forks !== 'number') return;
+    for (const button of buttons) {
+      button.querySelector('.repo-stars')!.textContent = count(stars);
+      button.querySelector('.repo-forks')!.textContent = count(forks);
+      button.querySelector<HTMLElement>('.repo-stats')!.hidden = false;
+    }
+  }
+
+  const repo = buttons[0]?.dataset.repo;
+  if (repo) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (cached) show(cached.stars, cached.forks);
+    } catch (e) {}
+    fetch(`https://api.github.com/repos/${repo}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) return;
+        show(d.stargazers_count, d.forks_count);
+        try {
+          localStorage.setItem(KEY, JSON.stringify({ stars: d.stargazers_count, forks: d.forks_count }));
+        } catch (e) {}
+      })
+      .catch(() => {}); // Offline or rate-limited: keep the cached counts, or none
+  }
+</script>
+
+<style>
+  a {
+    color: var(--sl-color-gray-3);
+    text-decoration: none;
+  }
+  a:hover {
+    color: var(--sl-color-white);
+  }
+  .icon-link {
+    padding: 0.5em;
+    margin: -0.5em;
+  }
+  /* Styled like the theme toggle, and as tall */
+  .repo-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 2.25rem;
+    padding: 0 0.625rem;
+    border: 1px solid var(--sl-color-hairline-light);
+    border-radius: 0.5rem;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+  .repo-link:hover {
+    border-color: var(--sl-color-gray-4);
+  }
+  .repo-link :global(.repo-icon) {
+    flex: none;
+    font-size: 1.25rem;
+  }
+  .repo-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  .repo-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+  .repo-stats {
+    display: flex;
+    gap: 0.6875rem;
+    font-size: 0.6875rem;
+    color: var(--sl-color-gray-3);
+  }
+  .repo-stats[hidden] {
+    display: none;
+  }
+  .repo-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .repo-stat svg {
+    width: 0.75rem;
+    height: 0.75rem;
+    fill: currentColor;
+  }
+</style>
