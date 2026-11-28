@@ -77,6 +77,7 @@ export default defineConfig({
             'reference/sdks',
             'reference/project-files',
             'reference/compatibility',
+            'reference/quality-seal',
           ],
         },
       ],

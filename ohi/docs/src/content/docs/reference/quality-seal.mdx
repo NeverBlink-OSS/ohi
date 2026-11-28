@@ -1,0 +1,55 @@
+---
+title: Seal of Quality
+description: What the Gold, Silver and Bronze seals on ohi.dev mean and where to find an ontology's quality details.
+---
+
+import QualitySeals from '../../../components/QualitySeals.astro';
+import qualityDetails from '../../../assets/quality-details.png';
+
+We award well written and maintained ontologies with quality seals to help you choose
+when several ontologies match your needs.
+
+<QualitySeals />
+
+On [ohi.dev](https://ohi.dev), the seal appears beside the ontology's title and as a small badge in
+Search and Browse.
+
+## What we consider
+
+We use quality measures to encourage and reward ontology maintainers who follow best practices to
+improve quality and usability.
+
+Quality scoring is still experimental and heavily subject to change. We currently consider:
+
+- **Term descriptions.** The share of terms with a description.
+- **Metadata.** Whether it includes a title, description, license and version.
+- **Reuse.** How other ontologies in the catalog depend on it.
+
+We will continue gathering feedback on scoring and which signals to include. We also plan to offer
+additional, context-dependent measures for advanced users.
+
+An ontology may have no seal because it has not been scored or has not met the current criteria.
+
+## Quality details
+
+When available, open **Quality details** on the ontology's page to see its assessment.
+
+<figure class="not-content" style={{ margin: '1.5rem 0' }}>
+  <svg
+    viewBox={`0 0 ${qualityDetails.width} ${qualityDetails.height}`}
+    role="img"
+    aria-label="Expanded Quality details. Gold, 80 out of 100. Term descriptions 60 out of 60, all 10 terms described. Metadata 20 out of 20, with title, description, license and version present. Dependency influence 0 out of 20. An arrow points to Quality details below Schema statistics."
+    style={{ display: 'block', width: '100%', height: 'auto' }}
+  >
+    <image href={qualityDetails.src} width={qualityDetails.width} height={qualityDetails.height} />
+    <path
+      d="M960 275Q800 382 460 382m32-28-32 28 32 28"
+      fill="none"
+      stroke="#a3bf28"
+      stroke-width="8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </svg>
+  <figcaption>OMG Commons Annotation Vocabulary</figcaption>
+</figure>
