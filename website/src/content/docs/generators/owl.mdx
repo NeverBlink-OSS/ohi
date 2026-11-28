@@ -10,7 +10,7 @@ import { Options, Usage } from '../../../components/converter';
 
 The `owl` generator writes an [OWL 2](https://www.w3.org/TR/owl2-overview/) ontology for a LinkML schema. The [OWL importer](/docs/importers/owl/) does the reverse, and the two should preserve most axioms of an OWL ontology.
 
-OWL can express things LinkML cannot (property chains, defined classes, individuals), and LinkML can express things OWL cannot (`tree_root`, `inlined`, identifiers). Those are lost on the way.
+OWL can express things LinkML cannot (property chains, defined classes, individuals), and LinkML can express things OWL cannot (`tree_root`, `inlined`). Those are lost on the way.
 
 The generator aims for OWL 2 DL. SAREF, SOSA, gist, PROV-O and D3FEND, after a trip through LinkML, pass ROBOT's DL profile check (`robot validate-profile --profile DL`, run by hand).
 
@@ -37,7 +37,7 @@ The generator aims for OWL 2 DL. SAREF, SOSA, gist, PROV-O and D3FEND, after a t
 | `has_member`, and more `has_member` under `all_of`         | `owl:someValuesFrom`, one each                                                                         |
 | `abstract` with two or more `is_a` children                | `rdfs:subClassOf` the union of the children                                                            |
 | `disjoint_with`, `children_are_mutually_disjoint`          | `owl:disjointWith`, `owl:AllDisjointClasses`                                                           |
-| `unique_keys`                                              | `owl:hasKey`                                                                                           |
+| `unique_keys`, and an `identifier` whose values aren't IRIs | `owl:hasKey`. An identifier is a key of the class that brings it in, and so of its subclasses too       |
 | `exact_mappings` to a class or slot of the same schema     | `owl:equivalentClass`, `owl:equivalentProperty`                                                        |
 | slot                                                       | `owl:ObjectProperty`, or `owl:DatatypeProperty` when every use of it has a type as its range           |
 | `implements: [owl:DatatypeProperty]` and friends           | the property kind asked for, as in `gen-owl`                                                           |
@@ -48,7 +48,7 @@ The generator aims for OWL 2 DL. SAREF, SOSA, gist, PROV-O and D3FEND, after a t
 | `transitive`, `symmetric` and the other characteristics    | `owl:TransitiveProperty` and so on                                                                     |
 | enum                                                       | `owl:Class` equivalent to `owl:oneOf` its permissible values                                           |
 | permissible value                                          | `owl:NamedIndividual` with the `meaning` as its IRI, and `skos:notation` for its text when that is not the IRI's local name |
-| type                                                       | its `uri`; with constraints, a datatype restriction on it (`xsd:integer[>= 0]`)                        |
+| type                                                       | its `uri`. A type of the schema that inherits its `uri`, such as one with `typeof: integer`, is a datatype named after it in the schema's namespace (`ex:Age`), defined as its parent, narrowed by its constraints (`xsd:integer[>= 0]`) |
 | `pattern`, `minimum_value`, `maximum_value`, `minimum_length`, `maximum_length` | `xsd:pattern`, `xsd:minInclusive`, `xsd:maxInclusive`, `xsd:minLength`, `xsd:maxLength`. An XSD pattern matches the whole value, so `^abc$` is written `abc`, and `abc` is written `.*abc.*` |
 | `title`                                                    | `rdfs:label`, tagged with `in_language` when the schema has one |
 | `description`                                              | `rdfs:comment` (or `skos:definition` with `--metadata-profile linkml`). The schema's description is `dcterms:description`. |
@@ -63,7 +63,8 @@ The LinkML-to-OWL generator declares every annotation property that is used, whi
 These differences are in place mostly to make the OWL describe the same RDF data as the RDFS and SHACL generators, which we think is a more consistent approach.
 
 - **IRIs are the ones the data uses**: `class_uri`, `slot_uri`, `enum_uri` and the permissible value `meaning`, as in this project's RDF, RDFS and SHACL. `gen-owl` uses the schema's own namespace by default (`--use-native-uris`).
-- **Identifier slots whose values are IRIs are optional properties.** Such an identifier is the IRI of the node, so stating it as a property too is optional. Other identifiers, such as a string ISBN, are required.
+- **Identifier slots whose values are IRIs are optional properties.** Such an identifier is the IRI of the node, so stating it as a property too is optional. Other identifiers, such as a string ISBN, are required, and a key of their class.
+- **A type that inherits its `uri` is a datatype of its own**, so that it keeps its name, unlike in the RDF, RDFS and SHACL, where its values have the `uri` it inherits. The datatype is defined as that one, so it has the same values.
 - **Slots with a `uri` or `uriorcurie` range, or with an `implicit_prefix`, are object properties without a range**, since their values are IRIs in RDF, as in the SHACL generator.
 - **Permissible values are individuals** of a class defined by `owl:oneOf`. `gen-owl` makes them classes by default, which is still possible in ohi LinkML with the `--permissible-values class` option.
 - **Descriptions are `rdfs:comment`** by default, rather than the metamodel's `skos:definition`. If you select the `--metadata-profile linkml` option, descriptions will be written as `skos:definition`, as `gen-owl` does by default. The schema's description is always written as `dcterms:description`.

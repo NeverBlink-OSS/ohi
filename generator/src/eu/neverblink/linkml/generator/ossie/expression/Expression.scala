@@ -47,6 +47,16 @@ private[ossie] object Expression {
     override def render: String = s"${ref.written} <= ${value.render}"
   }
 
+  /** `LENGTH(Ref) >= 1` */
+  final case class LengthAtLeast(ref: Ref, length: Int) extends Expression {
+    override def render: String = s"LENGTH(${ref.written}) >= $length"
+  }
+
+  /** `LENGTH(Ref) <= 10` */
+  final case class LengthAtMost(ref: Ref, length: Int) extends Expression {
+    override def render: String = s"LENGTH(${ref.written}) <= $length"
+  }
+
   /** `REGEXP_LIKE(Ref, '^x')` */
   final case class RegexpLike(ref: Ref, pattern: Literal.Text) extends Expression {
     override def render: String =
@@ -61,7 +71,10 @@ private[ossie] object Expression {
     }
 
   private def expression[$: P]: P[Expression] =
-    P(ws ~ (regexpLike | inList | equalsAny | atLeast | atMost | member) ~ ws ~ End)
+    P(
+      ws ~ (regexpLike | lengthAtLeast | lengthAtMost | inList | equalsAny | atLeast | atMost |
+        member) ~ ws ~ End,
+    )
 
   /** A bare identifier, or a name in double quotes, in which a doubled quote is an escaped one. */
   private def ident[$: P]: P[String] =
@@ -102,6 +115,17 @@ private[ossie] object Expression {
   private def atLeast[$: P]: P[AtLeast] = P(ref ~ ws ~ ">=" ~ ws ~ value).map(AtLeast.apply)
 
   private def atMost[$: P]: P[AtMost] = P(ref ~ ws ~ "<=" ~ ws ~ value).map(AtMost.apply)
+
+  private def lengthOf[$: P]: P[Ref] = P(IgnoreCase("LENGTH") ~ ws ~ "(" ~ ws ~ ref ~ ws ~ ")")
+
+  /** A length: digits that fit in an `Int`. */
+  private def count[$: P]: P[Int] = P(CharsWhileIn("0-9").!).filter(_.length <= 9).map(_.toInt)
+
+  private def lengthAtLeast[$: P]: P[LengthAtLeast] =
+    P(lengthOf ~ ws ~ ">=" ~ ws ~ count).map(LengthAtLeast.apply)
+
+  private def lengthAtMost[$: P]: P[LengthAtMost] =
+    P(lengthOf ~ ws ~ "<=" ~ ws ~ count).map(LengthAtMost.apply)
 
   private def regexpLike[$: P]: P[RegexpLike] =
     P(IgnoreCase("REGEXP_LIKE") ~ ws ~ "(" ~ ws ~ ref ~ ws ~ "," ~ ws ~ literalStr ~ ws ~ ")").map(

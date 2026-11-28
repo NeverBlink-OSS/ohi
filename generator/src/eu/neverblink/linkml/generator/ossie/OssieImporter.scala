@@ -330,11 +330,13 @@ object OssieImporter {
         role.fold(Ref(""))(r => Ref(r.ref)),
         relationship.requires,
       )
+      val unary = relationship.roles.isEmpty
       // Try to get a title from the verbalization, but only if it is not empty
       // and not the same as the space-cased relationship name.
       val title = relationship.verbalizes.headOption
-        .flatMap(Verbalization.parse)
-        .map(_.phrase)
+        .flatMap(v =>
+          if unary then Verbalization.unaryPhrase(v) else Verbalization.parse(v).map(_.phrase),
+        )
         .filter(phrase => phrase.nonEmpty && phrase != name.replace('_', ' '))
 
       name -> SlotDefinition(
@@ -344,13 +346,18 @@ object OssieImporter {
         slotUri = Some(relationship.iri.map(uriOf).getOrElse(Uri(s"$namespace$className.$name"))),
         domain = Some(Reference(className)),
         title = title.map(PlainText.apply),
+        aliases = relationship.verbalizes.drop(1).map(v => PlainText(Verbalization.plain(v))),
         description = relationship.description.map(PlainText.apply),
-        range = role.map(r => Reference(rangeOf(r.concept))),
-        multivalued = relationship.multiplicity.isEmpty,
+        range =
+          if unary then Some(Reference(linkmlTypes(BuiltInConcept.boolean)))
+          else role.map(r => Reference(rangeOf(r.concept))),
+        multivalued = !unary && relationship.multiplicity.isEmpty,
         required = required,
         identifier = identifier,
         minimumValue = constraints.minimumValue,
         maximumValue = constraints.maximumValue,
+        minimumLength = constraints.minimumLength,
+        maximumLength = constraints.maximumLength,
         pattern = constraints.pattern,
       )
     }
@@ -388,6 +395,8 @@ object OssieImporter {
         base = Option.when(overAny)(BuiltInConcept.any),
         minimumValue = constraints.minimumValue,
         maximumValue = constraints.maximumValue,
+        minimumLength = constraints.minimumLength,
+        maximumLength = constraints.maximumLength,
         pattern = constraints.pattern,
       )
     }

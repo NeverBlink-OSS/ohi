@@ -292,9 +292,12 @@ class OssieGeneratorSpec extends AnyWordSpec, Matchers, OssieFixtures {
       val o = ontologyOf(globalIdentifiers)
       concept(o, "Agent").iri shouldBe Some("foaf:Agent")
       relationship(o, "Agent", "homepage").iri shouldBe Some("foaf:homepage")
-      concept(o, "Person").iri shouldBe Some("ex:Person")
       relationship(o, "Agent", "status").iri shouldBe Some("ex:status")
       concept(o, "Status").iri shouldBe Some("http://www.w3.org/ns/org#Status")
+    }
+
+    "give a class no IRI when the schema states none, as the Ossie importer would make it up" in {
+      concept(ontologyOf(globalIdentifiers), "Person").iri shouldBe None
     }
 
     "declare only the prefixes the IRIs use, in the schema's order" in {
@@ -305,9 +308,9 @@ class OssieGeneratorSpec extends AnyWordSpec, Matchers, OssieFixtures {
       )
     }
 
-    "give a named type its uri, inherited or not" in {
+    "give a named type its own uri, and no IRI when it inherits one" in {
       concept(ontologyOf(globalIdentifiers), "Year").iri shouldBe Some("xsd:gYear")
-      concept(ontologyOf(typeofChain), "PositiveInt").iri shouldBe Some("xsd:integer")
+      concept(ontologyOf(typeofChain), "PositiveInt").iri shouldBe None
     }
 
     "use the longest namespace when several cover an IRI" in {

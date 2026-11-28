@@ -578,15 +578,29 @@ class OssieImporterSpec extends AnyWordSpec, Matchers, OssieFixtures {
       ).range shouldBe Some(Reference("string"))
     }
 
-    "leave the range off a relationship with no roles at all" in {
+    "make a relationship with no roles at all a single yes/no value" in {
+      val slot = attributeOf(
+        """
+        |      - name: blocked
+        |        verbalizes: ['{Thing} is blocked']
+        """,
+        "blocked",
+      )
+      slot.range shouldBe Some(Reference("boolean"))
+      slot.multivalued shouldBe false
+      slot.title.map(_.plain) shouldBe Some("is blocked")
+    }
+
+    "keep the verbalizations after the first as aliases, without braces" in {
       attributeOf(
         """
-        |      - name: nothing
+        |      - name: owner
+        |        roles: [{concept: Thing}]
         |        multiplicity: ManyToOne
-        |        verbalizes: ['{Thing} nothing']
+        |        verbalizes: ['{Thing} is owned by {Thing:owner}', '{Thing:owner} owns {Thing}']
         """,
-        "nothing",
-      ).range shouldBe None
+        "owner",
+      ).aliases.map(_.plain) shouldBe Seq("Thing:owner owns Thing")
     }
 
     "pass an unknown concept through, so that schema validation reports it" in {

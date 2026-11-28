@@ -172,21 +172,6 @@ class OwlCorpusSpec extends AnyWordSpec, Matchers {
   /** Reports only the fields that differ: a diff of whole schemas takes too long to print. */
   private def sameSchema(first: SchemaDefinition, again: SchemaDefinition): Unit =
     if again != first then fail(differences("schema", first, again).take(8).mkString("\n"))
-
-  private def differences(path: String, a: Any, b: Any): Seq[String] = (a, b) match {
-    case _ if a == b => Nil
-    case (x: collection.Map[?, ?], y: collection.Map[?, ?]) =>
-      val keys = (x.keySet ++ y.keySet).toSeq.map(_.toString).sorted
-      val (xs, ys) = (x.map((k, v) => k.toString -> v), y.map((k, v) => k.toString -> v))
-      keys.flatMap(k => differences(s"$path.$k", xs.get(k), ys.get(k)))
-    case (Some(x), Some(y)) => differences(path, x, y)
-    case (x: Seq[?], y: Seq[?]) if x.size == y.size =>
-      x.zip(y).zipWithIndex.flatMap { case ((u, v), i) => differences(s"$path[$i]", u, v) }
-    case (x: Product, y: Product) if x.getClass == y.getClass && x.productArity > 0 =>
-      x.productElementNames.zip(x.productIterator.zip(y.productIterator)).toSeq
-        .flatMap { case (field, (u, v)) => differences(s"$path.$field", u, v) }
-    case _ => Seq(s"$path:\n  ${a.toString.take(300)}\n  ${b.toString.take(300)}")
-  }
 }
 
 object OwlCorpusSpec {
@@ -213,6 +198,22 @@ object OwlCorpusSpec {
     val in = GZIPInputStream(os.read.inputStream(file))
     try String(in.readAllBytes(), UTF_8)
     finally in.close()
+  }
+
+  /** The paths of the fields that differ between [[a]] and [[b]], with both values. */
+  def differences(path: String, a: Any, b: Any): Seq[String] = (a, b) match {
+    case _ if a == b => Nil
+    case (x: collection.Map[?, ?], y: collection.Map[?, ?]) =>
+      val keys = (x.keySet ++ y.keySet).toSeq.map(_.toString).sorted
+      val (xs, ys) = (x.map((k, v) => k.toString -> v), y.map((k, v) => k.toString -> v))
+      keys.flatMap(k => differences(s"$path.$k", xs.get(k), ys.get(k)))
+    case (Some(x), Some(y)) => differences(path, x, y)
+    case (x: Seq[?], y: Seq[?]) if x.size == y.size =>
+      x.zip(y).zipWithIndex.flatMap { case ((u, v), i) => differences(s"$path[$i]", u, v) }
+    case (x: Product, y: Product) if x.getClass == y.getClass && x.productArity > 0 =>
+      x.productElementNames.zip(x.productIterator.zip(y.productIterator)).toSeq
+        .flatMap { case (field, (u, v)) => differences(s"$path.$field", u, v) }
+    case _ => Seq(s"$path:\n  ${a.toString.take(300)}\n  ${b.toString.take(300)}")
   }
 
   def triples(source: String): IndexedSeq[Triple] = {
